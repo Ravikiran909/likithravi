@@ -1,0 +1,6 @@
+{
+  "name": "WhatsApp AI Learning Agent",
+  "description": "Production-ready WhatsApp AI Tutor & Learning Agent with personalized tutoring, adaptive quizzes, study planner, RAG knowledge base, and student/admin dashboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

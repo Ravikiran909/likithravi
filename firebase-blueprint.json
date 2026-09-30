@@ -1,0 +1,131 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered user account with role",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "role": { "type": "string", "enum": ["student", "admin"] },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "StudentProfile": {
+      "title": "StudentProfile",
+      "description": "Student academic preferences, streak, and progress metrics",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "whatsappNumber": { "type": "string", "maxLength": 30 },
+        "preferredLanguage": { "type": "string", "enum": ["en", "hi", "kn"] },
+        "educationLevel": { "type": "string", "maxLength": 50 },
+        "currentSkillLevel": { "type": "string", "enum": ["beginner", "intermediate", "advanced", "expert"] },
+        "studyHoursPerDay": { "type": "number" },
+        "streak": { "type": "number" },
+        "overallProgress": { "type": "number" },
+        "totalQuestionsAnswered": { "type": "number" },
+        "correctAnswers": { "type": "number" },
+        "lastActiveDate": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["userId", "name", "whatsappNumber", "preferredLanguage"]
+    },
+    "MessageRecord": {
+      "title": "MessageRecord",
+      "description": "Chat log between student and WhatsApp learning agents",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "whatsappNumber": { "type": "string", "maxLength": 30 },
+        "direction": { "type": "string", "enum": ["incoming", "outgoing"] },
+        "messageType": { "type": "string", "enum": ["text", "image", "audio", "interactive", "document"] },
+        "content": { "type": "string", "maxLength": 5000 },
+        "intent": { "type": "string", "maxLength": 50 },
+        "agentName": { "type": "string", "maxLength": 50 },
+        "timestamp": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["userId", "direction", "content", "timestamp"]
+    },
+    "QuizSession": {
+      "title": "QuizSession",
+      "description": "Active or past quiz session history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "topic": { "type": "string", "maxLength": 100 },
+        "difficulty": { "type": "string", "maxLength": 30 },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "startedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "userId", "subject", "topic", "score", "totalQuestions"]
+    },
+    "StudyPlan": {
+      "title": "StudyPlan",
+      "description": "Personalized study timetable and milestones",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "targetExam": { "type": "string", "maxLength": 150 },
+        "examDate": { "type": "string", "maxLength": 30 },
+        "dailyHours": { "type": "number" },
+        "totalDays": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "completed", "paused"] },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["userId", "subject", "dailyHours", "totalDays", "status"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "WhatsApp learning study nudge reminder",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "whatsappNumber": { "type": "string", "maxLength": 30 },
+        "reminderText": { "type": "string", "maxLength": 500 },
+        "targetTime": { "type": "string", "maxLength": 30 },
+        "frequency": { "type": "string", "enum": ["daily", "weekly", "once"] },
+        "subject": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["active", "paused", "completed"] },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "userId", "reminderText", "targetTime", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile with role"
+    },
+    "/profiles/{userId}": {
+      "schema": "StudentProfile",
+      "description": "Academic progress and settings for each student"
+    },
+    "/messages/{messageId}": {
+      "schema": "MessageRecord",
+      "description": "Chat transcript messages"
+    },
+    "/quizzes/{quizId}": {
+      "schema": "QuizSession",
+      "description": "Individual quiz attempts and outcomes"
+    },
+    "/study_plans/{userId}": {
+      "schema": "StudyPlan",
+      "description": "Student tailored study timetable"
+    },
+    "/reminders/{reminderId}": {
+      "schema": "Reminder",
+      "description": "Student study reminders"
+    }
+  }
+}

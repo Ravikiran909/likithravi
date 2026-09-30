@@ -1,0 +1,139 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isValidUser(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 100
+        && data.email is string && data.email.size() <= 150
+        && data.role in ['student', 'admin'];
+    }
+
+    function isValidStudentProfile(data) {
+      return data.userId is string && data.userId.size() <= 128
+        && data.name is string && data.name.size() <= 100
+        && data.preferredLanguage in ['en', 'hi', 'kn'];
+    }
+
+    function isValidMessage(data) {
+      return data.userId is string && data.userId.size() <= 128
+        && data.direction in ['incoming', 'outgoing']
+        && data.content is string && data.content.size() <= 5000;
+    }
+
+    function isValidQuiz(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.subject is string && data.subject.size() <= 100
+        && data.score is number && data.totalQuestions is number;
+    }
+
+    function isValidStudyPlan(data) {
+      return data.userId is string && data.userId.size() <= 128
+        && data.subject is string && data.subject.size() <= 100
+        && data.status in ['active', 'completed', 'paused'];
+    }
+
+    function isValidReminder(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.reminderText is string && data.reminderText.size() <= 500;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Profiles Collection
+    match /profiles/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidStudentProfile(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidStudentProfile(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Messages Collection
+    match /messages/{messageId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidMessage(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Quizzes Collection
+    match /quizzes/{quizId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidQuiz(request.resource.data);
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) && isValidQuiz(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Study Plans Collection
+    match /study_plans/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update: if (isOwner(userId) || isAdmin()) && isValidStudyPlan(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Reminders Collection
+    match /reminders/{reminderId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidReminder(request.resource.data);
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) && isValidReminder(request.resource.data);
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Focus Sessions Collection
+    match /focus_sessions/{sessionId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Learning Objectives Collection
+    match /learning_objectives/{objId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Material Reviews Collection
+    match /material_reviews/{reviewId} {
+      allow read: if true;
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // Test connection doc
+    match /test/{docId} {
+      allow read: if true;
+    }
+  }
+}
