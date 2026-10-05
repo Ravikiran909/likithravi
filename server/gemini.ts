@@ -48,8 +48,8 @@ export async function generateContentWithRetry(
 
   const preferred = options.preferredModel || 'gemini-3.8-flash';
   const models = [preferred, ...CANDIDATE_MODELS.filter((m) => m !== preferred)];
-  const maxAttempts = options.maxAttempts ?? 3;
-  const timeoutMs = options.timeoutMs ?? 15000;
+  const maxAttempts = options.maxAttempts ?? 1;
+  const timeoutMs = options.timeoutMs ?? 6000;
 
   let lastError: any = null;
 
@@ -76,40 +76,14 @@ export async function generateContentWithRetry(
         }
       } catch (err: any) {
         lastError = err;
-        const errStr = String(err?.message || err);
-        const status = err?.status || err?.code;
-        const isRetryable =
-          status === 503 ||
-          status === 429 ||
-          status === 500 ||
-          status === 404 ||
-          errStr.includes('503') ||
-          errStr.includes('429') ||
-          errStr.includes('404') ||
-          errStr.includes('NOT_FOUND') ||
-          errStr.includes('no longer available') ||
-          errStr.includes('resource_exhausted') ||
-          errStr.includes('RESOURCE_EXHAUSTED') ||
-          errStr.includes('UNAVAILABLE') ||
-          errStr.includes('high demand') ||
-          errStr.includes('quota') ||
-          errStr.includes('Timeout') ||
-          errStr.includes('rate');
-
-        if (isRetryable) {
-          // Gracefully continue to next model in cascade
-          continue;
-        } else {
-          // Non-retryable error (e.g. invalid arguments)
-          throw err;
-        }
+        // Always continue to next fallback model in cascade on any model error
+        continue;
       }
     }
 
-    // Exponential backoff before next full cascade attempt
+    // Brief backoff before next cascade attempt if maxAttempts > 1
     if (attempt < maxAttempts - 1) {
-      const waitMs = (attempt + 1) * 800 + Math.floor(Math.random() * 400);
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
+      await new Promise((resolve) => setTimeout(resolve, 400));
     }
   }
 
@@ -275,7 +249,12 @@ Respond in JSON with fields:
       preferredModel: 'gemini-3.8-flash',
     });
 
-    const parsed = JSON.parse(response.text || '{}');
+    const rawIntentText = (response.text || '{}')
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+    const parsed = JSON.parse(rawIntentText || '{}');
     return {
       intent: parsed.intent || 'LEARN_TOPIC',
       subject: parsed.subject || undefined,

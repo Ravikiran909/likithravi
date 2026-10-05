@@ -393,6 +393,28 @@ class DatabaseStore {
       chunkCount: 3,
       summary: 'Differentiation rules, chain rule, integration by parts with LIATE, and fundamental theorem of calculus.',
     };
+    const docGenAI: DocumentRecord = {
+      id: 'doc_genai_handbook',
+      title: 'Generative AI Architecture: LLMs, Prompt Engineering & RAG',
+      subject: 'Generative AI',
+      category: 'Architecture Guide',
+      originalFilename: 'generative_ai_llm_rag_handbook.pdf',
+      fileSizeKb: 390,
+      uploadedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
+      chunkCount: 3,
+      summary: 'Transformer multi-head attention, context window management, few-shot prompt patterns, and dense vector embeddings.',
+    };
+    const docAgents: DocumentRecord = {
+      id: 'doc_agents_handbook',
+      title: 'Autonomous AI Agents: ReAct Loops, Tool Calling & Multi-Agent Swarms',
+      subject: 'AI Agents',
+      category: 'Reference Manual',
+      originalFilename: 'autonomous_ai_agents_handbook.pdf',
+      fileSizeKb: 430,
+      uploadedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
+      chunkCount: 3,
+      summary: 'ReAct agent loop, tool execution schemas, state graphs with LangGraph, and hierarchical multi-agent delegation with CrewAI.',
+    };
 
     this.documents.set(doc1.id, doc1);
     this.documents.set(doc2.id, doc2);
@@ -402,6 +424,8 @@ class DatabaseStore {
     this.documents.set(docCSharp.id, docCSharp);
     this.documents.set(docR.id, docR);
     this.documents.set(docCalculus.id, docCalculus);
+    this.documents.set(docGenAI.id, docGenAI);
+    this.documents.set(docAgents.id, docAgents);
 
     this.chunks.push(
       // Python Chunks
@@ -589,6 +613,50 @@ class DatabaseStore {
         chunkIndex: 1,
         content: 'Integration by Parts & LIATE Strategy: Integration by parts derives from the product rule: ∫ u dv = u v - ∫ v du. The LIATE heuristic determines which function to choose as u: Logarithmic, Inverse trigonometric, Algebraic, Trigonometric, Exponential. Differentiating u simplifies the integrand while integrating dv remains tractable.',
         keywords: ['Integration by parts', 'LIATE', 'product rule', 'calculus', 'anti-derivative'],
+      },
+
+      // Generative AI Chunks
+      {
+        id: 'chunk_genai_1',
+        documentId: docGenAI.id,
+        documentTitle: docGenAI.title,
+        subject: 'Generative AI',
+        chunkIndex: 1,
+        content:
+          'Large Language Models (LLMs) & Transformers: Auto-regressive transformer decoders predict the next token based on learned probability distributions. The core mechanism is Scaled Dot-Product Attention: Attention(Q, K, V) = softmax(QK^T / sqrt(d_k))V. Multi-Head Attention allows the model to attend to information at different positions from different representation subspaces simultaneously.',
+        keywords: ['LLM', 'Transformers', 'Self-Attention', 'Dot-Product Attention', 'Tokenization'],
+      },
+      {
+        id: 'chunk_genai_2',
+        documentId: docGenAI.id,
+        documentTitle: docGenAI.title,
+        subject: 'Generative AI',
+        chunkIndex: 2,
+        content:
+          'Retrieval-Augmented Generation (RAG) Architecture: RAG grounds LLMs in verified external knowledge bases. The pipeline chunks source documents with sliding window overlap, embeds text chunks into dense continuous vectors, indexes them into a vector database (e.g. HNSW, FAISS, Pinecone), and retrieves top-k semantic matches via cosine similarity to inject into the prompt context window.',
+        keywords: ['RAG', 'Vector Embeddings', 'Cosine Similarity', 'Chunking', 'Hallucination Mitigation'],
+      },
+
+      // AI Agents Chunks
+      {
+        id: 'chunk_agents_1',
+        documentId: docAgents.id,
+        documentTitle: docAgents.title,
+        subject: 'AI Agents',
+        chunkIndex: 1,
+        content:
+          'Autonomous Agent ReAct Pattern: An AI Agent uses an iterative Reason + Act loop. In the Thought step, the model formulates hypotheses. In the Action step, it calls a declared tool (e.g. calculator, database query, API fetch) with structured JSON arguments. In the Observation step, the environment output is appended back to memory before formulating the next thought or final answer.',
+        keywords: ['AI Agent', 'ReAct Pattern', 'Tool Calling', 'Observation Loop', 'Autonomous Execution'],
+      },
+      {
+        id: 'chunk_agents_2',
+        documentId: docAgents.id,
+        documentTitle: docAgents.title,
+        subject: 'AI Agents',
+        chunkIndex: 2,
+        content:
+          'Multi-Agent Collaboration & State Graphs: Frameworks like LangGraph, CrewAI, and AutoGen enable multi-agent systems where agents specialize in roles (Researcher, Critic, Coder, Reviewer). State graphs maintain shared memory, checkpoints, error reflection, and human-in-the-loop approvals before executing irreversible actions.',
+        keywords: ['Multi-Agent', 'LangGraph', 'CrewAI', 'AutoGen', 'Human in the loop', 'State Graphs'],
       }
     );
 

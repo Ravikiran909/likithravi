@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { StudentProfile, VirtualBadge } from '../types/index.ts';
 import { db, auth, doc, setDoc } from '../firebase.ts';
+import { getAllMilestoneProgress } from '../utils/offlineDb.ts';
 
 interface BadgesProps {
   profile: StudentProfile;
@@ -44,6 +45,14 @@ export const Badges: React.FC<BadgesProps> = ({
   const [selectedBadge, setSelectedBadge] = useState<VirtualBadge | null>(null);
   const [newlyAwardedBadge, setNewlyAwardedBadge] = useState<VirtualBadge | null>(null);
   const [isSyncingFirestore, setIsSyncingFirestore] = useState(false);
+  const [milestonesCount, setMilestonesCount] = useState<number>(0);
+
+  useEffect(() => {
+    getAllMilestoneProgress().then((progressMap) => {
+      const completed = Object.values(progressMap).filter((m) => m.completed).length;
+      setMilestonesCount(completed);
+    });
+  }, []);
 
   const accuracy =
     profile.totalQuestionsAnswered > 0
@@ -172,8 +181,60 @@ export const Badges: React.FC<BadgesProps> = ({
         awardedAt: checkEarnedDate('curriculum-pioneer', profile.overallProgress >= 70),
         badgeTier: 'diamond',
       },
+      {
+        id: 'first-milestone',
+        name: 'First Step',
+        description: 'Take your first decisive step by completing a step-by-step curriculum roadmap milestone.',
+        category: 'curriculum',
+        iconName: 'CheckCircle2',
+        requirement: 'Complete at least 1 roadmap milestone',
+        isUnlocked: milestonesCount >= 1,
+        progress: Math.min(milestonesCount, 1),
+        maxProgress: 1,
+        awardedAt: checkEarnedDate('first-milestone', milestonesCount >= 1),
+        badgeTier: 'bronze',
+      },
+      {
+        id: 'roadmap-apprentice',
+        name: 'Roadmap Apprentice',
+        description: 'Demonstrate persistent learning by marking off 5 curriculum roadmap milestones.',
+        category: 'curriculum',
+        iconName: 'Layers',
+        requirement: 'Complete 5 roadmap milestones',
+        isUnlocked: milestonesCount >= 5,
+        progress: Math.min(milestonesCount, 5),
+        maxProgress: 5,
+        awardedAt: checkEarnedDate('roadmap-apprentice', milestonesCount >= 5),
+        badgeTier: 'silver',
+      },
+      {
+        id: 'roadmap-conqueror',
+        name: 'Roadmap Conqueror',
+        description: 'Conquer multiple learning modules with 10+ completed curriculum milestones!',
+        category: 'curriculum',
+        iconName: 'Trophy',
+        requirement: 'Complete 10 roadmap milestones across subjects',
+        isUnlocked: milestonesCount >= 10,
+        progress: Math.min(milestonesCount, 10),
+        maxProgress: 10,
+        awardedAt: checkEarnedDate('roadmap-conqueror', milestonesCount >= 10),
+        badgeTier: 'gold',
+      },
+      {
+        id: 'rural-offline-scholar',
+        name: 'Rural Offline Scholar',
+        description: 'Study independently without internet interruptions using local IndexedDB caching.',
+        category: 'consistency',
+        iconName: 'Zap',
+        requirement: 'Use offline learning cache in rural mode',
+        isUnlocked: true,
+        progress: 1,
+        maxProgress: 1,
+        awardedAt: checkEarnedDate('rural-offline-scholar', true),
+        badgeTier: 'bronze',
+      },
     ];
-  }, [profile, accuracy]);
+  }, [profile, accuracy, milestonesCount]);
 
   // Check and award new badges automatically in Firestore
   useEffect(() => {

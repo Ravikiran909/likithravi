@@ -23,6 +23,12 @@ import {
 import { RagKnowledgeBase } from './RagKnowledgeBase.tsx';
 import { MaterialReviewModal } from './MaterialReviewModal.tsx';
 import { DocumentRecord, LearningResource, StudentProfile } from '../types/index.ts';
+import {
+  saveOfflineDocuments,
+  getOfflineDocuments,
+  saveOfflineCourses,
+  getOfflineCourses,
+} from '../utils/offlineDb.ts';
 
 interface StudyDocumentsProps {
   onNavigateToVoice?: (docId?: string) => void;
@@ -64,21 +70,45 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
   const [previewChunks, setPreviewChunks] = useState<any[]>([]);
   const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
 
-  // Fetch initial documents, courses, and reviews summary
+  // Fetch initial documents, courses, and reviews summary (with IndexedDB rural offline support)
   const loadData = async () => {
     try {
       setLoading(true);
       const [docsRes, coursesRes, summaryRes] = await Promise.all([
-        fetch('/api/documents').then((r) => (r.ok ? r.json() : { documents: [] })),
-        fetch('/api/learning-resources').then((r) => (r.ok ? r.json() : { resources: [] })),
-        fetch('/api/reviews/summary').then((r) => (r.ok ? r.json() : { summaries: {} })),
+        fetch('/api/documents').then((r) => (r.ok ? r.json() : { documents: [] })).catch(() => ({ documents: [] })),
+        fetch('/api/learning-resources').then((r) => (r.ok ? r.json() : { resources: [] })).catch(() => ({ resources: [] })),
+        fetch('/api/reviews/summary').then((r) => (r.ok ? r.json() : { summaries: {} })).catch(() => ({ summaries: {} })),
       ]);
 
-      setDocuments(docsRes.documents || []);
-      setCourses(coursesRes.resources || []);
+      let docsList = docsRes.documents || [];
+      let coursesList = coursesRes.resources || [];
+
+      // If network provided data, update IndexedDB cache
+      if (docsList.length > 0) {
+        saveOfflineDocuments(docsList);
+      } else {
+        // Fallback to IndexedDB offline cache
+        docsList = await getOfflineDocuments();
+      }
+
+      if (coursesList.length > 0) {
+        saveOfflineCourses(coursesList);
+      } else {
+        // Fallback to IndexedDB offline cache
+        coursesList = await getOfflineCourses();
+      }
+
+      setDocuments(docsList);
+      setCourses(coursesList);
       setRatingsSummary(summaryRes.summaries || {});
     } catch (err) {
-      console.warn('Failed to load study documents and ratings:', err);
+      console.warn('Network failed, switching to IndexedDB offline cache:', err);
+      const [cachedDocs, cachedCourses] = await Promise.all([
+        getOfflineDocuments(),
+        getOfflineCourses(),
+      ]);
+      setDocuments(cachedDocs);
+      setCourses(cachedCourses);
     } finally {
       setLoading(false);
     }
@@ -88,7 +118,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
     loadData();
   }, []);
 
-  const subjectsList = ['all', 'Python', 'Java', 'C', 'C++', 'C#', 'R', 'DSA', 'Mathematics'];
+  const subjectsList = ['all', 'Generative AI', 'AI Agents', 'Python', 'Java', 'C', 'C++', 'C#', 'R', 'DSA', 'Mathematics'];
 
   // Helper to get rating info
   const getRatingInfo = (id: string) => {
@@ -311,6 +341,8 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                     : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
                 }`}
               >
+                {sub === 'Generative AI' && <span>✨</span>}
+                {sub === 'AI Agents' && <span>🤖</span>}
                 {sub === 'Python' && <span>🐍</span>}
                 {sub === 'Java' && <span>☕</span>}
                 {sub === 'C' && <span>⚡</span>}

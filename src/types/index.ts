@@ -24,6 +24,8 @@ export interface StudentProfile {
   studyHoursPerDay: number;
   preferredStudyTime: string; // e.g. "7:00 PM"
   dailyReminderEnabled?: boolean;
+  deepFocusEnabled?: boolean;
+  mutedNotificationsCount?: number;
   examDates: { subject: string; date: string; title: string }[];
   learningHistory: { topic: string; subject: string; date: string; mastered: boolean }[];
   streak: number;
@@ -34,6 +36,8 @@ export interface StudentProfile {
   correctAnswers: number;
   learningRank?: 'Novice' | 'Apprentice' | 'Scholar' | 'Master';
   earnedBadges?: { id: string; name: string; awardedAt: string }[];
+  completedCourseIds?: string[];
+  achievements?: string[];
   dailyQuestionsGoal?: number;
   questionsAnsweredToday?: number;
   focusStats?: {
@@ -99,7 +103,18 @@ export interface FlashcardDeck {
 export interface LearningResource {
   id: string;
   title: string;
-  subject: 'Python' | 'Java' | 'C' | 'C++' | 'C#' | 'R' | 'DSA' | 'Mathematics' | 'General';
+  subject:
+    | 'Python'
+    | 'Java'
+    | 'C'
+    | 'C++'
+    | 'C#'
+    | 'R'
+    | 'DSA'
+    | 'Mathematics'
+    | 'Generative AI'
+    | 'AI Agents'
+    | 'General';
   type: 'youtube_video' | 'youtube_playlist' | 'free_course' | 'interactive_tutorial';
   provider: string;
   url: string;

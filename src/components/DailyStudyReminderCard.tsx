@@ -35,6 +35,8 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
   );
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [activeDailyReminder, setActiveDailyReminder] = useState<Reminder | null>(null);
+  const [automatedStatus, setAutomatedStatus] = useState<any>(null);
+  const [personalizedPreview, setPersonalizedPreview] = useState<string>('');
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
@@ -46,7 +48,23 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
     setIsEnabled(profile.dailyReminderEnabled !== undefined ? Boolean(profile.dailyReminderEnabled) : true);
     setPreferredTime(profile.preferredStudyTime || '07:00 PM');
     fetchReminders();
-  }, [profile.userId]);
+    fetchAutomatedStatus();
+  }, [profile.userId, profile.preferredStudyTime, profile.streak]);
+
+  const fetchAutomatedStatus = async () => {
+    try {
+      const res = await fetch(`/api/reminders/automated-status/${profile.userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAutomatedStatus(data.status);
+        if (data.previewMessage) {
+          setPersonalizedPreview(data.previewMessage);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load automated reminder status:', e);
+    }
+  };
 
   const fetchReminders = async () => {
     try {
@@ -154,40 +172,22 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
     setIsSendingTest(true);
     setErrorMsg(null);
     try {
-      let reminderId = activeDailyReminder?.id;
-
-      // If no reminder exists yet, create one first
-      if (!reminderId) {
-        const remRes = await fetch('/api/reminders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: profile.userId,
-            reminderText: `Daily ${selectedSubject} Study Practice`,
-            targetTime: preferredTime,
-            frequency: 'daily',
-            subject: selectedSubject,
-            type: 'daily_session',
-          }),
-        });
-        if (remRes.ok) {
-          const remData = await remRes.json();
-          reminderId = remData.reminder?.id;
-          setActiveDailyReminder(remData.reminder);
+      const res = await fetch(`/api/reminders/send-daily-now/${profile.userId}`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTestSentSuccess(true);
+        if (data.messageText) {
+          setPersonalizedPreview(data.messageText);
         }
-      }
-
-      if (reminderId) {
-        const triggerRes = await fetch(`/api/reminders/${reminderId}/trigger`, {
-          method: 'POST',
-        });
-        if (triggerRes.ok) {
-          setTestSentSuccess(true);
-          setTimeout(() => setTestSentSuccess(false), 4000);
-        }
+        setTimeout(() => setTestSentSuccess(false), 5000);
+      } else {
+        const errData = await res.json();
+        setErrorMsg(errData.error || 'Failed to dispatch automated reminder.');
       }
     } catch (err: any) {
-      console.error('Failed to trigger test reminder:', err);
+      console.error('Failed to trigger automated test reminder:', err);
       setErrorMsg(err.message || 'Failed to send WhatsApp test message.');
     } finally {
       setIsSendingTest(false);
@@ -345,6 +345,55 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
               </div>
             </div>
 
+            {/* Smart Study Session: 5-Minute Adaptive Weak-Topic Quiz Link Box */}
+            <div className="p-3.5 bg-gradient-to-r from-amber-950/40 via-slate-950 to-emerald-950/30 border border-amber-500/30 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                    Smart Study Session Link Included
+                  </span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+                  ⏱️ 5-Min Adaptive Quiz
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Every daily reminder automatically embeds a{' '}
+                <strong className="text-white">Smart Study Session</strong> link targeting your weakest topics (
+                <span className="text-amber-300 font-semibold">
+                  {profile.weakTopics && profile.weakTopics.length > 0
+                    ? profile.weakTopics.join(', ')
+                    : `${selectedSubject} Core Concepts`}
+                </span>
+                ).
+              </p>
+              {onNavigateToChat && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onNavigateToChat(
+                      `/smart-quiz ${
+                        profile.weakTopics && profile.weakTopics.length > 0
+                          ? profile.weakTopics[0]
+                          : selectedSubject
+                      }`
+                    )
+                  }
+                  className="w-full py-2 px-3 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 transition flex items-center justify-center space-x-2 cursor-pointer active:scale-95"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                  <span>
+                    Smart Study Session: Launch 5-Min Adaptive Quiz (
+                    {profile.weakTopics && profile.weakTopics.length > 0
+                      ? profile.weakTopics[0]
+                      : selectedSubject}
+                    ) →
+                  </span>
+                </button>
+              )}
+            </div>
+
             {/* Destination WhatsApp Info */}
             <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
               <div className="flex items-center space-x-2 text-slate-300">
@@ -353,9 +402,15 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
                   Delivery WhatsApp: <strong className="text-white">+{profile.whatsappNumber}</strong>
                 </span>
               </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">
-                Verified Cloud API
-              </span>
+              {profile.deepFocusEnabled ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                  🔕 Muted (Deep Focus Active)
+                </span>
+              ) : (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium">
+                  Verified Cloud API
+                </span>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -440,21 +495,79 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
 
               {/* Chat Bubble Presentation */}
               <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 text-xs text-slate-100 space-y-2.5 shadow-lg relative">
-                <div className="font-semibold text-emerald-400 flex items-center space-x-1.5">
-                  <span>⏰ Study Session Reminder! 📖</span>
-                </div>
-                <p className="text-slate-200 leading-relaxed">
-                  Hey <strong>{profile.name}</strong>, it's time for your planned study session:
-                </p>
-                <div className="space-y-1 bg-slate-950/50 p-2.5 rounded-xl border border-emerald-500/20 text-[11px]">
-                  <div>• <strong>Focus:</strong> Daily {selectedSubject} Revision & Practice</div>
-                  <div>• <strong>Subject:</strong> {selectedSubject}</div>
-                  <div>• <strong>Target Time:</strong> {preferredTime}</div>
-                  <div>• <strong>Current Streak:</strong> {profile.streak} Days 🔥</div>
-                </div>
-                <p className="text-slate-300 text-[11px] leading-relaxed">
-                  Protect your streak! Reply with <em>"/quiz {selectedSubject}"</em> to test your skills or <em>"Teach me {selectedSubject}"</em> to learn. 🚀
-                </p>
+                {personalizedPreview ? (
+                  <div className="whitespace-pre-line text-slate-200 text-xs leading-relaxed font-sans">
+                    {personalizedPreview.split('\n').map((line, idx) => {
+                      // Simple formatter for WhatsApp bold *text*
+                      const parts = line.split(/(\*[^*]+\*)/g);
+                      return (
+                        <p key={idx} className={line.startsWith('⏰') ? 'text-emerald-400 font-bold' : ''}>
+                          {parts.map((part, pIdx) => {
+                            if (part.startsWith('*') && part.endsWith('*')) {
+                              return <strong key={pIdx} className="text-white font-bold">{part.slice(1, -1)}</strong>;
+                            }
+                            if (part.startsWith('_') && part.endsWith('_')) {
+                              return <em key={pIdx} className="text-amber-300">{part.slice(1, -1)}</em>;
+                            }
+                            return part;
+                          })}
+                        </p>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <>
+                    <div className="font-semibold text-emerald-400 flex items-center space-x-1.5">
+                      <span>⏰ Study Session Reminder! 📖</span>
+                    </div>
+                    <p className="text-slate-200 leading-relaxed">
+                      Hey <strong>{profile.name}</strong>, it's time for your planned study session:
+                    </p>
+                    <div className="space-y-1 bg-slate-950/50 p-2.5 rounded-xl border border-emerald-500/20 text-[11px]">
+                      <div>• <strong>Focus:</strong> Daily {selectedSubject} Revision & Practice</div>
+                      <div>• <strong>Subject:</strong> {selectedSubject}</div>
+                      <div>• <strong>Target Time:</strong> {preferredTime}</div>
+                      <div>• <strong>Current Streak:</strong> {profile.streak} Days 🔥</div>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      Protect your streak! Click your <strong>Smart Study Session</strong> link below to start a 5-minute adaptive quiz on your weakest topics! 🚀
+                    </p>
+                  </>
+                )}
+
+                {/* Embedded Smart Study Session Link Button inside the WhatsApp Reminder Bubble */}
+                {onNavigateToChat && (
+                  <div className="pt-2 border-t border-emerald-500/20">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onNavigateToChat(
+                          `/smart-quiz ${
+                            profile.weakTopics && profile.weakTopics.length > 0
+                              ? profile.weakTopics[0]
+                              : selectedSubject
+                          }`
+                        )
+                      }
+                      className="w-full py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 hover:text-white font-bold text-[11px] flex items-center justify-between transition cursor-pointer group"
+                    >
+                      <span className="flex items-center space-x-1.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                        <span>
+                          🔗 Smart Study Session (5-Min Quiz:{' '}
+                          {profile.weakTopics && profile.weakTopics.length > 0
+                            ? profile.weakTopics[0]
+                            : selectedSubject}
+                          )
+                        </span>
+                      </span>
+                      <span className="text-emerald-300 group-hover:translate-x-0.5 transition-transform">
+                        Start →
+                      </span>
+                    </button>
+                  </div>
+                )}
+
                 <div className="text-[9px] text-slate-400 text-right">
                   {preferredTime} ✓✓
                 </div>
@@ -462,14 +575,30 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-900 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Status: {isEnabled ? '🟢 Active Daily' : '⚪ Temporarily Paused'}</span>
+              <span>
+                Status:{' '}
+                {profile.deepFocusEnabled
+                  ? '🔕 Muted (Deep Focus)'
+                  : isEnabled
+                  ? '🟢 Active Daily'
+                  : '⚪ Temporarily Paused'}
+              </span>
               {onNavigateToChat && (
                 <button
                   type="button"
-                  onClick={() => onNavigateToChat(`/quiz ${selectedSubject}`)}
-                  className="text-emerald-400 hover:text-emerald-300 font-semibold underline"
+                  onClick={() =>
+                    onNavigateToChat(
+                      `/smart-quiz ${
+                        profile.weakTopics && profile.weakTopics.length > 0
+                          ? profile.weakTopics[0]
+                          : selectedSubject
+                      }`
+                    )
+                  }
+                  className="text-amber-400 hover:text-amber-300 font-bold underline flex items-center space-x-1 cursor-pointer"
                 >
-                  Test in Chat Simulator →
+                  <Zap className="w-3 h-3 fill-amber-400" />
+                  <span>Trigger Smart Study Session →</span>
                 </button>
               )}
             </div>

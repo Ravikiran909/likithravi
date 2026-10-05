@@ -13,6 +13,13 @@ import { plannerAgent } from './server/agents/planner_agent.ts';
 import { transcribeAudio, getGeminiAI, generateContentWithRetry, generateDynamicQuiz } from './server/gemini.ts';
 import { runTutorAgent } from './server/agents/tutor_agent.ts';
 import { CURATED_LEARNING_RESOURCES } from './server/database/learningResources.ts';
+import {
+  startAutomatedReminderScheduler,
+  checkAndSendAutomatedReminders,
+  sendAutomatedReminderNow,
+  getAutomatedReminderStatus,
+  generatePersonalizedReminderMessage,
+} from './server/services/automatedReminders.ts';
 
 dotenv.config();
 
@@ -44,14 +51,15 @@ app.post('/api/webhook/whatsapp', handleIncomingWebhook);
 // ----------------------------------------------------
 app.post('/api/simulate/incoming', async (req, res) => {
   try {
-    const { fromPhone, senderName, text, mediaType, mediaBase64, mimeType } = req.body;
-    if (!fromPhone || (!text && !mediaBase64)) {
-      return res.status(400).json({ error: 'fromPhone and text, audio or image required' });
+    const { fromPhone, userId, senderName, text, mediaType, mediaBase64, mimeType } = req.body || {};
+    if (!text && !mediaBase64) {
+      return res.status(400).json({ error: 'text, audio, or image is required' });
     }
 
     const result = await orchestrateMessage({
-      fromPhone,
-      senderName,
+      fromPhone: fromPhone || '+919876543210',
+      userId,
+      senderName: senderName || 'Student',
       text,
       mediaType: mediaType || (mediaBase64 ? 'image' : 'text'),
       mediaBase64,
@@ -244,6 +252,95 @@ app.put('/api/students/:id', (req, res) => {
 });
 
 // ----------------------------------------------------
+// 3b. Daily Morning Affirmations & Study Quotes Endpoint
+// ----------------------------------------------------
+const CURATED_MORNING_AFFIRMATIONS = [
+  {
+    quote: 'Success is the sum of small efforts, repeated day in and day out.',
+    author: 'Robert Collier',
+    affirmation: 'Every concept I master today compounds into lifelong expertise.',
+    category: 'Consistency & Streak',
+    morningTip: 'Start with 15 minutes on your toughest topic while your mind is sharpest.',
+  },
+  {
+    quote: 'Live as if you were to die tomorrow. Learn as if you were to live forever.',
+    author: 'Mahatma Gandhi',
+    affirmation: 'I approach complex problems with curiosity, patience, and resilience.',
+    category: 'Lifelong Mastery',
+    morningTip: 'Write down one key question you want answered before your study session begins.',
+  },
+  {
+    quote: 'The expert in anything was once a beginner who refused to give up.',
+    author: 'Helen Hayes',
+    affirmation: 'Challenging topics are not roadblocks—they are stepping stones to mastery.',
+    category: 'Growth Mindset',
+    morningTip: 'Review one weak topic today and turn a mistake into a permanent strength.',
+  },
+  {
+    quote: 'An investment in knowledge pays the best interest.',
+    author: 'Benjamin Franklin',
+    affirmation: 'The focused hours I invest this morning build my future confidence.',
+    category: 'Deep Focus',
+    morningTip: 'Complete one uninterrupted 25-minute Pomodoro sprint before checking messages.',
+  },
+  {
+    quote: 'It does not matter how slowly you go as long as you do not stop.',
+    author: 'Confucius',
+    affirmation: 'My daily learning streak reflects my dedication to steady progress.',
+    category: 'Perseverance',
+    morningTip: 'Celebrate small wins—solving even 3 practice problems keeps your momentum alive.',
+  },
+  {
+    quote: 'Education is the passport to the future, for tomorrow belongs to those who prepare for it today.',
+    author: 'Malcolm X',
+    affirmation: 'Today I prepare with clarity, discipline, and purpose.',
+    category: 'Exam Readiness',
+    morningTip: 'Test yourself with active recall instead of passive re-reading.',
+  },
+  {
+    quote: 'Learning is not attained by chance, it must be sought for with ardor and attended to with diligence.',
+    author: 'Abigail Adams',
+    affirmation: 'I am in full control of my focus, my habits, and my academic growth.',
+    category: 'Intentional Study',
+    morningTip: 'Teach a concept out loud in your own words to lock it into long-term memory.',
+  },
+];
+
+app.get('/api/daily-affirmation', (req, res) => {
+  const userId = String(req.query.userId || '');
+  const forceIndex = req.query.index !== undefined ? Number(req.query.index) : null;
+  const prof = userId ? db.getProfileByUserId(userId) : undefined;
+
+  const now = new Date();
+  const dateKey = now.toISOString().split('T')[0];
+  const dayOfYear = Math.floor(
+    (now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  const selectedIdx =
+    forceIndex !== null && !Number.isNaN(forceIndex)
+      ? Math.abs(forceIndex) % CURATED_MORNING_AFFIRMATIONS.length
+      : dayOfYear % CURATED_MORNING_AFFIRMATIONS.length;
+
+  const item = CURATED_MORNING_AFFIRMATIONS[selectedIdx];
+  const streak = prof?.streak || 7;
+  const primarySubject = prof?.subjects?.[0] || 'Computer Science';
+
+  res.json({
+    date: dateKey,
+    index: selectedIdx,
+    totalQuotes: CURATED_MORNING_AFFIRMATIONS.length,
+    quote: item.quote,
+    author: item.author,
+    affirmation: item.affirmation,
+    category: item.category,
+    morningTip: item.morningTip,
+    personalizedNote: `Day ${streak} Streak Motivation for ${prof?.name || 'Scholar'} • Focus Subject: ${primarySubject}`,
+    refreshedAt: '06:00 AM Daily Morning Sync',
+  });
+});
+
+// ----------------------------------------------------
 // 4. Curriculum & Subjects
 // ----------------------------------------------------
 app.get('/api/subjects', (req, res) => {
@@ -253,6 +350,577 @@ app.get('/api/subjects', (req, res) => {
     topics: db.topics.get(s.id) || [],
   }));
   res.json(subjectsWithTopics);
+});
+
+// ----------------------------------------------------
+// 4b. RAG-Grounded Spaced Repetition (Leitner System) Endpoint
+// ----------------------------------------------------
+app.get('/api/flashcards/leitner-deck', (req, res) => {
+  try {
+    const subjectFilter = String(req.query.subject || '').trim();
+    const documentIdFilter = String(req.query.documentId || '').trim();
+
+    const allDocs = Array.from(db.documents.values());
+    const relevantChunks = db.chunks.filter((chunk) => {
+      if (documentIdFilter && documentIdFilter !== 'all' && chunk.documentId !== documentIdFilter) {
+        return false;
+      }
+      if (
+        subjectFilter &&
+        subjectFilter !== 'all' &&
+        chunk.subject.toLowerCase() !== subjectFilter.toLowerCase()
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    const cards = relevantChunks.map((chunk, idx) => {
+      const lines = chunk.content
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const headingLine =
+        lines.find((l) => l.includes(':') || l.length < 90) ||
+        `${chunk.documentTitle} (Concept #${chunk.chunkIndex})`;
+      const cleanHeading = headingLine.replace(/^[-•*\d.)\s]+/, '').trim();
+
+      const frontQuestion = cleanHeading.endsWith('?')
+        ? cleanHeading
+        : `From "${chunk.documentTitle}": Explain the core mechanism, rules, and key takeaways of "${cleanHeading.slice(0, 75)}"`;
+
+      const keywordHint =
+        chunk.keywords && chunk.keywords.length > 0
+          ? `Key terms to recall: ${chunk.keywords.slice(0, 4).join(', ')}`
+          : `Focus on the primary definition and complexity/formula in ${chunk.subject}.`;
+
+      // Distribute initial seed Leitner boxes (mostly Box 1 & Box 2 for daily review)
+      const initialBox = (idx % 3) + 1; // Box 1, 2, or 3
+      const intervalMap: Record<number, number> = { 1: 1, 2: 2, 3: 4, 4: 7, 5: 14 };
+
+      return {
+        id: `leitner_${chunk.id}`,
+        chunkId: chunk.id,
+        documentId: chunk.documentId,
+        documentTitle: chunk.documentTitle,
+        subject: chunk.subject,
+        topic: cleanHeading.slice(0, 60),
+        front: frontQuestion,
+        back: chunk.content,
+        hint: keywordHint,
+        keywords: chunk.keywords || [],
+        leitnerBox: initialBox,
+        intervalDays: intervalMap[initialBox] || 1,
+        dueToday: initialBox <= 2,
+      };
+    });
+
+    res.json({
+      success: true,
+      documents: allDocs,
+      totalCards: cards.length,
+      cards,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to build Leitner RAG deck', cards: [] });
+  }
+});
+
+// ----------------------------------------------------
+// 4c. Study Circles (Peer-to-Peer Topic Chat Groups + WhatsApp Bridge)
+// ----------------------------------------------------
+interface StudyCircleMessage {
+  id: string;
+  circleId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'student' | 'peer_mentor' | 'ai_moderator';
+  content: string;
+  tag?: 'question' | 'note' | 'resource' | 'solution';
+  timestamp: string;
+  whatsappBridged: boolean;
+  upvotes: number;
+}
+
+interface StudyCircleMember {
+  userId: string;
+  name: string;
+  avatarInitials: string;
+  role: 'founder' | 'member' | 'mentor';
+  whatsappSynced: boolean;
+}
+
+interface StudyCircleGroup {
+  id: string;
+  name: string;
+  subject: string;
+  topic: string;
+  description: string;
+  whatsappInviteCode: string;
+  activeNowCount: number;
+  createdAt: string;
+  members: StudyCircleMember[];
+  messages: StudyCircleMessage[];
+}
+
+const studyCirclesStore = new Map<string, StudyCircleGroup>([
+  [
+    'circle_python_recursion',
+    {
+      id: 'circle_python_recursion',
+      name: 'Python Recursion & Dynamic Programming Lab',
+      subject: 'Python',
+      topic: 'Recursion edge cases & Memoization',
+      description:
+        'Peer-to-peer problem solving on recursion call stacks, base case invariants, and @lru_cache optimization.',
+      whatsappInviteCode: 'WA-PY-REC-101',
+      activeNowCount: 6,
+      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+      members: [
+        {
+          userId: 'peer_ananya',
+          name: 'Ananya Sharma',
+          avatarInitials: 'AS',
+          role: 'founder',
+          whatsappSynced: true,
+        },
+        {
+          userId: 'peer_rohan',
+          name: 'Rohan Verma',
+          avatarInitials: 'RV',
+          role: 'mentor',
+          whatsappSynced: true,
+        },
+        {
+          userId: 'user_1',
+          name: 'Aarav Mehta',
+          avatarInitials: 'AM',
+          role: 'member',
+          whatsappSynced: true,
+        },
+      ],
+      messages: [
+        {
+          id: 'sc_msg_1',
+          circleId: 'circle_python_recursion',
+          senderId: 'peer_ananya',
+          senderName: 'Ananya Sharma',
+          senderRole: 'peer_mentor',
+          content:
+            'Quick tip from our Python RAG notes: Always validate both the empty collection `if not arr:` AND single-element `if len(arr) == 1:` before your recursive divide step!',
+          tag: 'note',
+          timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
+          whatsappBridged: true,
+          upvotes: 8,
+        },
+        {
+          id: 'sc_msg_2',
+          circleId: 'circle_python_recursion',
+          senderId: 'peer_rohan',
+          senderName: 'Rohan Verma',
+          senderRole: 'student',
+          content:
+            'When tracing Fibonacci(n), adding `@functools.lru_cache(maxsize=None)` drops time complexity from O(2^n) to O(n). Try testing it in the WhatsApp simulator!',
+          tag: 'solution',
+          timestamp: new Date(Date.now() - 1800000).toISOString(),
+          whatsappBridged: true,
+          upvotes: 5,
+        },
+      ],
+    },
+  ],
+  [
+    'circle_calculus_integration',
+    {
+      id: 'circle_calculus_integration',
+      name: 'Calculus Integration & Limits Mastery Circle',
+      subject: 'Calculus',
+      topic: 'Integration by Parts (LIATE) & L’Hôpital’s Rule',
+      description:
+        'Collaborative step-by-step derivations, u-substitution tricks, and daily JEE/AP Calculus exam prep.',
+      whatsappInviteCode: 'WA-CALC-INT-204',
+      activeNowCount: 5,
+      createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
+      members: [
+        {
+          userId: 'peer_meera',
+          name: 'Meera Nair',
+          avatarInitials: 'MN',
+          role: 'founder',
+          whatsappSynced: true,
+        },
+        {
+          userId: 'peer_kabir',
+          name: 'Kabir Patel',
+          avatarInitials: 'KP',
+          role: 'member',
+          whatsappSynced: true,
+        },
+      ],
+      messages: [
+        {
+          id: 'sc_msg_3',
+          circleId: 'circle_calculus_integration',
+          senderId: 'peer_meera',
+          senderName: 'Meera Nair',
+          senderRole: 'peer_mentor',
+          content:
+            'Remember the LIATE priority rule for Integration by Parts (∫ u dv = uv - ∫ v du): Logarithmic > Inverse Trig > Algebraic > Trigonometric > Exponential.',
+          tag: 'note',
+          timestamp: new Date(Date.now() - 5400000).toISOString(),
+          whatsappBridged: true,
+          upvotes: 11,
+        },
+      ],
+    },
+  ],
+  [
+    'circle_dsa_graphs',
+    {
+      id: 'circle_dsa_graphs',
+      name: 'DSA Binary Search, Trees & Graph Algorithms',
+      subject: 'DSA',
+      topic: 'Binary Search invariants, BFS/DFS & Dijkstra',
+      description:
+        'Share dry-run traces, off-by-one boundary fixes, and Big-O complexity proofs with fellow coders.',
+      whatsappInviteCode: 'WA-DSA-ALG-309',
+      activeNowCount: 9,
+      createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
+      members: [
+        {
+          userId: 'peer_rohan',
+          name: 'Rohan Verma',
+          avatarInitials: 'RV',
+          role: 'founder',
+          whatsappSynced: true,
+        },
+        {
+          userId: 'peer_zoya',
+          name: 'Zoya Khan',
+          avatarInitials: 'ZK',
+          role: 'member',
+          whatsappSynced: true,
+        },
+        {
+          userId: 'user_1',
+          name: 'Aarav Mehta',
+          avatarInitials: 'AM',
+          role: 'member',
+          whatsappSynced: true,
+        },
+      ],
+      messages: [
+        {
+          id: 'sc_msg_4',
+          circleId: 'circle_dsa_graphs',
+          senderId: 'peer_zoya',
+          senderName: 'Zoya Khan',
+          senderRole: 'student',
+          content:
+            'Using `mid = low + (high - low) // 2` instead of `(low + high) // 2` prevents integer overflow in languages like Java and C++!',
+          tag: 'note',
+          timestamp: new Date(Date.now() - 2400000).toISOString(),
+          whatsappBridged: true,
+          upvotes: 7,
+        },
+      ],
+    },
+  ],
+  [
+    'circle_genai_agents',
+    {
+      id: 'circle_genai_agents',
+      name: 'Generative AI, RAG & Autonomous Agents Guild',
+      subject: 'Generative AI',
+      topic: 'Vector Embeddings, ReAct Agents & Prompt Engineering',
+      description:
+        'Discuss RAG chunking strategies, semantic search, tool calling, and multi-agent orchestration.',
+      whatsappInviteCode: 'WA-GENAI-RAG-412',
+      activeNowCount: 7,
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      members: [
+        {
+          userId: 'peer_ananya',
+          name: 'Ananya Sharma',
+          avatarInitials: 'AS',
+          role: 'founder',
+          whatsappSynced: true,
+        },
+      ],
+      messages: [
+        {
+          id: 'sc_msg_5',
+          circleId: 'circle_genai_agents',
+          senderId: 'peer_ananya',
+          senderName: 'Ananya Sharma',
+          senderRole: 'peer_mentor',
+          content:
+            'In ReAct agents (Reason + Act), grounding tool outputs with RAG citations reduces hallucination rates significantly.',
+          tag: 'resource',
+          timestamp: new Date(Date.now() - 4200000).toISOString(),
+          whatsappBridged: true,
+          upvotes: 9,
+        },
+      ],
+    },
+  ],
+]);
+
+app.get('/api/study-circles', (req, res) => {
+  const circles = Array.from(studyCirclesStore.values());
+  res.json({ circles });
+});
+
+app.post('/api/study-circles', async (req, res) => {
+  try {
+    const { name, subject, topic, description, userId, userName } = req.body;
+    if (!name || !topic) {
+      return res.status(400).json({ error: 'Circle name and topic are required' });
+    }
+
+    const prof = userId ? db.getProfileByUserId(userId) : undefined;
+    const studentName = userName || prof?.name || 'Student';
+    const initials = studentName
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+
+    const circleId = `circle_${Date.now()}`;
+    const inviteCode = `WA-${(subject || 'STD').slice(0, 3).toUpperCase()}-${Math.floor(
+      100 + Math.random() * 900
+    )}`;
+
+    const newCircle: StudyCircleGroup = {
+      id: circleId,
+      name: String(name).trim(),
+      subject: String(subject || 'General').trim(),
+      topic: String(topic).trim(),
+      description:
+        String(description || '').trim() ||
+        `Peer-to-peer WhatsApp-bridged study circle focused on mastering ${topic}.`,
+      whatsappInviteCode: inviteCode,
+      activeNowCount: 1,
+      createdAt: new Date().toISOString(),
+      members: [
+        {
+          userId: userId || 'user_1',
+          name: studentName,
+          avatarInitials: initials || 'ST',
+          role: 'founder',
+          whatsappSynced: true,
+        },
+      ],
+      messages: [
+        {
+          id: `sc_msg_${Date.now()}`,
+          circleId,
+          senderId: userId || 'user_1',
+          senderName: studentName,
+          senderRole: 'student',
+          content: `Welcome to "${name}"! Let's share notes, RAG summaries, and practice problems on ${topic}.`,
+          tag: 'note',
+          timestamp: new Date().toISOString(),
+          whatsappBridged: true,
+          upvotes: 1,
+        },
+      ],
+    };
+
+    studyCirclesStore.set(circleId, newCircle);
+
+    // Bridge creation notification to WhatsApp infrastructure
+    if (prof) {
+      const waMsg = `👥 *Study Circle Created & Synced!*\n\nYou launched *${newCircle.name}* (${newCircle.subject} • ${newCircle.topic}).\n🔗 WhatsApp Bridge Code: *${newCircle.whatsappInviteCode}*\n\nPeers can now share notes and broadcast questions directly to your WhatsApp learning thread!`;
+      db.recordMessage({
+        userId: prof.userId,
+        whatsappNumber: prof.whatsappNumber,
+        direction: 'outgoing',
+        content: waMsg,
+        messageType: 'text',
+        intent: 'STUDY_CIRCLE_CREATED',
+        agentName: 'StudyCircleAgent',
+      });
+      await whatsapp.sendTextMessage(prof.whatsappNumber, waMsg).catch(() => {});
+    }
+
+    res.json({
+      success: true,
+      circle: newCircle,
+      circles: Array.from(studyCirclesStore.values()),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to create Study Circle' });
+  }
+});
+
+app.post('/api/study-circles/:circleId/join', async (req, res) => {
+  try {
+    const { circleId } = req.params;
+    const { userId, userName } = req.body;
+    const circle = studyCirclesStore.get(circleId);
+    if (!circle) {
+      return res.status(404).json({ error: 'Study Circle not found' });
+    }
+
+    const prof = userId ? db.getProfileByUserId(userId) : undefined;
+    const studentName = userName || prof?.name || 'Student';
+    const initials = studentName
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+
+    const existingIdx = circle.members.findIndex((m) => m.userId === userId);
+    let joined = false;
+
+    if (existingIdx >= 0) {
+      circle.members.splice(existingIdx, 1);
+      circle.activeNowCount = Math.max(1, circle.activeNowCount - 1);
+    } else {
+      circle.members.push({
+        userId: userId || 'user_1',
+        name: studentName,
+        avatarInitials: initials || 'ST',
+        role: 'member',
+        whatsappSynced: true,
+      });
+      circle.activeNowCount += 1;
+      joined = true;
+
+      if (prof) {
+        const waJoinText = `🤝 *Joined Study Circle: ${circle.name}*\n📚 Topic: *${circle.topic}* (${circle.subject})\n🔗 WhatsApp Group Bridge: *${circle.whatsappInviteCode}*\n\nPeer notes and shared solutions in this circle are now linked with your WhatsApp learning companion.`;
+        db.recordMessage({
+          userId: prof.userId,
+          whatsappNumber: prof.whatsappNumber,
+          direction: 'outgoing',
+          content: waJoinText,
+          messageType: 'text',
+          intent: 'STUDY_CIRCLE_JOINED',
+          agentName: 'StudyCircleAgent',
+        });
+        await whatsapp.sendTextMessage(prof.whatsappNumber, waJoinText).catch(() => {});
+      }
+    }
+
+    res.json({
+      success: true,
+      joined,
+      circle,
+      circles: Array.from(studyCirclesStore.values()),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update Study Circle membership' });
+  }
+});
+
+app.post('/api/study-circles/:circleId/messages', async (req, res) => {
+  try {
+    const { circleId } = req.params;
+    const { userId, userName, content, tag, forwardToWhatsApp } = req.body;
+    const circle = studyCirclesStore.get(circleId);
+    if (!circle) {
+      return res.status(404).json({ error: 'Study Circle not found' });
+    }
+    if (!content || !String(content).trim()) {
+      return res.status(400).json({ error: 'Message content is required' });
+    }
+
+    const prof = userId ? db.getProfileByUserId(userId) : undefined;
+    const senderName = userName || prof?.name || 'Student';
+    const cleanContent = String(content).trim();
+
+    const newMsg: StudyCircleMessage = {
+      id: `sc_msg_${Date.now()}`,
+      circleId,
+      senderId: userId || 'user_1',
+      senderName,
+      senderRole: 'student',
+      content: cleanContent,
+      tag: tag || 'note',
+      timestamp: new Date().toISOString(),
+      whatsappBridged: Boolean(forwardToWhatsApp !== false),
+      upvotes: 1,
+    };
+
+    circle.messages.push(newMsg);
+
+    // Ensure sender is in member roster
+    if (!circle.members.some((m) => m.userId === (userId || 'user_1'))) {
+      const initials = senderName
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+      circle.members.push({
+        userId: userId || 'user_1',
+        name: senderName,
+        avatarInitials: initials || 'ST',
+        role: 'member',
+        whatsappSynced: true,
+      });
+    }
+
+    // Bridge peer message to WhatsApp messaging infrastructure if enabled
+    let whatsappDeliveryResult: any = null;
+    if (forwardToWhatsApp !== false && prof) {
+      const waBridgePayload = `💬 *[Study Circle: ${circle.name}]*\n👤 *${senderName}* (${
+        newMsg.tag?.toUpperCase() || 'NOTE'
+      }):\n"${cleanContent}"\n\n_Synced via WhatsApp Study Circle Bridge (${circle.whatsappInviteCode})_`;
+
+      db.recordMessage({
+        userId: prof.userId,
+        whatsappNumber: prof.whatsappNumber,
+        direction: 'outgoing',
+        content: waBridgePayload,
+        messageType: 'text',
+        intent: 'STUDY_CIRCLE_MESSAGE_BRIDGE',
+        agentName: 'StudyCircleAgent',
+      });
+
+      whatsappDeliveryResult = await whatsapp
+        .sendTextMessage(prof.whatsappNumber, waBridgePayload)
+        .catch(() => null);
+    }
+
+    // If the student posted a question or requested RAG insight, generate a helpful peer/RAG co-pilot reply in the circle
+    if (tag === 'question' || cleanContent.includes('?')) {
+      const ragSearch = ragService.search(`${circle.subject} ${circle.topic} ${cleanContent}`, 1);
+      const topChunk = ragSearch.chunks[0];
+      const peerReply: StudyCircleMessage = {
+        id: `sc_msg_peer_${Date.now() + 1}`,
+        circleId,
+        senderId: 'peer_mentor_bot',
+        senderName: topChunk
+          ? `Ananya Sharma • Cited RAG (${topChunk.documentTitle})`
+          : 'Rohan Verma (Peer Mentor)',
+        senderRole: 'peer_mentor',
+        content: topChunk
+          ? `Great question! Here is what our verified RAG notes say on this:\n"${topChunk.content.slice(
+              0,
+              240
+            )}..."`
+          : `Good question on ${circle.topic}! Let's break down the base invariant first and test a quick example in the WhatsApp Simulator.`,
+        tag: 'solution',
+        timestamp: new Date(Date.now() + 500).toISOString(),
+        whatsappBridged: true,
+        upvotes: 2,
+      };
+      circle.messages.push(peerReply);
+    }
+
+    res.json({
+      success: true,
+      circle,
+      message: newMsg,
+      whatsappBridged: Boolean(whatsappDeliveryResult?.success ?? true),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to post Study Circle message' });
+  }
 });
 
 // ----------------------------------------------------
@@ -626,6 +1294,39 @@ app.post('/api/reminders/:id/trigger', async (req, res) => {
   }
 });
 
+// Automated Daily WhatsApp Reminders based on Student's preferredStudyTime
+app.get('/api/reminders/automated-status/:userId', (req, res) => {
+  try {
+    const status = getAutomatedReminderStatus(req.params.userId);
+    const profile = db.getProfileByUserId(req.params.userId);
+    const previewMessage = profile ? generatePersonalizedReminderMessage(profile) : '';
+    res.json({ success: true, status, previewMessage });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/reminders/send-daily-now/:userId', async (req, res) => {
+  try {
+    const result = await sendAutomatedReminderNow(req.params.userId);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error || 'Failed to send automated reminder' });
+    }
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/reminders/automated-daily-check', async (req, res) => {
+  try {
+    const result = await checkAndSendAutomatedReminders();
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/recommendations/:userId', (req, res) => {
   res.json(db.getRecommendations(req.params.userId));
 });
@@ -933,6 +1634,695 @@ app.post('/api/documents/upload', async (req, res) => {
     res.json({ success: true, document: doc });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Voice-to-Knowledge: Transcribe & AI-structure verbal study summaries into searchable RAG notes
+app.post('/api/voice-to-knowledge', async (req, res) => {
+  try {
+    const {
+      audioBase64,
+      mimeType,
+      transcript: clientTranscript,
+      title,
+      subject,
+      topic,
+      userId,
+      pinToProfile,
+    } = req.body;
+
+    let rawTranscript = String(clientTranscript || '').trim();
+
+    // If audioBase64 was sent and no client transcript is present, transcribe via Gemini
+    if (!rawTranscript && audioBase64) {
+      const transcribed = await transcribeAudio(audioBase64, mimeType || 'audio/webm');
+      if (transcribed && !transcribed.startsWith('[')) {
+        rawTranscript = transcribed.trim();
+      }
+    }
+
+    if (!rawTranscript) {
+      return res.status(400).json({
+        error: 'Please record a verbal summary or provide a transcript to process.',
+      });
+    }
+
+    const targetSubject = String(subject || 'Python').trim();
+    const targetTopic = String(topic || `${targetSubject} Study Session Summary`).trim();
+    const noteTitle =
+      String(title || '').trim() ||
+      `Voice Note: ${targetTopic} (${new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })})`;
+
+    // Process the verbal transcript with AI into a clean, searchable RAG knowledge note
+    let structuredNote = '';
+    const ai = getGeminiAI();
+    if (ai) {
+      try {
+        const prompt = `You are an expert academic knowledge-base synthesizer. A student just recorded the following verbal summary after a study session on "${targetTopic}" (${targetSubject}):
+
+"${rawTranscript}"
+
+Convert this verbal summary into a clean, well-structured, searchable study note for a RAG knowledge base. Include:
+1. Executive Summary (2-3 crisp sentences)
+2. Key Concepts & Rules Extracted (bullet points with clear technical terms)
+3. Important Edge Cases, Complexity, or Formulas
+4. 2 Active Recall Self-Check Questions & Answers
+5. Original Verbal Summary Reference
+
+Return plain markdown text suitable for semantic chunking.`;
+
+        const response = await generateContentWithRetry({
+          contents: prompt,
+        });
+        if (response?.text) {
+          structuredNote = response.text.trim();
+        }
+      } catch {
+        // Fallback to deterministic synthesizer below
+      }
+    }
+
+    if (!structuredNote) {
+      structuredNote = `${noteTitle} — ${targetSubject} (${targetTopic})
+
+Executive Study Summary:
+Structured knowledge note synthesized from student's recorded verbal study session summary on ${targetTopic} in ${targetSubject}.
+
+Key Concepts & Takeaways Recorded:
+${rawTranscript}
+
+Core Rules & Exam Checkpoints:
+- Topic Focus: ${targetTopic} (${targetSubject})
+- Active Recall Verification: Ensure base invariants, boundary conditions, and core definitions from this verbal summary are reviewed in your next Leitner spaced repetition session.
+
+Original Verbal Session Transcript:
+"${rawTranscript}"`;
+    }
+
+    // Save as a searchable text document + indexed semantic chunks in the RAG knowledge base
+    const filename = `voice_note_${targetSubject.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.txt`;
+    const ingestedDoc = await ragService.ingestDocument(
+      noteTitle,
+      targetSubject,
+      'Voice-to-Knowledge Note',
+      filename,
+      structuredNote
+    );
+
+    const { chunks } = ragService.getDocument(ingestedDoc.id);
+
+    // Optionally pin to student's profile & log in WhatsApp history
+    let updatedProfile = null;
+    if (userId) {
+      const prof = db.getProfileByUserId(userId);
+      if (prof) {
+        const pinned = Array.from(
+          new Set([ingestedDoc.id, ...(prof.pinnedDocumentIds || [])])
+        );
+        updatedProfile = db.updateProfile(userId, {
+          pinnedDocumentIds: pinToProfile !== false ? pinned : prof.pinnedDocumentIds,
+          learningHistory: [
+            ...(prof.learningHistory || []),
+            {
+              topic: targetTopic,
+              subject: targetSubject,
+              date: new Date().toISOString().split('T')[0],
+              mastered: true,
+            },
+          ],
+        });
+
+        const waMsg = `🎙️ *Voice-to-Knowledge Note Indexed in RAG!*\n\n📄 *Title:* ${ingestedDoc.title}\n📚 *Subject:* ${targetSubject}\n🧩 *Indexed Chunks:* ${chunks.length} searchable semantic chunks\n\nYou can now query this note anytime in WhatsApp chat or review it in your Spaced Repetition flashcards!`;
+        db.recordMessage({
+          userId: prof.userId,
+          whatsappNumber: prof.whatsappNumber,
+          direction: 'outgoing',
+          messageType: 'text',
+          content: waMsg,
+          intent: 'VOICE_TO_KNOWLEDGE_INDEXED',
+          agentName: 'RagKnowledgeAgent',
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      document: ingestedDoc,
+      chunks,
+      structuredNote,
+      rawTranscript,
+      updatedProfile,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: err.message || 'Failed to process Voice-to-Knowledge summary',
+    });
+  }
+});
+
+// ----------------------------------------------------
+// 8b. Smart Notification Scheduler (AI Performance Analysis -> Optimal Next-Day Study Times -> WhatsApp Push)
+// ----------------------------------------------------
+app.post('/api/smart-notification-scheduler/analyze', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const prof = userId ? db.getProfileByUserId(userId) : undefined;
+    if (!prof) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+
+    const accuracy =
+      prof.totalQuestionsAnswered > 0
+        ? Math.round((prof.correctAnswers / prof.totalQuestionsAnswered) * 100)
+        : 75;
+    const primaryWeak = prof.weakTopics?.[0] || 'Recursion & Base Cases';
+    const secondaryWeak = prof.weakTopics?.[1] || 'Integration by Parts';
+    const primarySubject = prof.subjects?.[0] || 'Python';
+    const secondarySubject = prof.subjects?.[1] || prof.subjects?.[0] || 'Calculus';
+    const focusMins = prof.focusStats?.totalFocusMinutes || 125;
+    const preferredTime = prof.preferredStudyTime || '07:00 PM';
+
+    const tomorrowDate = new Date(Date.now() + 86400000).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    });
+
+    let aiSummary = '';
+    let suggestedSlots: {
+      id: string;
+      time: string;
+      windowLabel: string;
+      subject: string;
+      topic: string;
+      durationMinutes: number;
+      cognitiveMatchScore: number;
+      rationale: string;
+      whatsappPreview: string;
+    }[] = [];
+
+    const ai = getGeminiAI();
+    if (ai) {
+      try {
+        const prompt = `You are an AI Cognitive Learning Strategist & Smart Notification Scheduler.
+Analyze this student's past performance and suggest 3 optimal, personalized study times for tomorrow (${tomorrowDate}) to be pushed via WhatsApp:
+- Student Name: ${prof.name}
+- Subjects: ${prof.subjects.join(', ')}
+- Quiz Accuracy: ${accuracy}% (${prof.correctAnswers}/${prof.totalQuestionsAnswered} correct)
+- Current Streak: ${prof.streak} days
+- Weak Topics needing remediation: ${(prof.weakTopics || []).join(', ') || primaryWeak}
+- Strong Topics: ${(prof.strongTopics || []).join(', ') || 'Fundamentals'}
+- Total Deep Focus Logged: ${focusMins} mins
+- Current Preferred Study Time: ${preferredTime}
+- Target Study Hours/Day: ${prof.studyHoursPerDay || 2} hrs
+
+Return strictly valid JSON with this structure:
+{
+  "aiSummary": "2-sentence personalized analysis of their accuracy, weak topics, and why these 3 time windows maximize retention tomorrow.",
+  "slots": [
+    {
+      "id": "slot_morning",
+      "time": "08:30 AM",
+      "windowLabel": "Peak Cognitive Remediation Window",
+      "subject": "${primarySubject}",
+      "topic": "${primaryWeak}",
+      "durationMinutes": 45,
+      "cognitiveMatchScore": 96,
+      "rationale": "Why this slot is optimal based on their past performance",
+      "whatsappPreview": "Short motivating WhatsApp push notification text"
+    }
+  ]
+}`;
+
+        const geminiRes = await generateContentWithRetry({
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            temperature: 0.5,
+          },
+          timeoutMs: 10000,
+        });
+
+        const parsed = JSON.parse(geminiRes.text || '{}');
+        if (parsed.aiSummary && Array.isArray(parsed.slots) && parsed.slots.length > 0) {
+          aiSummary = parsed.aiSummary;
+          suggestedSlots = parsed.slots.map((s: any, idx: number) => ({
+            id: s.id || `smart_slot_${idx + 1}`,
+            time: s.time || '08:30 AM',
+            windowLabel: s.windowLabel || 'Optimal Study Window',
+            subject: s.subject || primarySubject,
+            topic: s.topic || primaryWeak,
+            durationMinutes: Number(s.durationMinutes) || 40,
+            cognitiveMatchScore: Number(s.cognitiveMatchScore) || 94,
+            rationale: s.rationale || 'Optimized for peak active recall and weak-topic remediation.',
+            whatsappPreview:
+              s.whatsappPreview ||
+              `⏰ Time for your ${s.subject || primarySubject} focus sprint on ${s.topic || primaryWeak}!`,
+          }));
+        }
+      } catch {
+        // Use deterministic cognitive performance analyzer below
+      }
+    }
+
+    if (suggestedSlots.length === 0) {
+      aiSummary = `Based on ${prof.name}'s ${accuracy}% quiz accuracy (${prof.correctAnswers}/${prof.totalQuestionsAnswered} solved), ${focusMins}m of logged Pomodoro focus, and ${prof.streak}-day streak, scheduling high-cognitive remediation on "${primaryWeak}" in the morning and active recall consolidation near ${preferredTime} maximizes next-day retention by +28%.`;
+
+      suggestedSlots = [
+        {
+          id: 'slot_peak_remediation',
+          time: '08:30 AM',
+          windowLabel: 'Peak Analytical Remediation Slot',
+          subject: primarySubject,
+          topic: primaryWeak,
+          durationMinutes: 45,
+          cognitiveMatchScore: 97,
+          rationale: `Your quiz error patterns show "${primaryWeak}" requires fresh working memory. Tackling a 45m Socratic drill at 08:30 AM avoids evening fatigue.`,
+          whatsappPreview: `🌅 Good morning ${prof.name}! Peak-focus window (97% match): Let's conquer *${primaryWeak}* in ${primarySubject} for 45 mins. Reply "Start" to begin!`,
+        },
+        {
+          id: 'slot_spaced_recall',
+          time: '04:30 PM',
+          windowLabel: 'Spaced Repetition & Quiz Velocity Slot',
+          subject: secondarySubject,
+          topic: secondaryWeak,
+          durationMinutes: 30,
+          cognitiveMatchScore: 93,
+          rationale: `To boost your ${accuracy}% quiz accuracy above 85%, a 30m afternoon Leitner Box 1–2 flashcard & adaptive quiz sprint reinforces long-term recall.`,
+          whatsappPreview: `⚡ Afternoon Recall Boost! 30m Leitner Flashcard & Quiz sprint on *${secondaryWeak}* (${secondarySubject}) to push your accuracy past 85%!`,
+        },
+        {
+          id: 'slot_streak_anchor',
+          time: preferredTime,
+          windowLabel: 'Habit-Anchored Deep Focus & Streak Guard',
+          subject: primarySubject,
+          topic: `${primarySubject} Synthesis & Voice-to-Knowledge Review`,
+          durationMinutes: 45,
+          cognitiveMatchScore: 98,
+          rationale: `Anchored to your preferred study time (${preferredTime}) to lock in Day ${
+            (prof.streak || 0) + 1
+          } of your study streak and summarize key takeaways.`,
+          whatsappPreview: `🔥 Streak Guard (${preferredTime}): Lock in Day ${
+            (prof.streak || 0) + 1
+          } of your streak with a 45m Deep Focus & Voice Summary session on ${primarySubject}!`,
+        },
+      ];
+    }
+
+    res.json({
+      success: true,
+      tomorrowDate,
+      aiSummary,
+      metricsAnalyzed: {
+        accuracy,
+        streak: prof.streak,
+        weakTopicsCount: (prof.weakTopics || []).length,
+        focusMinutes: focusMins,
+        preferredStudyTime: preferredTime,
+      },
+      slots: suggestedSlots,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: err.message || 'Failed to analyze performance for smart notifications',
+    });
+  }
+});
+
+app.post('/api/smart-notification-scheduler/push', async (req, res) => {
+  try {
+    const { userId, slots, updatePreferredTime } = req.body;
+    const prof = userId ? db.getProfileByUserId(userId) : undefined;
+    if (!prof) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+
+    const selectedSlots: any[] = Array.isArray(slots) ? slots : [];
+    if (selectedSlots.length === 0) {
+      return res.status(400).json({ error: 'At least one study time slot is required' });
+    }
+
+    const tomorrowDate = new Date(Date.now() + 86400000).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+
+    const createdReminders: any[] = [];
+    for (const slot of selectedSlots) {
+      const rem = {
+        id: `rem_smart_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        userId: prof.userId,
+        whatsappNumber: prof.whatsappNumber,
+        reminderText: `[AI Smart Slot • ${slot.windowLabel}] ${slot.subject}: ${slot.topic} (${slot.durationMinutes}m)`,
+        targetTime: slot.time,
+        frequency: 'daily' as const,
+        subject: slot.subject,
+        timezone: 'Asia/Kolkata',
+        status: 'active' as const,
+        createdAt: new Date().toISOString(),
+        type: 'daily_session' as const,
+      };
+      db.addReminder(rem);
+      createdReminders.push(rem);
+    }
+
+    // Update student profile preferredStudyTime if requested
+    const updatedProfile = db.updateProfile(prof.userId, {
+      dailyReminderEnabled: true,
+      preferredStudyTime: updatePreferredTime || selectedSlots[0]?.time || prof.preferredStudyTime,
+    });
+
+    // Build and push the WhatsApp message with tomorrow's AI-optimized schedule
+    const scheduleLines = selectedSlots
+      .map(
+        (s, idx) =>
+          `${idx + 1}. ⏰ *${s.time}* (${s.durationMinutes}m) — *${s.subject}: ${s.topic}*\n   _🎯 ${s.windowLabel} (${s.cognitiveMatchScore}% AI Match)_`
+      )
+      .join('\n\n');
+
+    const waMessage =
+      `🤖 *AI Smart Notification Schedule Activated for Tomorrow (${tomorrowDate})!* 📅\n\n` +
+      `Hey ${prof.name}, I analyzed your recent quiz accuracy, focus logs, and weak topics to lock in your optimal study windows:\n\n` +
+      `${scheduleLines}\n\n` +
+      `📲 _Automated WhatsApp pings are now armed for ${prof.whatsappNumber}. Reply "/plan" or "Start" anytime to jump in!_ 🚀`;
+
+    await whatsapp.sendTextMessage(prof.whatsappNumber, waMessage).catch(() => {});
+
+    db.recordMessage({
+      userId: prof.userId,
+      whatsappNumber: prof.whatsappNumber,
+      direction: 'outgoing',
+      messageType: 'text',
+      content: waMessage,
+      intent: 'SMART_NOTIFICATION_SCHEDULE_PUSH',
+      agentName: 'SmartSchedulerAgent',
+    });
+
+    res.json({
+      success: true,
+      pushedCount: selectedSlots.length,
+      reminders: createdReminders,
+      updatedProfile,
+      whatsappMessage: waMessage,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: err.message || 'Failed to push smart notification schedule to WhatsApp',
+    });
+  }
+});
+
+// ----------------------------------------------------
+// High-Level Thinking Models Studio for Students
+// ----------------------------------------------------
+app.post('/api/thinking-models/analyze', async (req, res) => {
+  try {
+    const {
+      userId,
+      topic,
+      subject,
+      frameworkId,
+      thinkingDepth = 'HIGH',
+      studentHypothesis = '',
+      saveToRag = false,
+      pushToWhatsApp = false,
+    } = req.body;
+
+    const cleanTopic = String(topic || 'Recursion & Dynamic Programming').trim();
+    const cleanSubject = String(subject || 'DSA').trim();
+    const cleanFramework = String(frameworkId || 'first_principles').trim();
+    const prof = userId ? db.getProfileByUserId(userId) : Array.from(db.profiles.values())[0];
+
+    const frameworkDefinitions: Record<
+      string,
+      { name: string; subtitle: string; stepLabels: string[] }
+    > = {
+      first_principles: {
+        name: 'First-Principles Deconstruction',
+        subtitle: 'Strip away surface assumptions to uncover irreducible axioms and rebuild from scratch',
+        stepLabels: [
+          '1. Surface Assumptions & Common Myths',
+          '2. Irreducible Fundamental Truths (Axioms)',
+          '3. Step-by-Step Reconstruction from Scratch',
+          '4. Novel Application & Transfer Scenario',
+        ],
+      },
+      feynman_mental_model: {
+        name: 'Feynman Mental Model & Analogical Transfer',
+        subtitle: 'Translate complex technical abstractions into crystal-clear intuition & expose blind spots',
+        stepLabels: [
+          '1. Plain-Language Core Intuition (Zero Jargon)',
+          '2. High-Precision Real-World Analogy',
+          '3. Jargon-Gap & Hidden Edge-Case Audit',
+          '4. Formal Mathematical / Algorithmic Anchoring',
+        ],
+      },
+      socratic_dialectic: {
+        name: 'Socratic Dialectic & Counter-Example Probing',
+        subtitle: 'Interrogate hypotheses through adversarial counter-examples and boundary conditions',
+        stepLabels: [
+          '1. Core Thesis & Implicit Premises',
+          '2. Adversarial Counter-Example / Stress Test',
+          '3. Boundary Condition & Failure Mode Analysis',
+          '4. Synthesized Robust Law / Invariant',
+        ],
+      },
+      systems_second_order: {
+        name: 'Second-Order & Systems Thinking Matrix',
+        subtitle: 'Map causal feedback loops, time/space trade-offs, and cascading downstream effects',
+        stepLabels: [
+          '1. First-Order Immediate Effect',
+          '2. Second- & Third-Order Cascading Consequences',
+          '3. Feedback Loops & Bottleneck Trade-offs',
+          '4. Architectural / Strategic Optimization',
+        ],
+      },
+      bloom_metacognitive: {
+        name: "Bloom's Higher-Order Synthesis & Evaluation",
+        subtitle: 'Ascend from rote recall to analytical critique, architectural comparison, and original design',
+        stepLabels: [
+          '1. Analytical Decomposition (How Components Interact)',
+          '2. Critical Evaluation (When This Approach Fails vs. Excels)',
+          '3. Comparative Synthesis (Alternative Paradigms)',
+          '4. Original Design Challenge (Create New Solution)',
+        ],
+      },
+      inversion_premortem: {
+        name: 'Inversion & Failure Pre-Mortem Model',
+        subtitle: 'Solve complex problems backward by identifying every way a solution or proof can break',
+        stepLabels: [
+          '1. Forward Goal vs. Inverted Failure State',
+          '2. Top 3 Fatal Bugs / Conceptual Traps',
+          '3. Defensive Guardrails & Invariant Checks',
+          '4. Bulletproof Execution Blueprint',
+        ],
+      },
+    };
+
+    const selectedMeta =
+      frameworkDefinitions[cleanFramework] || frameworkDefinitions.first_principles;
+
+    // Retrieve relevant RAG context if available
+    const ragContext = ragService.search(`${cleanSubject} ${cleanTopic}`, 2);
+
+    let structuredAnalysis: any = null;
+    const ai = getGeminiAI();
+
+    if (ai) {
+      try {
+        const prompt = `You are a Principal Cognitive Scientist and Elite STEM Mentor building a High-Level Thinking Model for a student.
+Student Profile:
+- Name: ${prof?.name || 'Student'}
+- Education Level: ${prof?.educationLevel || 'college'}
+- Skill Level: ${prof?.currentSkillLevel || 'intermediate'}
+- Weak Topics: ${(prof?.weakTopics || []).join(', ') || 'None'}
+
+Selected High-Level Thinking Framework: "${selectedMeta.name}" (${selectedMeta.subtitle})
+Target Subject: "${cleanSubject}"
+Target Concept / Problem: "${cleanTopic}"
+${studentHypothesis ? `Student's Current Intuition / Hypothesis to Critique: "${studentHypothesis}"` : ''}
+${ragContext.contextString ? `Verified Curriculum RAG Context:\n${ragContext.contextString.slice(0, 900)}` : ''}
+
+Generate a rigorous, deeply insightful High-Level Thinking Model breakdown using the exact 4 stages of "${selectedMeta.name}":
+${selectedMeta.stepLabels.join('\n')}
+
+Return valid JSON matching this exact structure:
+{
+  "executiveThesis": "A crisp 2-sentence high-level thesis synthesizing the deepest insight about this topic.",
+  "cognitiveComplexityScore": 92,
+  "reasoningTrace": [
+    "Step 1 of internal reasoning trace...",
+    "Step 2 of internal reasoning trace...",
+    "Step 3 of internal reasoning trace...",
+    "Step 4 of internal reasoning trace..."
+  ],
+  "stages": [
+    {
+      "stageTitle": "${selectedMeta.stepLabels[0]}",
+      "coreInsight": "Detailed, rigorous explanation for stage 1",
+      "concreteExampleOrFormula": "Concrete code snippet, mathematical formula, or system trace",
+      "metacognitivePrompt": "A sharp question for the student to self-verify this stage"
+    }
+  ],
+  "commonCognitiveTraps": [
+    {
+      "trap": "Name of common student misconception or trap",
+      "whyItHappens": "Cognitive reason students fall for it",
+      "mentalModelCorrection": "How this thinking model permanently fixes it"
+    }
+  ],
+  "synthesisChallenge": {
+    "question": "A high-level synthesis or transfer problem that tests true mastery beyond rote memorization",
+    "hint": "A first-principles hint",
+    "modelSolutionOutline": "Key steps of the rigorous solution"
+  }
+}`;
+
+        const response = await generateContentWithRetry({
+          preferredModel: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+          },
+        });
+
+        const rawText = (response.text || '').trim();
+        const cleanedJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        structuredAnalysis = JSON.parse(cleanedJson);
+      } catch (aiErr) {
+        structuredAnalysis = null;
+      }
+    }
+
+    // Deterministic high-rigor fallback if offline or AI quota reached
+    if (!structuredAnalysis || !Array.isArray(structuredAnalysis.stages) || structuredAnalysis.stages.length === 0) {
+      structuredAnalysis = {
+        executiveThesis: `Mastery of ${cleanTopic} (${cleanSubject}) requires moving beyond memorizing formulas to understanding the underlying invariants, boundary conditions, and state transitions through ${selectedMeta.name}.`,
+        cognitiveComplexityScore: thinkingDepth === 'HIGH' ? 95 : 86,
+        reasoningTrace: [
+          `Deconstructing "${cleanTopic}" within ${cleanSubject} to isolate core invariants vs. surface syntax.`,
+          `Applying ${selectedMeta.name} across ${prof?.currentSkillLevel || 'intermediate'}-level curriculum constraints.`,
+          studentHypothesis
+            ? `Auditing student hypothesis ("${studentHypothesis.slice(0, 70)}") against adversarial edge cases.`
+            : `Synthesizing multi-step mental model and counter-examples to prevent rote-memorization traps.`,
+          `Formulating a transfer-learning synthesis challenge to verify deep conceptual retention.`,
+        ],
+        stages: [
+          {
+            stageTitle: selectedMeta.stepLabels[0],
+            coreInsight: `Most students approach ${cleanTopic} by memorizing template patterns without questioning why the state or invariant holds. Strip away the notation and ask: what state is conserved at each transition?`,
+            concreteExampleOrFormula: `Invariant(State_k) => Transition(k -> k+1) preserves correctness & bounds complexity.`,
+            metacognitivePrompt: `Which assumption about ${cleanTopic} would break if the input size or boundary condition approached zero or infinity?`,
+          },
+          {
+            stageTitle: selectedMeta.stepLabels[1],
+            coreInsight: `At its core, ${cleanTopic} reduces to a small set of fundamental rules: base termination conditions, deterministic state progression, and resource conservation (time/space or conservation laws).`,
+            concreteExampleOrFormula: `Base Case: T(0) = O(1) | Inductive Step: T(n) = T(n-1) + Δ(n)`,
+            metacognitivePrompt: `Can you state the irreducible rule of ${cleanTopic} in one sentence without using textbook jargon?`,
+          },
+          {
+            stageTitle: selectedMeta.stepLabels[2],
+            coreInsight: `When we reconstruct ${cleanTopic} from these axioms, every edge case—such as degenerate inputs, cyclic dependencies, or overflow states—becomes predictable rather than a surprise bug.`,
+            concreteExampleOrFormula: `Guard: if (!isValidState(input)) return boundaryFallback; // Prevents silent propagation`,
+            metacognitivePrompt: `Where does your current mental model of ${cleanTopic} struggle when two constraints conflict?`,
+          },
+          {
+            stageTitle: selectedMeta.stepLabels[3],
+            coreInsight: `By internalizing this thinking model, you can transfer the exact same structure of ${cleanTopic} to novel problems in ${cleanSubject} and adjacent engineering domains.`,
+            concreteExampleOrFormula: `Pattern Transfer: ${cleanTopic} <-> State-Space Search / Equilibrium Optimization`,
+            metacognitivePrompt: `How would you redesign ${cleanTopic} if memory were strictly O(1) or latency had to be halved?`,
+          },
+        ],
+        commonCognitiveTraps: [
+          {
+            trap: `Rote Pattern Matching on ${cleanTopic}`,
+            whyItHappens: `Students memorize surface steps without verifying preconditions or invariants.`,
+            mentalModelCorrection: `Always verify the base invariant and boundary constraints before applying any transformation.`,
+          },
+          {
+            trap: `Ignoring Second-Order Trade-offs`,
+            whyItHappens: `Focusing only on immediate output correctness while overlooking stack depth, precision loss, or asymptotic scaling.`,
+            mentalModelCorrection: `Use ${selectedMeta.name} to trace resource cost and failure modes across extreme inputs.`,
+          },
+        ],
+        synthesisChallenge: {
+          question: `Suppose a standard implementation or proof of ${cleanTopic} in ${cleanSubject} fails when a key assumption is inverted (e.g., non-monotonic input, cyclic state, or strict O(1) auxiliary space). Using ${selectedMeta.name}, how do you adapt the solution?`,
+          hint: `Identify which of the 4 stages above contains the violated assumption, then modify only that axiom's transition rule.`,
+          modelSolutionOutline: `1. Isolate the broken precondition in ${cleanTopic}. 2. Introduce an invariant check or state compression step. 3. Prove termination and bounded complexity under the new constraint.`,
+        },
+      };
+    }
+
+    let savedDocument: any = null;
+    if (saveToRag) {
+      const markdownContent = [
+        `# ${selectedMeta.name}: ${cleanTopic} (${cleanSubject})`,
+        `**Executive Thesis:** ${structuredAnalysis.executiveThesis}`,
+        '',
+        `## High-Level Reasoning Trace`,
+        ...(structuredAnalysis.reasoningTrace || []).map((t: string, i: number) => `${i + 1}. ${t}`),
+        '',
+        `## 4-Stage Thinking Model Breakdown`,
+        ...(structuredAnalysis.stages || []).map(
+          (s: any) =>
+            `### ${s.stageTitle}\n${s.coreInsight}\n- **Anchor / Formula:** \`${s.concreteExampleOrFormula}\`\n- **Metacognitive Check:** _${s.metacognitivePrompt}_`
+        ),
+        '',
+        `## Higher-Order Synthesis Challenge`,
+        `**Question:** ${structuredAnalysis.synthesisChallenge?.question}`,
+        `**Solution Blueprint:** ${structuredAnalysis.synthesisChallenge?.modelSolutionOutline}`,
+      ].join('\n');
+
+      savedDocument = await ragService.ingestDocument(
+        `Thinking Model (${selectedMeta.name}): ${cleanTopic}`,
+        cleanSubject,
+        'cheatsheet',
+        `thinking_model_${cleanFramework}_${Date.now()}.md`,
+        markdownContent
+      );
+    }
+
+    if (pushToWhatsApp && prof) {
+      const waText =
+        `🧠 *High-Level Thinking Model: ${selectedMeta.name}*\n` +
+        `📚 *Topic:* ${cleanTopic} (${cleanSubject})\n\n` +
+        `💡 *Core Thesis:* ${structuredAnalysis.executiveThesis}\n\n` +
+        (structuredAnalysis.stages || [])
+          .map((s: any) => `🔹 *${s.stageTitle}*\n${s.coreInsight}`)
+          .join('\n\n') +
+        `\n\n🎯 *Synthesis Challenge:* ${structuredAnalysis.synthesisChallenge?.question}`;
+
+      await whatsapp.sendTextMessage(prof.whatsappNumber, waText).catch(() => {});
+      db.recordMessage({
+        userId: prof.userId,
+        whatsappNumber: prof.whatsappNumber,
+        direction: 'outgoing',
+        messageType: 'text',
+        content: waText,
+        intent: 'HIGH_LEVEL_THINKING_MODEL',
+        agentName: 'CognitiveThinkingAgent',
+      });
+    }
+
+    res.json({
+      success: true,
+      framework: selectedMeta,
+      frameworkId: cleanFramework,
+      topic: cleanTopic,
+      subject: cleanSubject,
+      thinkingDepth,
+      modelUsed: 'gemini-3.8-flash (ThinkingLevel.' + thinkingDepth + ')',
+      analysis: structuredAnalysis,
+      savedDocument,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: err.message || 'Failed to generate high-level thinking model analysis',
+    });
   }
 });
 
@@ -1339,6 +2729,7 @@ async function startServer() {
   app.listen(PORT, () => {
     console.log(`🚀 WhatsApp AI Learning Agent full-stack server running on http://localhost:${PORT}`);
     console.log(`📱 WhatsApp Webhook URL: http://localhost:${PORT}/webhook/whatsapp`);
+    startAutomatedReminderScheduler();
   });
 }
 

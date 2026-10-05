@@ -544,3 +544,348 @@ export function generateStudentProgressPdf(
 
   return doc;
 }
+
+export interface RagDocumentSummaryItem {
+  id: string;
+  title: string;
+  subject: string;
+  category?: string;
+  summary: string;
+  isPinned?: boolean;
+  chunks?: { chunkIndex: number; content: string; keywords?: string[] }[];
+}
+
+export interface ExportNotesGuideOptions {
+  fileName?: string;
+  ragDocuments?: RagDocumentSummaryItem[];
+  recentTutorNotes?: { question: string; answer: string; date: string }[];
+}
+
+/**
+ * Converts the student's learning history and RAG-based summaries into a clean,
+ * structured, downloadable PDF Study Guide.
+ */
+export function generateExportNotesStudyGuidePdf(
+  profile: StudentProfile,
+  options: ExportNotesGuideOptions = {}
+): jsPDF {
+  const {
+    fileName = `${profile.name.replace(/\s+/g, '_')}_RAG_Study_Guide_Notes.pdf`,
+    ragDocuments = [],
+    recentTutorNotes = [],
+  } = options;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2;
+  let currentY = 0;
+
+  const drawStudyGuideMiniHeader = () => {
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, pageWidth, 12, 'F');
+    doc.setFillColor(99, 102, 241); // indigo-500
+    doc.rect(0, 11, pageWidth, 1, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`PERSONALIZED RAG STUDY GUIDE & NOTES  •  ${profile.name.toUpperCase()}`, margin, 7.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      `Subjects: ${profile.subjects.join(', ')}`,
+      pageWidth - margin,
+      7.5,
+      { align: 'right' }
+    );
+    currentY = 18;
+  };
+
+  const checkPageBreak = (neededHeight: number) => {
+    if (currentY + neededHeight > pageHeight - 18) {
+      doc.addPage();
+      drawStudyGuideMiniHeader();
+    }
+  };
+
+  // ==========================================
+  // 1. STUDY GUIDE COVER BANNER
+  // ==========================================
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.setFillColor(99, 102, 241); // Indigo accent bar
+  doc.rect(0, 38.5, pageWidth, 1.5, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(129, 140, 248); // indigo-400
+  doc.text('WHATSAPP AI LEARNING AGENT  |  EXPORTED RAG KNOWLEDGE BASE & LEARNING NOTES', margin, 11);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`${profile.name}'s Personalized Study Guide & Notes`, margin, 19.5);
+
+  const generationDate = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(203, 213, 225);
+  doc.text(
+    `Compiled: ${generationDate}   •   Active Subjects: ${profile.subjects.join(', ')}   •   Skill Level: ${(profile.currentSkillLevel || 'intermediate').toUpperCase()}`,
+    margin,
+    27.5
+  );
+
+  doc.setFontSize(8);
+  doc.setTextColor(148, 163, 184);
+  doc.text(
+    `Includes: Verified RAG Curriculum Summaries, Indexed Concept Chunks, Learning History & Remediation Notes`,
+    margin,
+    33.5
+  );
+
+  currentY = 47;
+
+  // ==========================================
+  // 2. STUDENT LEARNING HISTORY & TOPIC MASTERY LOG
+  // ==========================================
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('1. Student Learning History & Topic Mastery Log', margin, currentY);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text(
+    'Chronological record of topics studied, mastered concepts, and active remediation focus areas.',
+    margin,
+    currentY + 4.2
+  );
+  currentY += 8;
+
+  const historyItems =
+    profile.learningHistory && profile.learningHistory.length > 0
+      ? profile.learningHistory
+      : [
+          {
+            topic: 'Python Functions, Scoping & Recursion',
+            subject: 'Python',
+            date: new Date().toISOString().split('T')[0],
+            mastered: true,
+          },
+          {
+            topic: 'Binary Search & Time Complexity Analysis',
+            subject: 'DSA',
+            date: new Date().toISOString().split('T')[0],
+            mastered: true,
+          },
+          {
+            topic: profile.weakTopics?.[0] || 'Integration by Parts & Substitution',
+            subject: profile.subjects?.[0] || 'Calculus',
+            date: new Date().toISOString().split('T')[0],
+            mastered: false,
+          },
+        ];
+
+  historyItems.forEach((item, idx) => {
+    checkPageBreak(12);
+    doc.setFillColor(item.mastered ? 240 : 254, item.mastered ? 253 : 243, item.mastered ? 244 : 199);
+    doc.setDrawColor(item.mastered ? 16 : 245, item.mastered ? 185 : 158, item.mastered ? 129 : 11);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, currentY, contentWidth, 9.5, 1.5, 1.5, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`${idx + 1}. ${item.topic} (${item.subject})`, margin + 3.5, currentY + 6);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    if (item.mastered) {
+      doc.setTextColor(4, 120, 87);
+      doc.text(`MASTERED  •  ${item.date}`, pageWidth - margin - 3.5, currentY + 6, { align: 'right' });
+    } else {
+      doc.setTextColor(180, 83, 9);
+      doc.text(`NEEDS REVIEW  •  ${item.date}`, pageWidth - margin - 3.5, currentY + 6, { align: 'right' });
+    }
+
+    currentY += 11.5;
+  });
+
+  // Strong vs Weak Topics Quick Summary Box
+  checkPageBreak(24);
+  const halfW = (contentWidth - 4) / 2;
+  doc.setFillColor(240, 253, 244);
+  doc.setDrawColor(16, 185, 129);
+  doc.roundedRect(margin, currentY, halfW, 18, 1.5, 1.5, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(4, 120, 87);
+  doc.text('STRONG / MASTERED TOPICS', margin + 3, currentY + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(30, 41, 59);
+  const strongStr =
+    profile.strongTopics && profile.strongTopics.length > 0
+      ? profile.strongTopics.join(', ')
+      : 'Python Functions, Basic Derivatives, Arrays & Loops';
+  doc.text(doc.splitTextToSize(strongStr, halfW - 6).slice(0, 2), margin + 3, currentY + 10);
+
+  doc.setFillColor(255, 241, 242);
+  doc.setDrawColor(244, 63, 94);
+  doc.roundedRect(margin + halfW + 4, currentY, halfW, 18, 1.5, 1.5, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(190, 18, 60);
+  doc.text('PRIORITY WEAK TOPICS FOR REVISION', margin + halfW + 7, currentY + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(30, 41, 59);
+  const weakStr =
+    profile.weakTopics && profile.weakTopics.length > 0
+      ? profile.weakTopics.join(', ')
+      : 'Recursion edge cases, Integration by Parts';
+  doc.text(doc.splitTextToSize(weakStr, halfW - 6).slice(0, 2), margin + halfW + 7, currentY + 10);
+
+  currentY += 24;
+
+  // ==========================================
+  // 3. RAG-BASED CURRICULUM SUMMARIES & NOTES
+  // ==========================================
+  checkPageBreak(30);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('2. RAG Knowledge Base Study Summaries & Key Excerpts', margin, currentY);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text(
+    'Verified curriculum summaries and high-yield concept chunks extracted from the RAG repository.',
+    margin,
+    currentY + 4.2
+  );
+  currentY += 8.5;
+
+  ragDocuments.forEach((ragDoc, idx) => {
+    const chunkLines: string[] = [];
+    if (ragDoc.chunks && ragDoc.chunks.length > 0) {
+      ragDoc.chunks.slice(0, 2).forEach((ch) => {
+        const cleanText = ch.content.replace(/\s+/g, ' ').trim();
+        const wrapped = doc.splitTextToSize(`• ${cleanText}`, contentWidth - 8);
+        chunkLines.push(...wrapped.slice(0, 4));
+      });
+    } else {
+      const wrappedSummary = doc.splitTextToSize(`• ${ragDoc.summary}`, contentWidth - 8);
+      chunkLines.push(...wrappedSummary.slice(0, 4));
+    }
+
+    const boxHeight = Math.max(22, 12 + chunkLines.length * 4);
+    checkPageBreak(boxHeight + 4);
+
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(ragDoc.isPinned ? 245 : 203, ragDoc.isPinned ? 158 : 213, ragDoc.isPinned ? 11 : 225);
+    doc.setLineWidth(0.35);
+    doc.roundedRect(margin, currentY, contentWidth, boxHeight, 2, 2, 'FD');
+
+    // Document Title & Subject Pill
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.text(
+      `${idx + 1}. ${ragDoc.title} [${ragDoc.subject}]${ragDoc.isPinned ? '  ★ PINNED NOTE' : ''}`,
+      margin + 3.5,
+      currentY + 6
+    );
+
+    // Chunks / Summary body
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.8);
+    doc.setTextColor(51, 65, 85);
+    doc.text(chunkLines, margin + 4, currentY + 11.5);
+
+    currentY += boxHeight + 3.5;
+  });
+
+  // ==========================================
+  // 4. RECENT AI TUTOR Q&A TAKEAWAYS (IF ANY)
+  // ==========================================
+  if (recentTutorNotes.length > 0) {
+    checkPageBreak(30);
+    currentY += 3;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text('3. Saved AI Tutor Explanations & Session Notes', margin, currentY);
+    currentY += 6;
+
+    recentTutorNotes.slice(0, 4).forEach((qa, i) => {
+      const qLines = doc.splitTextToSize(`Q${i + 1}: ${qa.question}`, contentWidth - 8).slice(0, 2);
+      const aLines = doc
+        .splitTextToSize(`A: ${qa.answer.replace(/\*/g, '').replace(/\s+/g, ' ').trim()}`, contentWidth - 8)
+        .slice(0, 4);
+      const h = 8 + (qLines.length + aLines.length) * 3.8;
+      checkPageBreak(h + 4);
+
+      doc.setFillColor(238, 242, 255);
+      doc.setDrawColor(165, 180, 252);
+      doc.roundedRect(margin, currentY, contentWidth, h, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(49, 46, 129);
+      doc.text(qLines, margin + 3.5, currentY + 5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text(aLines, margin + 3.5, currentY + 5 + qLines.length * 3.8);
+
+      currentY += h + 3;
+    });
+  }
+
+  // ==========================================
+  // 5. FOOTER WITH PAGE NUMBERS
+  // ==========================================
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(226, 232, 240);
+    doc.rect(margin, pageHeight - 12, contentWidth, 0.4, 'F');
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      'WhatsApp AI Learning Companion  •  Exported RAG Study Guide & Learning History Notes',
+      margin,
+      pageHeight - 7.5
+    );
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 7.5, {
+      align: 'right',
+    });
+  }
+
+  if (typeof window !== 'undefined') {
+    doc.save(fileName);
+  }
+
+  return doc;
+}

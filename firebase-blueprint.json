@@ -27,6 +27,8 @@
         "educationLevel": { "type": "string", "maxLength": 50 },
         "currentSkillLevel": { "type": "string", "enum": ["beginner", "intermediate", "advanced", "expert"] },
         "studyHoursPerDay": { "type": "number" },
+        "deepFocusEnabled": { "type": "boolean" },
+        "dailyReminderEnabled": { "type": "boolean" },
         "streak": { "type": "number" },
         "overallProgress": { "type": "number" },
         "totalQuestionsAnswered": { "type": "number" },

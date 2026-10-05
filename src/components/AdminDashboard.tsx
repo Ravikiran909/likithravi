@@ -732,11 +732,6 @@ export const AdminDashboard: React.FC = () => {
                   }`}
                 >
                   <div className="font-semibold">{testResult.message}</div>
-                  {testResult.details && (
-                    <pre className="text-[10px] text-slate-300 bg-slate-900/80 p-2 rounded overflow-x-auto mt-1">
-                      {JSON.stringify(testResult.details, null, 2)}
-                    </pre>
-                  )}
                 </div>
               )}
             </div>
@@ -1000,15 +995,6 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                         <div>{entry.remediation}</div>
                       </div>
-                    )}
-
-                    {entry.details && (
-                      <details className="text-[10px] text-slate-400">
-                        <summary className="cursor-pointer hover:text-slate-200">View payload data</summary>
-                        <pre className="mt-1 p-2 rounded bg-slate-900/90 text-slate-300 overflow-x-auto font-mono text-[10px]">
-                          {JSON.stringify(entry.details, null, 2)}
-                        </pre>
-                      </details>
                     )}
                   </div>
                 ))

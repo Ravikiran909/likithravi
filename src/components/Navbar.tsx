@@ -139,6 +139,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="relative hidden lg:flex items-center bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200">
                 <Globe className="w-3.5 h-3.5 text-emerald-400 mr-1.5 shrink-0" />
                 <select
+                  id="navbar-language-select"
+                  name="preferredLanguage"
+                  aria-label="Preferred Language"
                   value={selectedProfile.preferredLanguage}
                   onChange={(e) => {
                     const newLang = e.target.value;
@@ -164,6 +167,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="relative hidden md:flex items-center bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
                 <User className="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0" />
                 <select
+                  id="navbar-student-profile-select"
+                  name="selectedStudentProfile"
+                  aria-label="Select Student Profile"
                   value={selectedProfile.userId}
                   onChange={(e) => {
                     const found = profiles.find((p) => p.userId === e.target.value);

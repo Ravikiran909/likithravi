@@ -236,7 +236,11 @@ export const StudyMaterialsBrowser: React.FC<StudyMaterialsBrowserProps> = ({
 
       {/* Render Free Courses & Videos View when active */}
       {activeSubTab === 'courses' ? (
-        <FreeCoursesAndVideos profile={profile} onNavigateToChat={onNavigateToChat} />
+        <FreeCoursesAndVideos
+          profile={profile}
+          onNavigateToChat={onNavigateToChat}
+          onProfileUpdate={onProfileUpdate}
+        />
       ) : (
         <>
           {/* Top Banner / Knowledge Base Header */}

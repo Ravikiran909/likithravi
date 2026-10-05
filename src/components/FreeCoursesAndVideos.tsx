@@ -25,12 +25,14 @@ interface FreeCoursesAndVideosProps {
   profile: StudentProfile;
   onNavigateToChat: (prefilledText?: string) => void;
   initialSubject?: string;
+  onProfileUpdate?: (updated: StudentProfile) => void;
 }
 
 export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
   profile,
   onNavigateToChat,
   initialSubject = 'all',
+  onProfileUpdate,
 }) => {
   const [resources, setResources] = useState<LearningResource[]>([]);
   const [ratingsSummary, setRatingsSummary] = useState<Record<string, { averageRating: number; totalRatings: number }>>({});
@@ -38,6 +40,32 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
   const [selectedSubject, setSelectedSubject] = useState<string>(initialSubject);
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [togglingCourseId, setTogglingCourseId] = useState<string | null>(null);
+
+  const handleToggleCourseCompletion = async (courseId: string) => {
+    setTogglingCourseId(courseId);
+    const currentCompleted = profile.completedCourseIds || [];
+    const isAlready = currentCompleted.includes(courseId);
+    const nextList = isAlready
+      ? currentCompleted.filter((id) => id !== courseId)
+      : [...currentCompleted, courseId];
+
+    try {
+      const res = await fetch(`/api/students/${profile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completedCourseIds: nextList }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        if (onProfileUpdate) onProfileUpdate(updated);
+      }
+    } catch (e) {
+      console.error('Failed to toggle course completion:', e);
+    } finally {
+      setTogglingCourseId(null);
+    }
+  };
 
   // Video Player Modal state
   const [activeVideo, setActiveVideo] = useState<LearningResource | null>(null);
@@ -66,7 +94,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
     fetchResourcesAndRatings();
   }, []);
 
-  const subjectsList = ['all', 'Python', 'Java', 'C', 'C++', 'C#', 'R', 'DSA', 'Mathematics'];
+  const subjectsList = ['all', 'Generative AI', 'AI Agents', 'Python', 'Java', 'C', 'C++', 'C#', 'R', 'DSA', 'Mathematics'];
 
   // Filtered resources
   const filteredResources = useMemo(() => {
@@ -216,6 +244,8 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                   : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
               }`}
             >
+              {sub === 'Generative AI' && <span>✨</span>}
+              {sub === 'AI Agents' && <span>🤖</span>}
               {sub === 'Python' && <span>🐍</span>}
               {sub === 'Java' && <span>☕</span>}
               {sub === 'C' && <span>⚡</span>}
@@ -383,6 +413,32 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                     <Star className="w-3 h-3 fill-amber-300" />
                     <span>Rate</span>
                   </button>
+
+                  <button
+                    onClick={() => handleToggleCourseCompletion(item.id)}
+                    disabled={togglingCourseId === item.id}
+                    className={`py-2 px-2.5 rounded-xl font-bold text-xs border transition cursor-pointer flex items-center space-x-1 ${
+                      (profile.completedCourseIds || []).includes(item.id)
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-sm'
+                        : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-white'
+                    }`}
+                    title={
+                      (profile.completedCourseIds || []).includes(item.id)
+                        ? 'Course completed! Click to mark incomplete'
+                        : 'Mark course as finished to earn Course Completion badges'
+                    }
+                  >
+                    <CheckCircle2
+                      className={`w-3.5 h-3.5 ${
+                        (profile.completedCourseIds || []).includes(item.id)
+                          ? 'text-emerald-400'
+                          : 'text-slate-500'
+                      }`}
+                    />
+                    <span>
+                      {(profile.completedCourseIds || []).includes(item.id) ? 'Completed' : 'Finish'}
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -415,6 +471,28 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
               </div>
 
               <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleToggleCourseCompletion(activeVideo.id)}
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs border transition cursor-pointer flex items-center space-x-1.5 ${
+                    (profile.completedCourseIds || []).includes(activeVideo.id)
+                      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <CheckCircle2
+                    className={`w-3.5 h-3.5 ${
+                      (profile.completedCourseIds || []).includes(activeVideo.id)
+                        ? 'text-emerald-400'
+                        : 'text-slate-500'
+                    }`}
+                  />
+                  <span>
+                    {(profile.completedCourseIds || []).includes(activeVideo.id)
+                      ? 'Completed ✓'
+                      : 'Mark Complete'}
+                  </span>
+                </button>
+
                 <a
                   href={activeVideo.url}
                   target="_blank"

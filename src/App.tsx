@@ -5,6 +5,8 @@ import { StudentDashboard } from './components/StudentDashboard.tsx';
 import { AdminDashboard } from './components/AdminDashboard.tsx';
 import { VoiceAIAgent } from './components/VoiceAIAgent.tsx';
 import { StudyDocuments } from './components/StudyDocuments.tsx';
+import { OfflineIndicator } from './components/OfflineIndicator.tsx';
+import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
 import {
   auth,
@@ -25,6 +27,7 @@ import {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin'>('simulator');
+  const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [profiles, setProfiles] = useState<StudentProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile | null>(null);
   const [isWhatsAppConfigured, setIsWhatsAppConfigured] = useState(false);
@@ -143,8 +146,20 @@ export default function App() {
         setProfiles(data.profiles || []);
         if (data.profiles?.length > 0 && !selectedProfile) {
           setSelectedProfile(data.profiles[0]);
+          saveOfflineProfile(data.profiles[0]);
         }
       }
+
+      // Pre-cache learning materials in IndexedDB for offline rural use
+      Promise.all([
+        fetch('/api/documents').then((r) => (r.ok ? r.json() : null)),
+        fetch('/api/learning-resources').then((r) => (r.ok ? r.json() : null)),
+      ])
+        .then(([docsData, coursesData]) => {
+          if (docsData?.documents) saveOfflineDocuments(docsData.documents);
+          if (coursesData?.resources) saveOfflineCourses(coursesData.resources);
+        })
+        .catch(() => {});
 
       if (waRes.ok) {
         const waData = await waRes.json();
@@ -226,6 +241,8 @@ export default function App() {
           <WhatsAppSimulator
             selectedProfile={selectedProfile}
             onProfileUpdate={handleProfileUpdate}
+            initialPrompt={pendingChatPrompt}
+            onPromptHandled={() => setPendingChatPrompt(undefined)}
           />
         )}
 
@@ -242,6 +259,7 @@ export default function App() {
             profile={selectedProfile}
             onNavigateToVoice={() => setActiveTab('voice')}
             onNavigateToChat={(text) => {
+              if (text) setPendingChatPrompt(text);
               setActiveTab('simulator');
             }}
           />
@@ -252,6 +270,7 @@ export default function App() {
             profile={selectedProfile}
             onProfileUpdate={handleProfileUpdate}
             onNavigateToChat={(text) => {
+              if (text) setPendingChatPrompt(text);
               setActiveTab('simulator');
             }}
           />
@@ -270,6 +289,7 @@ export default function App() {
           </span>
         </div>
       </footer>
+      <OfflineIndicator />
     </div>
   );
 }

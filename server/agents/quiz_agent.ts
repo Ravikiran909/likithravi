@@ -4,6 +4,88 @@ import { StudentProfile, QuizSession, QuizQuestion } from '../../src/types/index
 
 export class QuizAgent {
   /**
+   * Start a Smart Study Session: 5-Minute Adaptive Quiz targeting the student's weakest topics
+   */
+  async startSmartStudySessionQuiz(
+    profile: StudentProfile,
+    requestedWeakTopic?: string
+  ): Promise<string> {
+    const weakTopics =
+      profile.weakTopics && profile.weakTopics.length > 0
+        ? profile.weakTopics
+        : [profile.subjects[0] || 'Python Recursion & Scoping'];
+    const targetWeakTopic = requestedWeakTopic?.trim() || weakTopics[0];
+    const allWeakTopicsSummary = weakTopics.slice(0, 3).join(', ');
+
+    // Infer matching subject from the weak topic
+    let chosenSubject = profile.subjects[0] || 'Python';
+    for (const sub of profile.subjects) {
+      if (targetWeakTopic.toLowerCase().includes(sub.toLowerCase())) {
+        chosenSubject = sub;
+        break;
+      }
+    }
+    if (/calculus|integral|derivative|limit|math/i.test(targetWeakTopic)) {
+      chosenSubject = 'Calculus';
+    } else if (/dsa|tree|graph|binary|array|search|sort/i.test(targetWeakTopic)) {
+      chosenSubject = 'DSA';
+    } else if (/python|recursion|decorator|list|dict/i.test(targetWeakTopic)) {
+      chosenSubject = 'Python';
+    } else if (/java|jvm|oop/i.test(targetWeakTopic)) {
+      chosenSubject = 'Java';
+    }
+
+    const chosenDiff =
+      profile.currentSkillLevel === 'expert'
+        ? 'advanced'
+        : (profile.currentSkillLevel as any) || 'intermediate';
+
+    const questionsData = await generateDynamicQuiz(
+      chosenSubject,
+      targetWeakTopic,
+      chosenDiff,
+      5
+    );
+    const questions: QuizQuestion[] = questionsData.map((q, idx) => ({
+      id: `q_smart_${Date.now()}_${idx}`,
+      subject: chosenSubject,
+      topic: targetWeakTopic,
+      questionText: q.questionText,
+      type: q.type || 'mcq',
+      options: q.options || ['A) Option 1', 'B) Option 2', 'C) Option 3', 'D) Option 4'],
+      correctAnswer: q.correctAnswer || 'A',
+      explanation: q.explanation || 'Verified correct answer.',
+      difficulty: chosenDiff,
+    }));
+
+    const session: QuizSession = {
+      id: `smart_quiz_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      userId: profile.userId,
+      whatsappNumber: profile.whatsappNumber,
+      subject: chosenSubject,
+      topic: targetWeakTopic,
+      difficulty: chosenDiff,
+      totalQuestions: questions.length,
+      currentIndex: 0,
+      score: 0,
+      questions,
+      completed: false,
+      startedAt: new Date().toISOString(),
+    };
+
+    db.saveQuizSession(session);
+
+    return (
+      `⚡ *Smart Study Session: 5-Minute Adaptive Weak-Topic Quiz* 🧠\n` +
+      `⏱️ *Time Budget:* 5 Minutes (${questions.length} Rapid Adaptive Questions)\n` +
+      `🎯 *Weakest Topic Targeted:* *${targetWeakTopic}* (${chosenSubject})\n` +
+      `📊 *Detected Weak Areas:* _${allWeakTopicsSummary}_\n` +
+      `━━━━━━━━━━━━━━━━━━\n\n` +
+      this.formatQuestion(questions[0], 1, questions.length)
+    );
+  }
+
+  /**
    * Start a new quiz session for a student
    */
   async startQuiz(
