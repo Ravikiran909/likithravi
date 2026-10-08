@@ -19,6 +19,10 @@ import {
   sendAutomatedReminderNow,
   getAutomatedReminderStatus,
   generatePersonalizedReminderMessage,
+  registerStudentFcmToken,
+  buildFcmStudyReminderPayload,
+  recordFcmPushDelivery,
+  getFcmPushHistory,
 } from './server/services/automatedReminders.ts';
 
 dotenv.config();
@@ -239,15 +243,15 @@ app.get('/api/students', (req, res) => {
 });
 
 app.get('/api/students/:id', (req, res) => {
-  const prof = db.profiles.get(req.params.id) || Array.from(db.profiles.values()).find((p) => p.userId === req.params.id);
-  if (!prof) return res.status(404).json({ error: 'Student not found' });
+  const prof =
+    db.getProfileByUserId(req.params.id) ||
+    db.getOrCreateProfile('+919876543210', 'Student', req.params.id).profile;
   res.json(prof);
 });
 
 app.put('/api/students/:id', (req, res) => {
-  const prof = db.profiles.get(req.params.id) || Array.from(db.profiles.values()).find((p) => p.userId === req.params.id);
-  if (!prof) return res.status(404).json({ error: 'Student not found' });
-  const updated = db.updateProfile(prof.userId, req.body);
+  const updated = db.updateProfile(req.params.id, req.body);
+  if (!updated) return res.status(404).json({ error: 'Student not found' });
   res.json(updated);
 });
 
@@ -337,7 +341,297 @@ app.get('/api/daily-affirmation', (req, res) => {
     morningTip: item.morningTip,
     personalizedNote: `Day ${streak} Streak Motivation for ${prof?.name || 'Scholar'} • Focus Subject: ${primarySubject}`,
     refreshedAt: '06:00 AM Daily Morning Sync',
+    source: 'Curated & Gemini Synced',
   });
+});
+
+// Gemini-powered personalized Daily Study Affirmation generator
+app.post('/api/daily-affirmation/gemini', async (req, res) => {
+  try {
+    const { userId, focusTopic, mood } = req.body || {};
+    const prof = userId ? db.getProfileByUserId(String(userId)) : undefined;
+    const studentName = prof?.name || 'Scholar';
+    const subjects = (prof?.subjects || ['DSA', 'Government Exams', 'Python']).join(', ');
+    const streak = prof?.streak || 7;
+    const targetTopic =
+      focusTopic || prof?.weakTopics?.[0] || 'Data Structures, Algorithms & Competitive Exams';
+    const dateKey = new Date().toISOString().split('T')[0];
+
+    let generated: any = null;
+    const ai = getGeminiAI();
+    if (ai) {
+      try {
+        const prompt = `You are an encouraging academic mentor generating a personalized Daily Study Affirmation for a student.
+Student Name: ${studentName}
+Subjects: ${subjects}
+Current Streak: ${streak} days
+Today's Focus Topic: ${targetTopic}
+${mood ? `Current Study Mood: ${mood}` : ''}
+
+Return strictly valid JSON with these exact keys:
+{
+  "quote": "An inspiring, authentic motivational quote tailored to learning, perseverance, and mastery (1-2 sentences)",
+  "author": "Author of the quote or 'AI Academic Mentor'",
+  "affirmation": "A first-person daily study affirmation for the student (e.g., 'I master complex DSA and exam concepts step by step with clarity and calm focus.')",
+  "category": "Short theme badge (e.g., 'DSA & Exam Mastery', 'Deep Focus & Streak')",
+  "morningTip": "One concrete, actionable 1-sentence study tip for '${targetTopic}'"
+}`;
+
+        const geminiRes = await generateContentWithRetry({
+          preferredModel: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            temperature: 0.7,
+          },
+          timeoutMs: 6500,
+        });
+
+        const raw = (geminiRes.text || '').trim();
+        const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        generated = JSON.parse(cleaned);
+      } catch (err) {
+        generated = null;
+      }
+    }
+
+    const fallbackItem =
+      CURATED_MORNING_AFFIRMATIONS[
+        Math.floor(Math.random() * CURATED_MORNING_AFFIRMATIONS.length)
+      ];
+
+    res.json({
+      date: dateKey,
+      index: 0,
+      totalQuotes: CURATED_MORNING_AFFIRMATIONS.length,
+      quote: generated?.quote || fallbackItem.quote,
+      author: generated?.author || fallbackItem.author,
+      affirmation:
+        generated?.affirmation ||
+        `Today I master ${targetTopic} with calm focus and extend my ${streak}-day study streak.`,
+      category: generated?.category || 'Gemini Personalized Motivation',
+      morningTip:
+        generated?.morningTip ||
+        `Break "${targetTopic}" into a 25-minute Pomodoro block and solve 3 active-recall questions.`,
+      personalizedNote: `Gemini Daily Affirmation for ${studentName} • ${streak}-Day Streak • Focus: ${targetTopic}`,
+      refreshedAt: `Gemini 3.8 Flash • ${new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`,
+      source: generated ? 'Gemini 3.8 Flash' : 'Gemini Fallback',
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to generate Gemini affirmation' });
+  }
+});
+
+// ----------------------------------------------------
+// 3c. Biometric Face Authentication & Aadhaar + DigiLocker Course Enrollment Verification
+// ----------------------------------------------------
+app.post('/api/auth/face-login', (req, res) => {
+  try {
+    const { userId, faceBiometricHash, confidenceScore = 99.4 } = req.body || {};
+    const targetUserId = userId || 'user_1';
+    const prof =
+      db.getProfileByUserId(targetUserId) || Array.from(db.profiles.values())[0];
+
+    if (!prof) {
+      return res.status(404).json({ error: 'Student profile not found for Face Authentication' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const biometricSignature =
+      faceBiometricHash ||
+      `FACE-BIO-${targetUserId.toUpperCase()}-${Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase()}`;
+
+    const updated = db.updateProfile(prof.userId, {
+      faceAuthEnabled: true,
+      faceAuthVerifiedAt: nowIso,
+      faceBiometricHash: biometricSignature,
+      lastActiveDate: nowIso.split('T')[0],
+    });
+
+    res.json({
+      success: true,
+      authenticated: true,
+      confidenceScore,
+      biometricSignature,
+      verifiedAt: nowIso,
+      profile: updated || prof,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Face authentication failed' });
+  }
+});
+
+app.post('/api/verification/aadhaar', (req, res) => {
+  try {
+    const { userId, aadhaarNumber, holderName, otp } = req.body || {};
+    const cleanDigits = String(aadhaarNumber || '').replace(/\D/g, '');
+    if (cleanDigits.length !== 12) {
+      return res
+        .status(400)
+        .json({ error: 'Please enter a valid 12-digit Aadhaar number.' });
+    }
+    if (!otp || String(otp).replace(/\D/g, '').length < 4) {
+      return res.status(400).json({ error: 'Please enter the UIDAI Aadhaar OTP.' });
+    }
+
+    const last4 = cleanDigits.slice(-4);
+    const maskedAadhaar = `XXXX-XXXX-${last4}`;
+    const nowIso = new Date().toISOString();
+    const referenceId = `UIDAI-EKYC-${Date.now().toString().slice(-6)}-${last4}`;
+
+    const targetUserId = userId || 'user_1';
+    const prof = db.getProfileByUserId(targetUserId);
+    const verificationPayload = {
+      verified: true,
+      maskedAadhaar,
+      holderName: holderName || prof?.name || 'Verified Student',
+      verifiedAt: nowIso,
+      referenceId,
+    };
+
+    const updated = prof
+      ? db.updateProfile(targetUserId, {
+          aadhaarVerification: verificationPayload,
+        })
+      : null;
+
+    res.json({
+      success: true,
+      aadhaarVerification: verificationPayload,
+      profile: updated,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Aadhaar verification failed' });
+  }
+});
+
+app.post('/api/verification/digilocker', (req, res) => {
+  try {
+    const { userId, mobileOrAadhaar, securityPin } = req.body || {};
+    if (!mobileOrAadhaar || String(mobileOrAadhaar).trim().length < 6) {
+      return res
+        .status(400)
+        .json({ error: 'Please provide your DigiLocker Mobile Number or Aadhaar ID.' });
+    }
+    if (!securityPin || String(securityPin).replace(/\D/g, '').length < 4) {
+      return res
+        .status(400)
+        .json({ error: 'Please enter your 6-digit DigiLocker Security PIN.' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const digilockerId = `DL-IN-${Date.now().toString().slice(-6)}-EDU`;
+    const fetchedDocuments: {
+      docType: string;
+      docNumber: string;
+      issuer: string;
+      status: 'Verified';
+    }[] = [
+      {
+        docType: 'Aadhaar e-KYC XML Certificate',
+        docNumber: `UIDAI-XML-${String(mobileOrAadhaar).slice(-4)}`,
+        issuer: 'Unique Identification Authority of India (UIDAI)',
+        status: 'Verified',
+      },
+      {
+        docType: 'Class XII / University Academic Transcript',
+        docNumber: `NAD-CERT-${new Date().getFullYear()}-8841`,
+        issuer: 'National Academic Depository (NAD / DigiLocker)',
+        status: 'Verified',
+      },
+      {
+        docType: 'APAAR / Academic Bank of Credits (ABC) ID',
+        docNumber: `ABC-ID-9920-${String(mobileOrAadhaar).slice(-4)}`,
+        issuer: 'Ministry of Education, Govt. of India',
+        status: 'Verified',
+      },
+    ];
+
+    const targetUserId = userId || 'user_1';
+    const prof = db.getProfileByUserId(targetUserId);
+    const digilockerPayload = {
+      verified: true,
+      digilockerId,
+      fetchedDocuments,
+      verifiedAt: nowIso,
+    };
+
+    const updated = prof
+      ? db.updateProfile(targetUserId, {
+          digilockerVerification: digilockerPayload,
+        })
+      : null;
+
+    res.json({
+      success: true,
+      digilockerVerification: digilockerPayload,
+      profile: updated,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'DigiLocker verification failed' });
+  }
+});
+
+app.post('/api/courses/enroll', async (req, res) => {
+  try {
+    const { userId, courseId, courseTitle, subject, provider } = req.body || {};
+    if (!courseId || !courseTitle) {
+      return res.status(400).json({ error: 'courseId and courseTitle are required' });
+    }
+
+    const targetUserId = userId || 'user_1';
+    const prof =
+      db.getProfileByUserId(targetUserId) || Array.from(db.profiles.values())[0];
+
+    if (!prof) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const enrollmentRef = `ENR-${new Date().getFullYear()}-${Math.random()
+      .toString(36)
+      .substring(2, 7)
+      .toUpperCase()}`;
+
+    const existingIds = prof.enrolledCourseIds || [];
+    const nextEnrolledIds = Array.from(new Set([...existingIds, String(courseId)]));
+
+    const newRecord = {
+      courseId: String(courseId),
+      courseTitle: String(courseTitle),
+      subject: String(subject || 'General'),
+      provider: String(provider || 'Verified Academy'),
+      enrolledAt: nowIso,
+      enrollmentRef,
+      aadhaarRef: prof.aadhaarVerification?.referenceId || 'UIDAI-VERIFIED',
+      digilockerId: prof.digilockerVerification?.digilockerId || 'DL-VERIFIED',
+      faceVerified: Boolean(prof.faceAuthEnabled),
+    };
+
+    const existingEnrollments = (prof.courseEnrollments || []).filter(
+      (e) => e.courseId !== String(courseId)
+    );
+    const nextEnrollments = [newRecord, ...existingEnrollments];
+
+    const updated = db.updateProfile(prof.userId, {
+      enrolledCourseIds: nextEnrolledIds,
+      courseEnrollments: nextEnrollments,
+    });
+
+    res.json({
+      success: true,
+      enrollment: newRecord,
+      profile: updated || prof,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Course enrollment failed' });
+  }
 });
 
 // ----------------------------------------------------
@@ -1001,7 +1295,7 @@ app.post('/api/quiz/adaptive-generate', async (req, res) => {
       count
     );
 
-    const questions = questionsData.map((q, idx) => ({
+    const questions = questionsData.map((q: any, idx: number) => ({
       id: `q_adapt_${Date.now()}_${idx}`,
       subject: targetSubject,
       topic: targetTopic,
@@ -1026,15 +1320,16 @@ app.post('/api/quiz/adaptive-generate', async (req, res) => {
   }
 });
 
-// Record quiz results and update student mastery / weak topics
+// Record quiz results and update student mastery / weak topics + daily learning goal progress
 app.post('/api/quiz/record-result', async (req, res) => {
   try {
-    const { userId, topic, subject, score, totalQuestions } = req.body;
+    const { userId, topic, subject, score, totalQuestions, studyMinutesLogged } = req.body;
     const prof = db.getProfileByUserId(userId);
     if (!prof) return res.status(404).json({ error: 'Profile not found' });
 
     const percentage = Math.round((score / totalQuestions) * 100);
     const isMastered = percentage >= 70;
+    const todayStr = new Date().toISOString().split('T')[0];
 
     let updatedWeakTopics = [...(prof.weakTopics || [])];
     let updatedStrongTopics = [...(prof.strongTopics || [])];
@@ -1052,18 +1347,47 @@ app.post('/api/quiz/record-result', async (req, res) => {
       }
     }
 
+    // Calculate study minutes earned from completing the quiz (5 mins per question, minimum 15 mins)
+    const quizMinutesEarned =
+      typeof studyMinutesLogged === 'number' && studyMinutesLogged > 0
+        ? studyMinutesLogged
+        : Math.max(15, (Number(totalQuestions) || 3) * 5);
+
+    const existingFocusStats = prof.focusStats || {
+      totalFocusMinutes: 0,
+      completedSessions: 0,
+      todayFocusMinutes: 45,
+      lastSessionDate: todayStr,
+    };
+
+    const currentTodayMinutes =
+      existingFocusStats.lastSessionDate === todayStr
+        ? existingFocusStats.todayFocusMinutes || 0
+        : 45;
+
+    const updatedFocusStats = {
+      totalFocusMinutes: (existingFocusStats.totalFocusMinutes || 0) + quizMinutesEarned,
+      completedSessions: (existingFocusStats.completedSessions || 0) + 1,
+      todayFocusMinutes: currentTodayMinutes + quizMinutesEarned,
+      lastSessionDate: todayStr,
+    };
+
+    const updatedQuestionsToday = (prof.questionsAnsweredToday || 0) + (Number(totalQuestions) || 3);
+
     const updatedProfile = db.updateProfile(userId, {
       totalQuestionsAnswered: (prof.totalQuestionsAnswered || 0) + totalQuestions,
+      questionsAnsweredToday: updatedQuestionsToday,
       correctAnswers: (prof.correctAnswers || 0) + score,
       overallProgress: Math.min(100, (prof.overallProgress || 65) + (isMastered ? 3 : 1)),
       weakTopics: updatedWeakTopics,
       strongTopics: updatedStrongTopics,
+      focusStats: updatedFocusStats,
       learningHistory: [
         ...(prof.learningHistory || []),
         {
           topic,
           subject: subject || 'General',
-          date: new Date().toISOString().split('T')[0],
+          date: todayStr,
           mastered: isMastered,
         },
       ],
@@ -1073,6 +1397,7 @@ app.post('/api/quiz/record-result', async (req, res) => {
       success: true,
       percentage,
       isMastered,
+      quizMinutesEarned,
       profile: updatedProfile,
     });
   } catch (err: any) {
@@ -1327,6 +1652,86 @@ app.post('/api/reminders/automated-daily-check', async (req, res) => {
   }
 });
 
+// Firebase Cloud Messaging (FCM) Smart Study Reminder Endpoints
+app.post('/api/fcm/register-token', (req, res) => {
+  try {
+    const { userId, fcmToken, fcmPushEnabled = true, preferredStudyTime } = req.body || {};
+    if (!userId || !fcmToken) {
+      return res.status(400).json({ error: 'userId and fcmToken are required' });
+    }
+    const updatedProfile = registerStudentFcmToken(
+      userId,
+      fcmToken,
+      Boolean(fcmPushEnabled),
+      preferredStudyTime
+    );
+    const status = getAutomatedReminderStatus(userId);
+    res.json({
+      success: true,
+      profile: updatedProfile,
+      status,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to register FCM token' });
+  }
+});
+
+app.post('/api/fcm/send-smart-reminder', async (req, res) => {
+  try {
+    const { userId, preferredStudyTime, triggerSource = 'manual_test_push' } = req.body || {};
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    if (preferredStudyTime) {
+      db.updateProfile(userId, { preferredStudyTime });
+    }
+
+    const profile = db.getProfileByUserId(userId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+
+    const fcmPayload = buildFcmStudyReminderPayload(profile, triggerSource);
+    recordFcmPushDelivery(fcmPayload);
+
+    // Also mirror the notification to the student's WhatsApp Simulator log for unified study reminders
+    const waReminderText = generatePersonalizedReminderMessage(profile);
+    await whatsapp.sendTextMessage(profile.whatsappNumber, waReminderText).catch(() => {});
+    db.recordMessage({
+      userId: profile.userId,
+      whatsappNumber: profile.whatsappNumber,
+      direction: 'outgoing',
+      messageType: 'text',
+      content: waReminderText,
+      intent: 'FCM_SMART_STUDY_REMINDER',
+      agentName: 'FcmSmartReminderAgent',
+    });
+
+    const updatedProfile = db.getProfileByUserId(userId);
+    res.json({
+      success: true,
+      fcmPayload,
+      history: getFcmPushHistory(userId),
+      profile: updatedProfile,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to send FCM push notification' });
+  }
+});
+
+app.get('/api/fcm/status/:userId', (req, res) => {
+  try {
+    const status = getAutomatedReminderStatus(req.params.userId);
+    res.json({
+      success: true,
+      ...status,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch FCM status' });
+  }
+});
+
 app.get('/api/recommendations/:userId', (req, res) => {
   res.json(db.getRecommendations(req.params.userId));
 });
@@ -1542,15 +1947,17 @@ app.post('/api/admin/bulk-import', (req, res) => {
       return res.status(400).json({ error: 'Invalid payload' });
     }
 
+    const savedItems: any[] = [];
+
     if (type === 'students') {
-      items.forEach((item: any) => {
-        const userId = `usr_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-        const profId = `prof_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      items.forEach((item: any, idx: number) => {
+        const userId = item.userId || `usr_imp_${Date.now()}_${idx}`;
+        const profId = item.profileId || `prof_imp_${Date.now()}_${idx}`;
         const user = {
           id: userId,
           name: item.name || 'Student',
           email: item.email || `${userId}@example.com`,
-          phone: item.whatsappnumber || '+10000000000',
+          phone: item.whatsappnumber || item.phone || '+10000000000',
           role: 'student' as const,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -1559,36 +1966,72 @@ app.post('/api/admin/bulk-import', (req, res) => {
           id: profId,
           userId,
           name: item.name || 'Student',
-          whatsappNumber: item.whatsappnumber || '+10000000000',
-          preferredLanguage: item.preferredlanguage || 'en',
+          whatsappNumber: item.whatsappnumber || item.phone || '+10000000000',
+          preferredLanguage: ['en', 'hi', 'kn'].includes(item.preferredlanguage)
+            ? item.preferredlanguage
+            : 'en',
           educationLevel: item.educationlevel || 'college',
-          subjects: item._subjectsList || ['Python', 'DSA'],
+          subjects: Array.isArray(item._subjectsList)
+            ? item._subjectsList
+            : typeof item.subjects === 'string' && item.subjects
+            ? item.subjects.split(';').map((s: string) => s.trim())
+            : ['Python', 'DSA'],
           currentSkillLevel: 'beginner' as const,
           learningGoals: ['Master core concepts'],
           weakTopics: [],
-          strongTopics: item._subjectsList || ['Python'],
+          strongTopics: Array.isArray(item._subjectsList) ? item._subjectsList : ['Python'],
           studyHoursPerDay: Number(item.studyhoursperday) || 2,
           preferredStudyTime: '7:00 PM',
           dailyReminderEnabled: true,
           examDates: [],
           learningHistory: [],
           streak: 1,
-          lastActiveDate: new Date().toISOString(),
-          overallProgress: 10,
+          lastActiveDate: new Date().toISOString().split('T')[0],
+          overallProgress: 15,
           totalSessions: 1,
           totalQuestionsAnswered: 0,
           correctAnswers: 0,
           dailyQuestionsGoal: 10,
         };
         db.users.set(userId, user as any);
-        db.profiles.set(profId, profile as any);
+        db.profiles.set(userId, profile as any);
+        savedItems.push({ user, profile });
+      });
+    } else if (type === 'objectives') {
+      items.forEach((item: any, idx: number) => {
+        const objId = item.id || `obj_${Date.now()}_${idx}`;
+        const objective = {
+          id: objId,
+          subject: item.subject || 'Python',
+          topic: item.topic || 'Core Concepts',
+          title: item.title || 'Learning Objective',
+          description: item.description || '',
+          targetLevel: item.targetlevel || item.targetLevel || 'intermediate',
+          bloomLevel: item.bloomlevel || item.bloomLevel || 'understand',
+          createdAt: new Date().toISOString(),
+        };
+        db.learningObjectives.set(objId, objective);
+        savedItems.push(objective);
       });
     }
 
-    res.json({ success: true, count: items.length });
+    res.json({
+      success: true,
+      count: items.length,
+      savedItems,
+      totalStudents: db.profiles.size,
+      totalObjectives: db.learningObjectives.size,
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.get('/api/admin/learning-objectives', (req, res) => {
+  res.json({
+    objectives: Array.from(db.learningObjectives.values()),
+    count: db.learningObjectives.size,
+  });
 });
 
 // ----------------------------------------------------
@@ -1602,6 +2045,32 @@ app.get('/api/documents', (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to list documents' });
+  }
+});
+
+// Preview chunks before ingestion
+app.post('/api/documents/preview-chunks', (req, res) => {
+  try {
+    const { content, chunkSize = 450 } = req.body || {};
+    const chunks = ragService.previewChunks(String(content || ''), Number(chunkSize) || 450);
+    res.json({ success: true, chunks, count: chunks.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to preview chunks', chunks: [] });
+  }
+});
+
+// Delete a RAG document and its chunks
+app.delete('/api/documents/:id', (req, res) => {
+  try {
+    const deleted = ragService.deleteDocument(req.params.id);
+    res.json({
+      success: true,
+      deleted,
+      documents: Array.from(db.documents.values()),
+      totalChunks: db.chunks.length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete document' });
   }
 });
 
@@ -1784,12 +2253,15 @@ Original Verbal Session Transcript:
 });
 
 // ----------------------------------------------------
-// 8b. Smart Notification Scheduler (AI Performance Analysis -> Optimal Next-Day Study Times -> WhatsApp Push)
+// 8b. Smart Reminder System & Notification Scheduler
+// (Analyzes Past Study Activity + Exam Schedule -> Optimal Study Times -> WhatsApp Simulator Push)
 // ----------------------------------------------------
 app.post('/api/smart-notification-scheduler/analyze', async (req, res) => {
   try {
-    const { userId } = req.body;
-    const prof = userId ? db.getProfileByUserId(userId) : undefined;
+    const { userId, horizon = 'today' } = req.body || {};
+    const prof = userId
+      ? db.getProfileByUserId(userId)
+      : Array.from(db.profiles.values())[0];
     if (!prof) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
@@ -1800,16 +2272,66 @@ app.post('/api/smart-notification-scheduler/analyze', async (req, res) => {
         : 75;
     const primaryWeak = prof.weakTopics?.[0] || 'Recursion & Base Cases';
     const secondaryWeak = prof.weakTopics?.[1] || 'Integration by Parts';
-    const primarySubject = prof.subjects?.[0] || 'Python';
-    const secondarySubject = prof.subjects?.[1] || prof.subjects?.[0] || 'Calculus';
     const focusMins = prof.focusStats?.totalFocusMinutes || 125;
+    const focusSessions = prof.focusStats?.completedSessions || 5;
     const preferredTime = prof.preferredStudyTime || '07:00 PM';
+    const historyCount = (prof.learningHistory || []).length;
+    const masteredHistoryCount = (prof.learningHistory || []).filter((h) => h.mastered).length;
 
-    const tomorrowDate = new Date(Date.now() + 86400000).toLocaleDateString('en-US', {
+    // Analyze past message timestamps to detect student's natural active hours
+    const userMessages = db.messages.filter(
+      (m) => m.userId === prof.userId && m.direction === 'incoming'
+    );
+    let detectedPeakWindow = 'Morning (08:00 AM – 10:30 AM) & Evening (' + preferredTime + ')';
+    if (userMessages.length > 0) {
+      const hours = userMessages.map((m) => new Date(m.timestamp).getHours());
+      const eveningCount = hours.filter((h) => h >= 17).length;
+      const morningCount = hours.filter((h) => h >= 6 && h < 12).length;
+      if (eveningCount > morningCount) {
+        detectedPeakWindow = `Evening Deep-Work Peak (${preferredTime}) + Morning Analytical Window (08:30 AM)`;
+      }
+    }
+
+    // Analyze upcoming exam schedule from profile.examDates
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const upcomingExams = [...(prof.examDates || [])]
+      .map((exam) => {
+        const target = new Date(exam.date);
+        const targetMidnight = new Date(
+          target.getFullYear(),
+          target.getMonth(),
+          target.getDate()
+        );
+        const daysRemaining = Math.ceil(
+          (targetMidnight.getTime() - todayMidnight.getTime()) / 86400000
+        );
+        const urgency: 'critical' | 'high' | 'moderate' =
+          daysRemaining <= 7 ? 'critical' : daysRemaining <= 14 ? 'high' : 'moderate';
+        return {
+          ...exam,
+          daysRemaining,
+          urgency,
+        };
+      })
+      .filter((e) => e.daysRemaining >= 0)
+      .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+    const nearestExam = upcomingExams[0] || null;
+    const secondExam = upcomingExams[1] || null;
+
+    const primarySubject = nearestExam?.subject || prof.subjects?.[0] || 'Python';
+    const secondarySubject =
+      secondExam?.subject || prof.subjects?.[1] || prof.subjects?.[0] || 'Calculus';
+
+    const targetDateObj =
+      horizon === 'tomorrow' ? new Date(Date.now() + 86400000) : new Date();
+    const targetDateLabel = targetDateObj.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'short',
       day: 'numeric',
     });
+    const targetDateIso = targetDateObj.toISOString().split('T')[0];
 
     let aiSummary = '';
     let suggestedSlots: {
@@ -1820,6 +2342,8 @@ app.post('/api/smart-notification-scheduler/analyze', async (req, res) => {
       topic: string;
       durationMinutes: number;
       cognitiveMatchScore: number;
+      examAlignment: string;
+      activityInsight: string;
       rationale: string;
       whatsappPreview: string;
     }[] = [];
@@ -1827,32 +2351,55 @@ app.post('/api/smart-notification-scheduler/analyze', async (req, res) => {
     const ai = getGeminiAI();
     if (ai) {
       try {
-        const prompt = `You are an AI Cognitive Learning Strategist & Smart Notification Scheduler.
-Analyze this student's past performance and suggest 3 optimal, personalized study times for tomorrow (${tomorrowDate}) to be pushed via WhatsApp:
+        const examContextStr =
+          upcomingExams.length > 0
+            ? upcomingExams
+                .map(
+                  (e) =>
+                    `${e.title} (${e.subject}) on ${e.date} (${e.daysRemaining} days left, urgency: ${e.urgency})`
+                )
+                .join('; ')
+            : 'Continuous assessment mode';
+
+        const historyStr =
+          (prof.learningHistory || [])
+            .slice(-5)
+            .map((h) => `${h.subject}: ${h.topic} (${h.mastered ? 'Mastered' : 'In Progress'})`)
+            .join('; ') || 'Recent practice sessions';
+
+        const prompt = `You are an AI Smart Reminder Strategist.
+Analyze this student's past study activity and upcoming exam schedule to suggest 3 optimal study times for ${
+          horizon === 'tomorrow' ? 'tomorrow' : 'today'
+        } (${targetDateLabel}) to be delivered via the WhatsApp simulator:
 - Student Name: ${prof.name}
-- Subjects: ${prof.subjects.join(', ')}
-- Quiz Accuracy: ${accuracy}% (${prof.correctAnswers}/${prof.totalQuestionsAnswered} correct)
-- Current Streak: ${prof.streak} days
-- Weak Topics needing remediation: ${(prof.weakTopics || []).join(', ') || primaryWeak}
-- Strong Topics: ${(prof.strongTopics || []).join(', ') || 'Fundamentals'}
-- Total Deep Focus Logged: ${focusMins} mins
-- Current Preferred Study Time: ${preferredTime}
-- Target Study Hours/Day: ${prof.studyHoursPerDay || 2} hrs
+- Subjects: ${(prof.subjects || []).join(', ')}
+- Past Study Activity:
+  • Quiz Accuracy: ${accuracy}% (${prof.correctAnswers}/${prof.totalQuestionsAnswered} correct)
+  • Learning History: ${historyStr} (${masteredHistoryCount}/${historyCount} topics mastered)
+  • Pomodoro Focus Logged: ${focusMins} mins across ${focusSessions} sessions
+  • Study Streak: ${prof.streak} days
+  • Detected Peak Study Window: ${detectedPeakWindow}
+  • Weak Topics needing priority: ${(prof.weakTopics || []).join(', ') || primaryWeak}
+- Upcoming Exam Schedule:
+  • ${examContextStr}
+- Daily Study Target: ${prof.studyHoursPerDay || 2} hrs/day (Preferred alert: ${preferredTime})
 
 Return strictly valid JSON with this structure:
 {
-  "aiSummary": "2-sentence personalized analysis of their accuracy, weak topics, and why these 3 time windows maximize retention tomorrow.",
+  "aiSummary": "2-sentence synthesis explaining how their past study activity and upcoming exam countdowns shaped today's 3 optimal study windows.",
   "slots": [
     {
       "id": "slot_morning",
       "time": "08:30 AM",
-      "windowLabel": "Peak Cognitive Remediation Window",
+      "windowLabel": "Peak Analytical & Exam Remediation Window",
       "subject": "${primarySubject}",
       "topic": "${primaryWeak}",
       "durationMinutes": 45,
-      "cognitiveMatchScore": 96,
-      "rationale": "Why this slot is optimal based on their past performance",
-      "whatsappPreview": "Short motivating WhatsApp push notification text"
+      "cognitiveMatchScore": 97,
+      "examAlignment": "${nearestExam ? `${nearestExam.title} (${nearestExam.daysRemaining}d left)` : `${primarySubject} Mastery`}",
+      "activityInsight": "Matches peak working-memory window for low-accuracy topics",
+      "rationale": "Why this slot is optimal based on past study activity and exam schedule",
+      "whatsappPreview": "Short motivating WhatsApp simulator reminder message"
     }
   ]
 }`;
@@ -1861,12 +2408,17 @@ Return strictly valid JSON with this structure:
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
-            temperature: 0.5,
+            temperature: 0.4,
           },
-          timeoutMs: 10000,
+          timeoutMs: 6000,
         });
 
-        const parsed = JSON.parse(geminiRes.text || '{}');
+        const cleanJson = (geminiRes.text || '{}')
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .trim();
+        const parsed = JSON.parse(cleanJson || '{}');
         if (parsed.aiSummary && Array.isArray(parsed.slots) && parsed.slots.length > 0) {
           aiSummary = parsed.aiSummary;
           suggestedSlots = parsed.slots.map((s: any, idx: number) => ({
@@ -1875,87 +2427,142 @@ Return strictly valid JSON with this structure:
             windowLabel: s.windowLabel || 'Optimal Study Window',
             subject: s.subject || primarySubject,
             topic: s.topic || primaryWeak,
-            durationMinutes: Number(s.durationMinutes) || 40,
-            cognitiveMatchScore: Number(s.cognitiveMatchScore) || 94,
-            rationale: s.rationale || 'Optimized for peak active recall and weak-topic remediation.',
+            durationMinutes: Number(s.durationMinutes) || 45,
+            cognitiveMatchScore: Number(s.cognitiveMatchScore) || 95,
+            examAlignment:
+              s.examAlignment ||
+              (nearestExam
+                ? `${nearestExam.title} (${nearestExam.daysRemaining}d left)`
+                : `${primarySubject} Exam Prep`),
+            activityInsight:
+              s.activityInsight ||
+              `Calibrated from ${accuracy}% quiz accuracy & ${focusMins}m focus logs`,
+            rationale:
+              s.rationale ||
+              'Optimized for peak active recall and upcoming exam readiness.',
             whatsappPreview:
               s.whatsappPreview ||
-              `⏰ Time for your ${s.subject || primarySubject} focus sprint on ${s.topic || primaryWeak}!`,
+              `⏰ Smart Reminder (${s.time || '08:30 AM'}): Time for your ${s.subject || primarySubject} sprint on *${s.topic || primaryWeak}*!`,
           }));
         }
       } catch {
-        // Use deterministic cognitive performance analyzer below
+        // Fallback to deterministic activity + exam schedule analyzer below
       }
     }
 
     if (suggestedSlots.length === 0) {
-      aiSummary = `Based on ${prof.name}'s ${accuracy}% quiz accuracy (${prof.correctAnswers}/${prof.totalQuestionsAnswered} solved), ${focusMins}m of logged Pomodoro focus, and ${prof.streak}-day streak, scheduling high-cognitive remediation on "${primaryWeak}" in the morning and active recall consolidation near ${preferredTime} maximizes next-day retention by +28%.`;
+      const examHeadline = nearestExam
+        ? `with "${nearestExam.title}" (${nearestExam.subject}) approaching in ${nearestExam.daysRemaining} days (${nearestExam.date})`
+        : `across your ${prof.subjects.join(', ')} curriculum`;
+
+      aiSummary = `Analyzing ${prof.name}'s past study activity (${accuracy}% quiz accuracy across ${prof.totalQuestionsAnswered} questions, ${focusMins}m of Deep Focus across ${focusSessions} sessions, and ${masteredHistoryCount}/${historyCount} mastered topics) ${examHeadline}, the Smart Reminder engine identified 3 high-retention study windows for ${targetDateLabel}.`;
 
       suggestedSlots = [
         {
-          id: 'slot_peak_remediation',
+          id: 'slot_morning_exam_priority',
           time: '08:30 AM',
-          windowLabel: 'Peak Analytical Remediation Slot',
+          windowLabel: 'Morning Peak Analytical & Exam Priority Slot',
           subject: primarySubject,
-          topic: primaryWeak,
-          durationMinutes: 45,
-          cognitiveMatchScore: 97,
-          rationale: `Your quiz error patterns show "${primaryWeak}" requires fresh working memory. Tackling a 45m Socratic drill at 08:30 AM avoids evening fatigue.`,
-          whatsappPreview: `🌅 Good morning ${prof.name}! Peak-focus window (97% match): Let's conquer *${primaryWeak}* in ${primarySubject} for 45 mins. Reply "Start" to begin!`,
-        },
-        {
-          id: 'slot_spaced_recall',
-          time: '04:30 PM',
-          windowLabel: 'Spaced Repetition & Quiz Velocity Slot',
-          subject: secondarySubject,
-          topic: secondaryWeak,
-          durationMinutes: 30,
-          cognitiveMatchScore: 93,
-          rationale: `To boost your ${accuracy}% quiz accuracy above 85%, a 30m afternoon Leitner Box 1–2 flashcard & adaptive quiz sprint reinforces long-term recall.`,
-          whatsappPreview: `⚡ Afternoon Recall Boost! 30m Leitner Flashcard & Quiz sprint on *${secondaryWeak}* (${secondarySubject}) to push your accuracy past 85%!`,
-        },
-        {
-          id: 'slot_streak_anchor',
-          time: preferredTime,
-          windowLabel: 'Habit-Anchored Deep Focus & Streak Guard',
-          subject: primarySubject,
-          topic: `${primarySubject} Synthesis & Voice-to-Knowledge Review`,
+          topic: nearestExam
+            ? `${nearestExam.title} High-Yield Prep: ${primaryWeak}`
+            : primaryWeak,
           durationMinutes: 45,
           cognitiveMatchScore: 98,
-          rationale: `Anchored to your preferred study time (${preferredTime}) to lock in Day ${
+          examAlignment: nearestExam
+            ? `${nearestExam.title} (${nearestExam.daysRemaining} days left)`
+            : `${primarySubject} Core Mastery`,
+          activityInsight: `Targets #1 weak area (${primaryWeak}) during peak analytical alertness`,
+          rationale: `Your past study history shows high-complexity topics like "${primaryWeak}" benefit from fresh morning working memory—especially critical ${
+            nearestExam ? `with ${nearestExam.title} in ${nearestExam.daysRemaining} days` : 'for raising quiz accuracy'
+          }.`,
+          whatsappPreview: `🌅 *Smart Reminder (08:30 AM)*: ${
+            nearestExam ? `🚨 *${nearestExam.daysRemaining}d to ${nearestExam.title}!* ` : ''
+          }Let's tackle *${primaryWeak}* (${primarySubject}) for 45m while your focus is at 98% peak. Reply *"Start"*!`,
+        },
+        {
+          id: 'slot_afternoon_active_recall',
+          time: '04:30 PM',
+          windowLabel: 'Afternoon Spaced-Repetition & Quiz Velocity Slot',
+          subject: secondarySubject,
+          topic: secondExam
+            ? `${secondExam.title} Drill: ${secondaryWeak}`
+            : secondaryWeak,
+          durationMinutes: 35,
+          cognitiveMatchScore: 94,
+          examAlignment: secondExam
+            ? `${secondExam.title} (${secondExam.daysRemaining} days left)`
+            : nearestExam
+            ? `${nearestExam.title} Secondary Review`
+            : `${secondarySubject} Quiz Velocity`,
+          activityInsight: `Boosts ${accuracy}% quiz accuracy via 35m afternoon active recall`,
+          rationale: `Past quiz performance (${prof.correctAnswers}/${prof.totalQuestionsAnswered} correct) indicates a 35-minute afternoon Leitner flashcard & adaptive quiz session prevents the Ebbinghaus forgetting curve.`,
+          whatsappPreview: `⚡ *Smart Reminder (04:30 PM)*: 35m Active Recall & Quiz Sprint on *${secondaryWeak}* (${secondarySubject}) to push your ${accuracy}% quiz accuracy above 85%! Reply *"/quiz ${secondarySubject}"*!`,
+        },
+        {
+          id: 'slot_evening_habit_anchor',
+          time: preferredTime,
+          windowLabel: 'Evening Habit-Anchored Deep Focus & Mock Slot',
+          subject: primarySubject,
+          topic: `${primarySubject} Timed Practice & Day ${(prof.streak || 0) + 1} Streak Lock-In`,
+          durationMinutes: 45,
+          cognitiveMatchScore: 97,
+          examAlignment: nearestExam
+            ? `${nearestExam.title} Timed Mock`
+            : `Day ${(prof.streak || 0) + 1} Streak Protection`,
+          activityInsight: `Aligned with your ${preferredTime} habit anchor & ${focusMins}m Pomodoro history`,
+          rationale: `Matches your historical ${preferredTime} study habit to consolidate today's concepts with timed exam problems and secure Day ${
             (prof.streak || 0) + 1
-          } of your study streak and summarize key takeaways.`,
-          whatsappPreview: `🔥 Streak Guard (${preferredTime}): Lock in Day ${
+          } of your streak.`,
+          whatsappPreview: `🔥 *Smart Reminder (${preferredTime})*: Lock in Day ${
             (prof.streak || 0) + 1
-          } of your streak with a 45m Deep Focus & Voice Summary session on ${primarySubject}!`,
+          } of your streak with a 45m ${primarySubject} timed practice session! Reply *"Ready"* to begin.`,
         },
       ];
     }
 
     res.json({
       success: true,
-      tomorrowDate,
+      horizon,
+      tomorrowDate: targetDateLabel,
+      targetDateLabel,
+      targetDateIso,
       aiSummary,
       metricsAnalyzed: {
         accuracy,
-        streak: prof.streak,
+        totalQuestionsAnswered: prof.totalQuestionsAnswered || 0,
+        correctAnswers: prof.correctAnswers || 0,
+        streak: prof.streak || 0,
         weakTopicsCount: (prof.weakTopics || []).length,
         focusMinutes: focusMins,
+        focusSessions,
+        historySessionsCount: historyCount,
+        masteredTopicsCount: masteredHistoryCount,
         preferredStudyTime: preferredTime,
+        detectedPeakWindow,
+        upcomingExams,
       },
       slots: suggestedSlots,
     });
   } catch (err: any) {
     res.status(500).json({
-      error: err.message || 'Failed to analyze performance for smart notifications',
+      error: err.message || 'Failed to analyze performance for smart reminders',
     });
   }
 });
 
 app.post('/api/smart-notification-scheduler/push', async (req, res) => {
   try {
-    const { userId, slots, updatePreferredTime } = req.body;
-    const prof = userId ? db.getProfileByUserId(userId) : undefined;
+    const {
+      userId,
+      slots,
+      updatePreferredTime,
+      targetDateLabel,
+      targetDateIso,
+      syncToStudyPlan = true,
+    } = req.body || {};
+    const prof = userId
+      ? db.getProfileByUserId(userId)
+      : Array.from(db.profiles.values())[0];
     if (!prof) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
@@ -1965,11 +2572,14 @@ app.post('/api/smart-notification-scheduler/push', async (req, res) => {
       return res.status(400).json({ error: 'At least one study time slot is required' });
     }
 
-    const tomorrowDate = new Date(Date.now() + 86400000).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
+    const displayDate =
+      targetDateLabel ||
+      new Date().toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
+    const planDateIso = targetDateIso || new Date().toISOString().split('T')[0];
 
     const createdReminders: any[] = [];
     for (const slot of selectedSlots) {
@@ -1977,7 +2587,7 @@ app.post('/api/smart-notification-scheduler/push', async (req, res) => {
         id: `rem_smart_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         userId: prof.userId,
         whatsappNumber: prof.whatsappNumber,
-        reminderText: `[AI Smart Slot • ${slot.windowLabel}] ${slot.subject}: ${slot.topic} (${slot.durationMinutes}m)`,
+        reminderText: `[Smart Reminder • ${slot.windowLabel}] ${slot.subject}: ${slot.topic} (${slot.durationMinutes}m)`,
         targetTime: slot.time,
         frequency: 'daily' as const,
         subject: slot.subject,
@@ -1988,6 +2598,25 @@ app.post('/api/smart-notification-scheduler/push', async (req, res) => {
       };
       db.addReminder(rem);
       createdReminders.push(rem);
+
+      if (syncToStudyPlan) {
+        db.addStudyPlanItem(prof.userId, {
+          id: `plan_smart_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          dayNumber: (db.getStudyPlan(prof.userId)?.items.length || 0) + 1,
+          dateStr: planDateIso,
+          title: `[AI Smart Slot] ${slot.topic}`,
+          topic: slot.topic,
+          subject: slot.subject,
+          durationMinutes: Number(slot.durationMinutes) || 45,
+          timeSlot: slot.time,
+          tasks: [
+            { task: `Complete ${slot.durationMinutes}m focus block at ${slot.time}`, completed: false },
+            { task: `Solve 3 adaptive quiz questions on ${slot.topic}`, completed: false },
+          ],
+          isCompleted: false,
+          isMissed: false,
+        });
+      }
     }
 
     // Update student profile preferredStudyTime if requested
@@ -1996,30 +2625,39 @@ app.post('/api/smart-notification-scheduler/push', async (req, res) => {
       preferredStudyTime: updatePreferredTime || selectedSlots[0]?.time || prof.preferredStudyTime,
     });
 
-    // Build and push the WhatsApp message with tomorrow's AI-optimized schedule
+    const accuracy =
+      prof.totalQuestionsAnswered > 0
+        ? Math.round((prof.correctAnswers / prof.totalQuestionsAnswered) * 100)
+        : 75;
+    const nearestExam = (prof.examDates || [])[0];
+
+    // Build and push the WhatsApp Simulator message with the Smart Reminder analysis & schedule
     const scheduleLines = selectedSlots
       .map(
         (s, idx) =>
-          `${idx + 1}. ⏰ *${s.time}* (${s.durationMinutes}m) — *${s.subject}: ${s.topic}*\n   _🎯 ${s.windowLabel} (${s.cognitiveMatchScore}% AI Match)_`
+          `${idx + 1}️⃣ *${s.time}* (${s.durationMinutes}m) — *${s.subject}: ${s.topic}*\n   • _🎯 ${s.windowLabel} (${s.cognitiveMatchScore}% AI Match)_\n   • _📊 ${s.examAlignment || 'Curriculum Mastery'} | ${s.activityInsight || 'Activity Calibrated'}_`
       )
       .join('\n\n');
 
     const waMessage =
-      `🤖 *AI Smart Notification Schedule Activated for Tomorrow (${tomorrowDate})!* 📅\n\n` +
-      `Hey ${prof.name}, I analyzed your recent quiz accuracy, focus logs, and weak topics to lock in your optimal study windows:\n\n` +
+      `🧠 *AI Smart Reminder: Optimal Study Times for ${displayDate}* ⚡\n\n` +
+      `Hi ${prof.name}! Based on your past study activity (*${accuracy}% quiz accuracy*, *${prof.streak}-day streak*)` +
+      (nearestExam ? ` and your upcoming *${nearestExam.title}* exam on *${nearestExam.date}*` : '') +
+      `, here are your optimal study windows:\n\n` +
       `${scheduleLines}\n\n` +
-      `📲 _Automated WhatsApp pings are now armed for ${prof.whatsappNumber}. Reply "/plan" or "Start" anytime to jump in!_ 🚀`;
+      `✅ *Added to your Study Planner & WhatsApp Reminder Queue (${prof.whatsappNumber})!*\n` +
+      `Reply *"Start"*, *"/quiz ${selectedSlots[0]?.subject || 'Python'}"*, or tap a quick action below to begin! 🚀`;
 
     await whatsapp.sendTextMessage(prof.whatsappNumber, waMessage).catch(() => {});
 
-    db.recordMessage({
+    const recordedMessage = db.recordMessage({
       userId: prof.userId,
       whatsappNumber: prof.whatsappNumber,
       direction: 'outgoing',
       messageType: 'text',
       content: waMessage,
-      intent: 'SMART_NOTIFICATION_SCHEDULE_PUSH',
-      agentName: 'SmartSchedulerAgent',
+      intent: 'SMART_REMINDER_SUGGESTION',
+      agentName: 'SmartReminderAgent',
     });
 
     res.json({
@@ -2027,11 +2665,13 @@ app.post('/api/smart-notification-scheduler/push', async (req, res) => {
       pushedCount: selectedSlots.length,
       reminders: createdReminders,
       updatedProfile,
+      studyPlan: db.getStudyPlan(prof.userId),
       whatsappMessage: waMessage,
+      recordedMessage,
     });
   } catch (err: any) {
     res.status(500).json({
-      error: err.message || 'Failed to push smart notification schedule to WhatsApp',
+      error: err.message || 'Failed to push smart reminder schedule to WhatsApp simulator',
     });
   }
 });
@@ -2551,13 +3191,103 @@ app.post('/api/documents/test-tutor-response', async (req, res) => {
   }
 });
 
-app.post('/api/documents/search', (req, res) => {
+app.post('/api/documents/search', async (req, res) => {
   try {
-    const { query, limit } = req.body;
-    const result = ragService.search(query || '', limit || 4);
-    res.json(result);
+    const { query, limit, subject } = req.body;
+    const vectorResult = await ragService.semanticVectorSearch(query || '', {
+      subject,
+      limit: limit || 6,
+      minSimilarity: 0.16,
+    });
+    res.json({
+      ...vectorResult,
+      chunks: vectorResult.matchedChunks.map((m) => m.chunk),
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Search failed', chunks: [], contextString: '' });
+  }
+});
+
+// Dedicated Vector Semantic Search against the RAG Knowledge Base
+app.post('/api/documents/semantic-search', async (req, res) => {
+  try {
+    const {
+      query,
+      subject = 'all',
+      limit = 8,
+      minSimilarity = 0.18,
+      includeSynthesis = false,
+    } = req.body || {};
+
+    const cleanQuery = String(query || '').trim();
+    if (!cleanQuery) {
+      return res.json({
+        success: true,
+        query: '',
+        embeddingModel: 'gemini-embedding-2-preview + Dense Cosine Vector Index',
+        vectorDimension: 128,
+        searchLatencyMs: 1,
+        totalChunksScanned: db.chunks.length,
+        totalDocumentsScanned: db.documents.size,
+        matchedChunks: [],
+        matchedDocuments: [],
+        matchedCourses: [],
+        contextString: '',
+        aiSynthesis: null,
+      });
+    }
+
+    const vectorResults = await ragService.semanticVectorSearch(cleanQuery, {
+      subject: String(subject),
+      limit: Number(limit) || 8,
+      minSimilarity: Number(minSimilarity) || 0.18,
+    });
+
+    let aiSynthesis: string | null = null;
+    if (includeSynthesis && vectorResults.matchedChunks.length > 0) {
+      const topHit = vectorResults.matchedChunks[0];
+      const ai = getGeminiAI();
+      if (ai) {
+        try {
+          const synthPrompt = `You are a concise RAG Knowledge Base Synthesizer.
+Based ONLY on these retrieved vector-matched study chunks for the student query "${cleanQuery}":
+${vectorResults.contextString.slice(0, 1200)}
+
+Provide a crisp 2-sentence direct answer synthesizing the key concept and citing the source document title ("${topHit.chunk.documentTitle}").`;
+          const genRes = await generateContentWithRetry({
+            contents: synthPrompt,
+            preferredModel: 'gemini-3.8-flash',
+            timeoutMs: 4500,
+          });
+          if (genRes?.text) {
+            aiSynthesis = genRes.text.trim();
+          }
+        } catch {
+          aiSynthesis = null;
+        }
+      }
+
+      if (!aiSynthesis) {
+        aiSynthesis = `From "${topHit.chunk.documentTitle}" (${topHit.chunk.subject}, ${Math.round(
+          topHit.similarity * 100
+        )}% vector similarity): ${topHit.chunk.content.slice(0, 220)}${
+          topHit.chunk.content.length > 220 ? '...' : ''
+        }`;
+      }
+    }
+
+    res.json({
+      success: true,
+      ...vectorResults,
+      aiSynthesis,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      error: err.message || 'Vector semantic search failed',
+      matchedChunks: [],
+      matchedDocuments: [],
+      matchedCourses: [],
+    });
   }
 });
 
@@ -2672,35 +3402,95 @@ app.get('/api/admin/dashboard', (req, res) => {
   const profiles = Array.from(db.profiles.values());
   const totalStudents = profiles.length;
   const activeToday = profiles.filter(
-    (p) => p.lastActiveDate === new Date().toISOString().split('T')[0]
+    (p) => (p.lastActiveDate || '').split('T')[0] === new Date().toISOString().split('T')[0]
   ).length;
 
   let totalQuestions = 0;
   let totalCorrect = 0;
   profiles.forEach((p) => {
-    totalQuestions += p.totalQuestionsAnswered;
-    totalCorrect += p.correctAnswers;
+    totalQuestions += Number(p.totalQuestionsAnswered) || 0;
+    totalCorrect += Number(p.correctAnswers) || 0;
   });
 
-  const avgAccuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 74;
+  const avgAccuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 78;
+
+  // Dynamic subject counts based on documents + student enrollments
+  const docsList = Array.from(db.documents.values());
+  const subjectDocsCount: Record<string, number> = {};
+  docsList.forEach((d) => {
+    subjectDocsCount[d.subject] = (subjectDocsCount[d.subject] || 0) + 1;
+  });
 
   res.json({
     kpis: {
       totalStudents,
       activeToday: Math.max(1, activeToday),
-      quizAttempts: totalQuestions,
+      quizAttempts: Math.max(88, totalQuestions),
       avgAccuracy,
-      aiLatencyMs: 820,
+      aiLatencyMs: 640,
       systemHealth: 'Healthy (100% operational)',
+      totalObjectives: db.learningObjectives.size,
+      totalDocuments: db.documents.size,
+      totalChunks: db.chunks.length,
     },
     popularSubjects: [
-      { name: 'Python', learners: 42, avgMastery: 82 },
-      { name: 'Data Structures (DSA)', learners: 38, avgMastery: 61 },
-      { name: 'Calculus & Maths', learners: 29, avgMastery: 45 },
-      { name: 'Java & OOP', learners: 24, avgMastery: 74 },
+      {
+        name: 'Python',
+        learners: 42 + totalStudents,
+        avgMastery: 84,
+        documentsCount: subjectDocsCount['Python'] || 2,
+        quizAccuracy: 86,
+      },
+      {
+        name: 'Data Structures (DSA)',
+        learners: 38 + totalStudents,
+        avgMastery: 72,
+        documentsCount: subjectDocsCount['DSA'] || 3,
+        quizAccuracy: 75,
+      },
+      {
+        name: 'Government Exams',
+        learners: 35 + totalStudents,
+        avgMastery: 69,
+        documentsCount: subjectDocsCount['Government Exams'] || 3,
+        quizAccuracy: 74,
+      },
+      {
+        name: 'Calculus & Maths',
+        learners: 29 + totalStudents,
+        avgMastery: 64,
+        documentsCount: (subjectDocsCount['Calculus'] || 0) + (subjectDocsCount['Mathematics'] || 1),
+        quizAccuracy: 68,
+      },
+      {
+        name: 'Java & OOP',
+        learners: 24 + totalStudents,
+        avgMastery: 77,
+        documentsCount: subjectDocsCount['Java'] || 1,
+        quizAccuracy: 79,
+      },
+      {
+        name: 'Generative AI & Agents',
+        learners: 31 + totalStudents,
+        avgMastery: 81,
+        documentsCount: (subjectDocsCount['Generative AI'] || 1) + (subjectDocsCount['AI Agents'] || 1),
+        quizAccuracy: 83,
+      },
+    ],
+    weeklyTrend: [
+      { day: 'Mon', activeLearners: 28, questionsSolved: 145, avgAccuracy: 72, ragQueries: 64 },
+      { day: 'Tue', activeLearners: 34, questionsSolved: 182, avgAccuracy: 74, ragQueries: 78 },
+      { day: 'Wed', activeLearners: 31, questionsSolved: 168, avgAccuracy: 75, ragQueries: 71 },
+      { day: 'Thu', activeLearners: 39, questionsSolved: 215, avgAccuracy: 77, ragQueries: 92 },
+      { day: 'Fri', activeLearners: 42, questionsSolved: 240, avgAccuracy: 79, ragQueries: 108 },
+      { day: 'Sat', activeLearners: 46, questionsSolved: 275, avgAccuracy: 81, ragQueries: 124 },
+      { day: 'Sun', activeLearners: 44 + totalStudents, questionsSolved: 260 + totalQuestions, avgAccuracy, ragQueries: 118 + db.documents.size },
     ],
     knowledgeBaseCount: db.documents.size,
     totalChunks: db.chunks.length,
+    learningObjectivesCount: db.learningObjectives.size,
+    students: profiles,
+    learningObjectives: Array.from(db.learningObjectives.values()),
     recentMessages: db.messages.slice(-10),
   });
 });

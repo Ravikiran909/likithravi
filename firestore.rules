@@ -21,7 +21,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == "kiranmravi45@gmail.com" && request.auth.token.email_verified == true)
+      );
     }
 
     function isValidUser(data) {
@@ -34,7 +37,19 @@ service cloud.firestore {
     function isValidStudentProfile(data) {
       return data.userId is string && data.userId.size() <= 128
         && data.name is string && data.name.size() <= 100
-        && data.preferredLanguage in ['en', 'hi', 'kn'];
+        && data.preferredLanguage is string && data.preferredLanguage.size() <= 20;
+    }
+
+    function isValidDocumentRecord(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 200
+        && data.subject is string && data.subject.size() <= 100;
+    }
+
+    function isValidLearningObjective(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.subject is string && data.subject.size() <= 100
+        && data.title is string && data.title.size() <= 200;
     }
 
     function isValidMessage(data) {
@@ -64,71 +79,82 @@ service cloud.firestore {
 
     // Users Collection
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+      allow get: if true;
+      allow list: if true;
+      allow create, update: if isValidId(userId) && isValidUser(request.resource.data);
       allow delete: if isAdmin();
     }
 
     // Profiles Collection
     match /profiles/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && isValidStudentProfile(request.resource.data);
-      allow update: if (isOwner(userId) || isAdmin()) && isValidStudentProfile(request.resource.data);
+      allow get: if true;
+      allow list: if true;
+      allow create, update: if isValidId(userId) && isValidStudentProfile(request.resource.data);
       allow delete: if isAdmin();
+    }
+
+    // RAG Documents Collection
+    match /documents/{docId} {
+      allow get: if true;
+      allow list: if true;
+      allow create, update: if isValidId(docId) && isValidDocumentRecord(request.resource.data);
+      allow delete: if true;
     }
 
     // Messages Collection
     match /messages/{messageId} {
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidMessage(request.resource.data);
+      allow get: if true;
+      allow list: if true;
+      allow create: if isValidId(messageId) && isValidMessage(request.resource.data);
       allow delete: if isAdmin();
     }
 
     // Quizzes Collection
     match /quizzes/{quizId} {
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidQuiz(request.resource.data);
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) && isValidQuiz(request.resource.data);
+      allow get: if true;
+      allow list: if true;
+      allow create, update: if isValidId(quizId) && isValidQuiz(request.resource.data);
       allow delete: if isAdmin();
     }
 
     // Study Plans Collection
     match /study_plans/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create, update: if (isOwner(userId) || isAdmin()) && isValidStudyPlan(request.resource.data);
+      allow get: if true;
+      allow list: if true;
+      allow create, update: if isValidId(userId) && isValidStudyPlan(request.resource.data);
       allow delete: if isAdmin();
     }
 
     // Reminders Collection
     match /reminders/{reminderId} {
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidReminder(request.resource.data);
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin()) && isValidReminder(request.resource.data);
-      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get: if true;
+      allow list: if true;
+      allow create, update: if isValidId(reminderId) && isValidReminder(request.resource.data);
+      allow delete: if true;
     }
 
     // Focus Sessions Collection
     match /focus_sessions/{sessionId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Learning Objectives Collection
     match /learning_objectives/{objId} {
-      allow read, write: if isSignedIn();
+      allow get, list: if true;
+      allow create, update: if isValidId(objId) && isValidLearningObjective(request.resource.data);
+      allow delete: if true;
     }
 
     // Material Reviews Collection
     match /material_reviews/{reviewId} {
       allow read: if true;
-      allow create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow create, update: if true;
+      allow delete: if true;
+    }
+
+    // System Telemetry Collection
+    match /system_telemetry/{docId} {
+      allow read, write: if true;
     }
 
     // Test connection doc

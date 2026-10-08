@@ -8,13 +8,9 @@ import {
   Sparkles,
   ArrowRight,
   Share2,
-  Zap,
   GraduationCap,
-  Shield,
-  Star,
-  ExternalLink,
-  ChevronRight,
-  Info,
+  Target,
+  BookOpen,
 } from 'lucide-react';
 import { StudentProfile, LearningResource } from '../types/index.ts';
 import {
@@ -36,7 +32,9 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
   onNavigateToChat,
 }) => {
   const [courses, setCourses] = useState<LearningResource[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'streak' | 'course_completion'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<
+    'all' | 'streak' | 'questions_milestone' | 'subject_mastery' | 'course_completion'
+  >('all');
   const [selectedBadge, setSelectedBadge] = useState<AchievementBadge | null>(null);
   const [celebrationBadge, setCelebrationBadge] = useState<AchievementBadge | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -52,19 +50,123 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
   const {
     allBadges,
     streakBadges,
+    questionBadges,
+    masteryBadges,
     courseBadges,
     unlockedCount,
     totalCount,
-    completionRate,
     currentStreakTier,
   } = calculateLearningAchievements(profile, courses);
+
+  // Automatically sync unlocked badges to user profile document (earnedBadges & achievements)
+  useEffect(() => {
+    const unlockedBadges = allBadges.filter((b) => b.unlocked);
+    const existingEarnedIds = new Set((profile.earnedBadges || []).map((eb) => eb.id));
+    const existingAchievements = new Set(profile.achievements || []);
+
+    const missingEarned = unlockedBadges.filter((b) => !existingEarnedIds.has(b.id));
+    const missingAch = unlockedBadges.filter((b) => !existingAchievements.has(b.id));
+
+    if (missingEarned.length > 0 || missingAch.length > 0) {
+      const nowIso = new Date().toISOString();
+      const updatedEarnedBadges = [
+        ...(profile.earnedBadges || []),
+        ...missingEarned.map((b) => ({
+          id: b.id,
+          name: b.title,
+          awardedAt: b.unlockedAt || nowIso,
+        })),
+      ];
+      const updatedAchievements = Array.from(
+        new Set([...(profile.achievements || []), ...unlockedBadges.map((b) => b.id)])
+      );
+
+      fetch(`/api/students/${profile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          earnedBadges: updatedEarnedBadges,
+          achievements: updatedAchievements,
+        }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((updatedProfile) => {
+          if (updatedProfile) {
+            onProfileUpdate(updatedProfile);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [unlockedCount, profile.userId]);
 
   const displayedBadges =
     selectedCategory === 'streak'
       ? streakBadges
+      : selectedCategory === 'questions_milestone'
+      ? questionBadges
+      : selectedCategory === 'subject_mastery'
+      ? masteryBadges
       : selectedCategory === 'course_completion'
       ? courseBadges
       : allBadges;
+
+  // Persist a newly unlocked milestone directly into the user profile document
+  const handleUnlockMilestone = async (badge: AchievementBadge) => {
+    setIsUpdating(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const updates: Partial<StudentProfile> = {
+        lastActiveDate: nowIso.split('T')[0],
+      };
+
+      if (badge.id === 'badge_streak_7' || badge.category === 'streak') {
+        updates.streak = Math.max((profile.streak || 0) + 1, badge.targetValue);
+      } else if (badge.id === 'badge_questions_100' || badge.category === 'questions_milestone') {
+        updates.totalQuestionsAnswered = Math.max(
+          (profile.totalQuestionsAnswered || 0) + 10,
+          badge.targetValue
+        );
+        updates.correctAnswers = Math.max(
+          (profile.correctAnswers || 0) + 9,
+          Math.round(badge.targetValue * 0.85)
+        );
+      } else if (badge.id === 'badge_mastery_calculus' || badge.category === 'subject_mastery') {
+        const topicName =
+          badge.id === 'badge_mastery_calculus'
+            ? 'Calculus (Integration & Derivatives)'
+            : badge.id === 'badge_mastery_python'
+            ? 'Python OOP & Recursion'
+            : 'DSA Binary Search & Trees';
+        updates.strongTopics = Array.from(new Set([...(profile.strongTopics || []), topicName]));
+        updates.overallProgress = Math.max(profile.overallProgress || 0, 88);
+      }
+
+      const existingEarned = profile.earnedBadges || [];
+      if (!existingEarned.some((eb) => eb.id === badge.id)) {
+        updates.earnedBadges = [
+          ...existingEarned,
+          { id: badge.id, name: badge.title, awardedAt: nowIso },
+        ];
+      }
+      updates.achievements = Array.from(new Set([...(profile.achievements || []), badge.id]));
+
+      const res = await fetch(`/api/students/${profile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        onProfileUpdate(updated);
+        setCelebrationBadge({ ...badge, unlocked: true, progressPercent: 100 });
+      }
+    } catch (e) {
+      console.error('Failed to unlock milestone:', e);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Streak Boost handler to simulate or record continuous streak
   const handleBoostStreak = async () => {
@@ -86,8 +188,8 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
 
         // Check if any badge just got unlocked
         const nextAchievements = calculateLearningAchievements(updated, courses);
-        const newlyUnlocked = nextAchievements.streakBadges.find(
-          (b) => b.unlocked && streakBadges.find((sb) => sb.id === b.id && !sb.unlocked)
+        const newlyUnlocked = nextAchievements.allBadges.find(
+          (b) => b.unlocked && allBadges.find((sb) => sb.id === b.id && !sb.unlocked)
         );
 
         if (newlyUnlocked) {
@@ -103,11 +205,9 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
 
   // Share achievement to WhatsApp
   const handleShareBadge = (badge: AchievementBadge) => {
-    const text = `🏆 *Achievement Unlocked on WhatsApp AI Tutor!* 🌟\n\nI just earned the *${badge.title}* badge (${badge.tier} tier)!\n• *Description:* ${badge.description}\n• *Current Study Streak:* ${profile.streak} Days 🔥\n• *Completed Courses:* ${(profile.completedCourseIds || []).length}\n\nJoin me in learning with AI on WhatsApp! 🚀`;
+    const text = `🏆 *Achievement Unlocked on WhatsApp AI Tutor!* 🌟\n\nI just earned the *${badge.title}* badge (${badge.tier} tier)!\n• *Description:* ${badge.description}\n• *Current Study Streak:* ${profile.streak} Days 🔥\n• *Questions Answered:* ${profile.totalQuestionsAnswered || 0}\n\nJoin me in learning with AI on WhatsApp! 🚀`;
     if (onNavigateToChat) {
       onNavigateToChat(text);
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
     }
     setSelectedBadge(null);
   };
@@ -127,51 +227,51 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                Learning Achievements & Badges
+                Learning Achievements & Profile Badges
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                 {currentStreakTier}
               </span>
             </div>
             <h3 className="text-xl font-black text-white mt-1 tracking-tight">
-              Honors, Course Medals & Streak Badges
+              Milestone Badges: 7-Day Streak, 100 Questions & Subject Mastery
             </h3>
             <p className="text-xs text-slate-300 mt-1 max-w-xl">
-              Earn distinguished badges by completing verified courses, mastering GenAI & AI Agents, and keeping your daily WhatsApp study streak blazing!
+              Earn verified badges for milestones like <strong className="text-amber-300">7-Day Streak</strong>, <strong className="text-emerald-300">100 Questions Answered</strong>, and <strong className="text-rose-300">Mastery in Calculus</strong>. Stored directly in your user profile document.
             </p>
           </div>
         </div>
 
-        {/* Counter Pills */}
+        {/* Counter Cards */}
         <div className="flex items-center space-x-3 shrink-0">
-          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center min-w-[105px]">
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center min-w-[100px]">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Badges Earned</span>
             <span className="text-lg font-black text-amber-400">
               {unlockedCount} <span className="text-xs font-normal text-slate-500">/ {totalCount}</span>
             </span>
           </div>
-          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center min-w-[105px]">
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center min-w-[95px]">
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Streak</span>
             <span className="text-lg font-black text-orange-400 flex items-center justify-center space-x-1">
               <span>{profile.streak}</span>
               <span className="text-sm">🔥</span>
             </span>
           </div>
-          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center min-w-[105px]">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Courses Done</span>
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center min-w-[100px]">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Questions</span>
             <span className="text-lg font-black text-emerald-400">
-              {(profile.completedCourseIds || []).length}
+              {profile.totalQuestionsAnswered || 0}
             </span>
           </div>
         </div>
       </div>
 
       {/* Filter Tabs & Quick Action Bar */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0">
+      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 lg:pb-0">
           <button
             onClick={() => setSelectedCategory('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
               selectedCategory === 'all'
                 ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
                 : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
@@ -183,26 +283,50 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
 
           <button
             onClick={() => setSelectedCategory('streak')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
               selectedCategory === 'streak'
                 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-black'
                 : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
             }`}
           >
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span>Study Streaks ({streakBadges.length})</span>
+            <Flame className="w-3.5 h-3.5 text-amber-300" />
+            <span>Streaks ({streakBadges.length})</span>
           </button>
 
           <button
-            onClick={() => setSelectedCategory('course_completion')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
-              selectedCategory === 'course_completion'
+            onClick={() => setSelectedCategory('questions_milestone')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
+              selectedCategory === 'questions_milestone'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 font-black'
                 : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
             }`}
           >
-            <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Course Completions ({courseBadges.length})</span>
+            <Target className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Questions Answered ({questionBadges.length})</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedCategory('subject_mastery')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
+              selectedCategory === 'subject_mastery'
+                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20 font-black'
+                : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 text-rose-300" />
+            <span>Subject Mastery ({masteryBadges.length})</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedCategory('course_completion')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
+              selectedCategory === 'course_completion'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-black'
+                : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5 text-indigo-300" />
+            <span>Courses ({courseBadges.length})</span>
           </button>
         </div>
 
@@ -212,7 +336,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
             onClick={handleBoostStreak}
             disabled={isUpdating}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
-            title="Simulate daily check-in to level up study streak"
+            title="Record daily check-in to level up study streak"
           >
             <Flame className="w-3.5 h-3.5 fill-amber-400" />
             <span>+1 Day Streak</span>
@@ -242,7 +366,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
               className={`rounded-2xl p-4 border transition-all duration-200 cursor-pointer relative overflow-hidden group ${
                 isUnlocked
                   ? `bg-slate-950/80 border-slate-700/80 hover:border-amber-400/80 shadow-lg hover:shadow-amber-500/10 hover:-translate-y-0.5`
-                  : `bg-slate-950/40 border-slate-800/80 opacity-70 hover:opacity-100 hover:border-slate-700`
+                  : `bg-slate-950/40 border-slate-800/80 opacity-75 hover:opacity-100 hover:border-slate-700`
               }`}
             >
               {/* Top Row: Icon + Tier Badge + Lock/Check */}
@@ -352,7 +476,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
               <div className="flex justify-between">
                 <span className="text-slate-400">Status:</span>
                 <span className={`font-bold ${selectedBadge.unlocked ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {selectedBadge.unlocked ? '✓ Unlocked & Earned' : '🔒 In Progress'}
+                  {selectedBadge.unlocked ? '✓ Unlocked & Saved in Profile' : '🔒 In Progress'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -366,7 +490,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
             <div className="flex items-center space-x-3 pt-2">
               <button
                 onClick={() => setSelectedBadge(null)}
-                className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition"
+                className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
               >
                 Close
               </button>
@@ -374,32 +498,23 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
               {selectedBadge.unlocked ? (
                 <button
                   onClick={() => handleShareBadge(selectedBadge)}
-                  className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-600/30"
+                  className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-600/30 cursor-pointer"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Share on WhatsApp</span>
                 </button>
-              ) : selectedBadge.category === 'course_completion' && onNavigateToCourses ? (
-                <button
-                  onClick={() => {
-                    setSelectedBadge(null);
-                    onNavigateToCourses();
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 shadow-lg"
-                >
-                  <span>Go to Courses</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
               ) : (
                 <button
                   onClick={() => {
+                    const badgeToAward = selectedBadge;
                     setSelectedBadge(null);
-                    handleBoostStreak();
+                    handleUnlockMilestone(badgeToAward);
                   }}
-                  className="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center space-x-1.5 shadow-lg"
+                  disabled={isUpdating}
+                  className="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center space-x-1.5 shadow-lg cursor-pointer"
                 >
-                  <Flame className="w-3.5 h-3.5 fill-slate-950" />
-                  <span>Build Streak Now</span>
+                  <Award className="w-3.5 h-3.5" />
+                  <span>Award & Save to Profile</span>
                 </button>
               )}
             </div>
@@ -423,7 +538,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
             </div>
 
             <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-300 font-semibold">
-              Added to your verified Student Profile accolades!
+              Stored in your user profile document (`earnedBadges` & `achievements`)!
             </div>
 
             <button

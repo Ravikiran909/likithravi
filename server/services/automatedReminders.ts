@@ -5,6 +5,116 @@ import { StudentProfile } from '../../src/types/index.ts';
 // Track sent date per student (e.g. 'usr_123' -> '2026-10-01') to prevent duplicate daily messages
 const lastReminderSentDateByUserId = new Map<string, string>();
 
+export interface FcmPushNotificationPayload {
+  id: string;
+  userId: string;
+  fcmToken: string;
+  messagingSenderId: string;
+  preferredStudyTime: string;
+  notification: {
+    title: string;
+    body: string;
+    icon: string;
+  };
+  data: {
+    userId: string;
+    subject: string;
+    weakTopic: string;
+    preferredStudyTime: string;
+    streak: string;
+    tag: string;
+    actionCommand: string;
+  };
+  deliveredAt: string;
+  triggerSource: 'scheduled_preferred_time' | 'manual_test_push';
+  deliveryStatus: 'delivered' | 'muted_deep_focus';
+}
+
+// Store registered FCM device tokens and push delivery history per user
+const fcmTokensByUserId = new Map<string, string>();
+const fcmPushHistoryByUserId = new Map<string, FcmPushNotificationPayload[]>();
+
+export function registerStudentFcmToken(
+  userId: string,
+  fcmToken: string,
+  fcmPushEnabled = true,
+  preferredStudyTime?: string
+): StudentProfile | undefined {
+  if (fcmToken) {
+    fcmTokensByUserId.set(userId, fcmToken);
+  }
+  const updates: Partial<StudentProfile> = {
+    fcmToken,
+    fcmPushEnabled,
+    fcmRegisteredAt: new Date().toISOString(),
+  };
+  if (preferredStudyTime) {
+    updates.preferredStudyTime = preferredStudyTime;
+  }
+  return db.updateProfile(userId, updates);
+}
+
+export function buildFcmStudyReminderPayload(
+  profile: StudentProfile,
+  triggerSource: 'scheduled_preferred_time' | 'manual_test_push' = 'scheduled_preferred_time'
+): FcmPushNotificationPayload {
+  const preferredTime = profile.preferredStudyTime || '07:00 PM';
+  const primarySubject =
+    profile.subjects && profile.subjects.length > 0 ? profile.subjects[0] : 'Python';
+  const weakTopic =
+    profile.weakTopics && profile.weakTopics.length > 0
+      ? profile.weakTopics[0]
+      : `${primarySubject} Core Concepts`;
+  const streak = profile.streak || 1;
+  const token =
+    profile.fcmToken ||
+    fcmTokensByUserId.get(profile.userId) ||
+    `fcm_756741107048_${profile.userId}_smart_reminder`;
+
+  const title = `⏰ Smart Study Reminder • ${preferredTime}`;
+  const body = `Hi ${profile.name}! It's ${preferredTime} — time for your ${
+    profile.studyHoursPerDay || 2
+  }h study goal on ${weakTopic} (${primarySubject}). Keep your ${streak}-day streak alive!`;
+
+  return {
+    id: `fcm_push_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    userId: profile.userId,
+    fcmToken: token,
+    messagingSenderId: '756741107048',
+    preferredStudyTime: preferredTime,
+    notification: {
+      title,
+      body,
+      icon: '/assets/icon-192.png',
+    },
+    data: {
+      userId: profile.userId,
+      subject: primarySubject,
+      weakTopic,
+      preferredStudyTime: preferredTime,
+      streak: String(streak),
+      tag: `fcm-study-reminder-${profile.userId}`,
+      actionCommand: `/smart-quiz ${weakTopic}`,
+    },
+    deliveredAt: new Date().toISOString(),
+    triggerSource,
+    deliveryStatus: profile.deepFocusEnabled ? 'muted_deep_focus' : 'delivered',
+  };
+}
+
+export function recordFcmPushDelivery(payload: FcmPushNotificationPayload): void {
+  const list = fcmPushHistoryByUserId.get(payload.userId) || [];
+  list.unshift(payload);
+  fcmPushHistoryByUserId.set(payload.userId, list.slice(0, 20));
+  db.updateProfile(payload.userId, {
+    lastFcmPushSentAt: payload.deliveredAt,
+  });
+}
+
+export function getFcmPushHistory(userId: string): FcmPushNotificationPayload[] {
+  return fcmPushHistoryByUserId.get(userId) || [];
+}
+
 /**
  * Normalizes different time strings like "07:00 PM", "7:00 PM", "19:00", "7:30pm"
  * into a standardized { hour: number, minute: number } in 24-hour format.
@@ -173,6 +283,12 @@ export async function checkAndSendAutomatedReminders(): Promise<{
       try {
         await whatsapp.sendTextMessage(profile.whatsappNumber, messageText);
 
+        // Also dispatch Firebase Cloud Messaging (FCM) Push Notification if enabled
+        if (profile.fcmPushEnabled !== false) {
+          const fcmPayload = buildFcmStudyReminderPayload(profile, 'scheduled_preferred_time');
+          recordFcmPushDelivery(fcmPayload);
+        }
+
         // Record message in history
         db.recordMessage({
           userId: profile.userId,
@@ -219,10 +335,14 @@ export async function checkAndSendAutomatedReminders(): Promise<{
  * Manually dispatches an automated personalized daily reminder immediately for a given student
  * (useful for test triggers, verification, and on-demand reminders).
  */
-export async function sendAutomatedReminderNow(userId: string): Promise<{
+export async function sendAutomatedReminderNow(
+  userId: string,
+  triggerSource: 'scheduled_preferred_time' | 'manual_test_push' = 'manual_test_push'
+): Promise<{
   success: boolean;
   messageText: string;
   phone: string;
+  fcmPayload?: FcmPushNotificationPayload;
   error?: string;
 }> {
   const profile = db.getProfileByUserId(userId);
@@ -232,9 +352,11 @@ export async function sendAutomatedReminderNow(userId: string): Promise<{
 
   const messageText = generatePersonalizedReminderMessage(profile);
   const todayStr = new Date().toISOString().split('T')[0];
+  const fcmPayload = buildFcmStudyReminderPayload(profile, triggerSource);
 
   try {
-    const sendRes = await whatsapp.sendTextMessage(profile.whatsappNumber, messageText);
+    await whatsapp.sendTextMessage(profile.whatsappNumber, messageText);
+    recordFcmPushDelivery(fcmPayload);
 
     db.recordMessage({
       userId: profile.userId,
@@ -252,38 +374,52 @@ export async function sendAutomatedReminderNow(userId: string): Promise<{
       success: true,
       messageText,
       phone: profile.whatsappNumber,
+      fcmPayload,
     };
   } catch (err: any) {
     return {
       success: false,
       messageText,
       phone: profile.whatsappNumber,
+      fcmPayload,
       error: err.message,
     };
   }
 }
 
 /**
- * Returns automated reminder scheduler status for a student profile.
+ * Returns automated reminder scheduler status for a student profile, including FCM token & push history.
  */
 export function getAutomatedReminderStatus(userId: string): {
   enabled: boolean;
+  fcmPushEnabled: boolean;
+  fcmToken: string | null;
+  messagingSenderId: string;
   preferredStudyTime: string;
   parsedTime24h: { hour: number; minute: number } | null;
   lastSentDate: string | null;
+  lastFcmPushSentAt: string | null;
+  fcmPushHistory: FcmPushNotificationPayload[];
   phone: string;
 } {
   const profile = db.getProfileByUserId(userId);
   const preferredStudyTime = profile?.preferredStudyTime || '07:00 PM';
   const enabled = profile?.dailyReminderEnabled !== undefined ? profile.dailyReminderEnabled : true;
+  const fcmPushEnabled = profile?.fcmPushEnabled !== undefined ? profile.fcmPushEnabled : true;
+  const fcmToken = profile?.fcmToken || fcmTokensByUserId.get(userId) || null;
   const lastSentDate = lastReminderSentDateByUserId.get(userId) || null;
   const phone = profile?.whatsappNumber || '';
 
   return {
     enabled,
+    fcmPushEnabled,
+    fcmToken,
+    messagingSenderId: '756741107048',
     preferredStudyTime,
     parsedTime24h: parseStudyTimeTo24Hour(preferredStudyTime),
     lastSentDate,
+    lastFcmPushSentAt: profile?.lastFcmPushSentAt || null,
+    fcmPushHistory: getFcmPushHistory(userId),
     phone,
   };
 }

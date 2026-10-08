@@ -17,9 +17,14 @@ import {
   Flame,
   Award,
   Star,
+  ShieldCheck,
 } from 'lucide-react';
 import { LearningResource, StudentProfile } from '../types/index.ts';
 import { MaterialReviewModal } from './MaterialReviewModal.tsx';
+import {
+  CourseEnrollmentVerificationModal,
+  EnrollableCourseTarget,
+} from './CourseEnrollmentVerificationModal.tsx';
 
 interface FreeCoursesAndVideosProps {
   profile: StudentProfile;
@@ -72,6 +77,8 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
 
   // Review Modal state
   const [reviewModalTarget, setReviewModalTarget] = useState<LearningResource | null>(null);
+  const [enrollmentCourseTarget, setEnrollmentCourseTarget] =
+    useState<EnrollableCourseTarget | null>(null);
 
   // Fetch learning resources and reviews from API
   const fetchResourcesAndRatings = async () => {
@@ -94,7 +101,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
     fetchResourcesAndRatings();
   }, []);
 
-  const subjectsList = ['all', 'Generative AI', 'AI Agents', 'Python', 'Java', 'C', 'C++', 'C#', 'R', 'DSA', 'Mathematics'];
+  const subjectsList = ['all', 'DSA', 'Government Exams', 'Generative AI', 'AI Agents', 'Python', 'Java', 'C', 'C++', 'C#', 'R', 'Mathematics'];
 
   // Filtered resources
   const filteredResources = useMemo(() => {
@@ -376,69 +383,97 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                 </div>
 
                 {/* Action Buttons */}
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                <div className="pt-3 border-t border-slate-800/80 space-y-2">
+                  {/* Aadhaar + DigiLocker Course Enrollment Button */}
                   <button
-                    onClick={() => handleAskTutor(item)}
-                    className="flex-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer border border-slate-700 hover:border-emerald-500 shadow-sm"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Ask Tutor</span>
-                  </button>
-
-                  {item.embedUrl ? (
-                    <button
-                      onClick={() => setActiveVideo(item)}
-                      className="py-2 px-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-red-600/30 transition cursor-pointer"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-white" />
-                      <span>Watch</span>
-                    </button>
-                  ) : (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="py-2 px-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-red-600/30 transition cursor-pointer"
-                    >
-                      <span>Open Course</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-
-                  <button
-                    onClick={() => setReviewModalTarget(item)}
-                    className="py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30 transition cursor-pointer flex items-center space-x-1"
-                    title="Leave a star rating or comment"
-                  >
-                    <Star className="w-3 h-3 fill-amber-300" />
-                    <span>Rate</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleToggleCourseCompletion(item.id)}
-                    disabled={togglingCourseId === item.id}
-                    className={`py-2 px-2.5 rounded-xl font-bold text-xs border transition cursor-pointer flex items-center space-x-1 ${
-                      (profile.completedCourseIds || []).includes(item.id)
-                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-sm'
-                        : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-white'
-                    }`}
-                    title={
-                      (profile.completedCourseIds || []).includes(item.id)
-                        ? 'Course completed! Click to mark incomplete'
-                        : 'Mark course as finished to earn Course Completion badges'
+                    type="button"
+                    onClick={() =>
+                      setEnrollmentCourseTarget({
+                        id: item.id,
+                        title: item.title,
+                        subject: item.subject,
+                        provider: item.provider,
+                        duration: item.duration,
+                      })
                     }
+                    className={`w-full py-2 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center space-x-1.5 border transition cursor-pointer ${
+                      (profile.enrolledCourseIds || []).includes(item.id)
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                        : 'bg-indigo-600/25 hover:bg-indigo-600/40 border-indigo-500/40 text-indigo-200'
+                    }`}
                   >
-                    <CheckCircle2
-                      className={`w-3.5 h-3.5 ${
-                        (profile.completedCourseIds || []).includes(item.id)
-                          ? 'text-emerald-400'
-                          : 'text-slate-500'
-                      }`}
-                    />
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                     <span>
-                      {(profile.completedCourseIds || []).includes(item.id) ? 'Completed' : 'Finish'}
+                      {(profile.enrolledCourseIds || []).includes(item.id)
+                        ? 'Enrolled (Aadhaar + DigiLocker Verified ✓)'
+                        : 'Enroll Course (Aadhaar & DigiLocker)'}
                     </span>
                   </button>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => handleAskTutor(item)}
+                      className="flex-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer border border-slate-700 hover:border-emerald-500 shadow-sm"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Ask Tutor</span>
+                    </button>
+
+                    {item.embedUrl ? (
+                      <button
+                        onClick={() => setActiveVideo(item)}
+                        className="py-2 px-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-red-600/30 transition cursor-pointer"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-white" />
+                        <span>Watch</span>
+                      </button>
+                    ) : (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2 px-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-red-600/30 transition cursor-pointer"
+                      >
+                        <span>Open Course</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+
+                    <button
+                      onClick={() => setReviewModalTarget(item)}
+                      className="py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30 transition cursor-pointer flex items-center space-x-1"
+                      title="Leave a star rating or comment"
+                    >
+                      <Star className="w-3 h-3 fill-amber-300" />
+                      <span>Rate</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleToggleCourseCompletion(item.id)}
+                      disabled={togglingCourseId === item.id}
+                      className={`py-2 px-2.5 rounded-xl font-bold text-xs border transition cursor-pointer flex items-center space-x-1 ${
+                        (profile.completedCourseIds || []).includes(item.id)
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-sm'
+                          : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                      title={
+                        (profile.completedCourseIds || []).includes(item.id)
+                          ? 'Course completed! Click to mark incomplete'
+                          : 'Mark course as finished to earn Course Completion badges'
+                      }
+                    >
+                      <CheckCircle2
+                        className={`w-3.5 h-3.5 ${
+                          (profile.completedCourseIds || []).includes(item.id)
+                            ? 'text-emerald-400'
+                            : 'text-slate-500'
+                        }`}
+                      />
+                      <span>
+                        {(profile.completedCourseIds || []).includes(item.id) ? 'Completed' : 'Finish'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -575,6 +610,17 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
           }}
         />
       )}
+
+      {/* Aadhaar e-KYC & DigiLocker Course Enrollment Modal */}
+      <CourseEnrollmentVerificationModal
+        isOpen={!!enrollmentCourseTarget}
+        onClose={() => setEnrollmentCourseTarget(null)}
+        course={enrollmentCourseTarget}
+        profile={profile}
+        onProfileUpdate={(updated) => {
+          if (onProfileUpdate) onProfileUpdate(updated);
+        }}
+      />
     </div>
   );
 };

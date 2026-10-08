@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { DocumentRecord, DocumentChunk } from '../types/index.ts';
 import { extractTextFromPdfFile, extractTextFromGenericFile } from '../utils/pdfExtractor.ts';
+import { db, doc, setDoc, deleteDoc } from '../firebase.ts';
 
 interface RagKnowledgeBaseProps {
   onDocumentAdded?: () => void;
@@ -309,7 +310,30 @@ Binary Tree Traversals:
 
       if (res.ok) {
         const data = await res.json();
-        setSuccessMessage(`Document "${data.document.title}" successfully indexed into ${data.document.chunkCount} semantic chunks!`);
+        const uploadedDoc: DocumentRecord = data.document;
+
+        // Persist RAG document metadata in Firestore database
+        if (db && uploadedDoc?.id) {
+          await setDoc(
+            doc(db, 'documents', uploadedDoc.id),
+            {
+              id: uploadedDoc.id,
+              title: String(uploadedDoc.title || title).slice(0, 195),
+              subject: String(uploadedDoc.subject || subject).slice(0, 95),
+              category: String(uploadedDoc.category || category).slice(0, 95),
+              originalFilename: String(uploadedDoc.originalFilename || 'notes.txt').slice(0, 195),
+              fileSizeKb: Number(uploadedDoc.fileSizeKb) || 1,
+              uploadedAt: uploadedDoc.uploadedAt || new Date().toISOString(),
+              chunkCount: Number(uploadedDoc.chunkCount) || 1,
+              summary: String(uploadedDoc.summary || content.slice(0, 180)).slice(0, 1900),
+            },
+            { merge: true }
+          ).catch(() => {});
+        }
+
+        setSuccessMessage(
+          `Document "${uploadedDoc.title}" successfully indexed into ${uploadedDoc.chunkCount} semantic chunks and stored in database!`
+        );
         setTitle('');
         setContent('');
         setTutorDirective('');
@@ -320,7 +344,7 @@ Binary Tree Traversals:
         if (onDocumentAdded) onDocumentAdded();
         setTimeout(() => setSuccessMessage(null), 4000);
       } else {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({}));
         setExtractError(errData.error || 'Failed to ingest document');
       }
     } catch (err: any) {
@@ -330,15 +354,15 @@ Binary Tree Traversals:
     }
   };
 
-  const handleDeleteDocument = async (docId: string, docTitle: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${docTitle}" and all its indexed chunks from the RAG knowledge base?`)) {
-      return;
-    }
-
+  const handleDeleteDocument = async (docId: string, _docTitle: string) => {
     try {
       const res = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
       if (res.ok) {
+        if (db && docId) {
+          await deleteDoc(doc(db, 'documents', docId)).catch(() => {});
+        }
         fetchDocuments();
+        if (onDocumentAdded) onDocumentAdded();
       }
     } catch (err) {
       console.error('Failed to delete document', err);

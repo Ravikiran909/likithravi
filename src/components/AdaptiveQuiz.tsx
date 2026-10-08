@@ -39,6 +39,13 @@ interface AdaptiveQuizProps {
   profile: StudentProfile;
   onProfileUpdate: (updated: StudentProfile) => void;
   onNavigateToChat?: (text: string) => void;
+  onQuizCompleted?: (details: {
+    minutesEarned: number;
+    questionsCount: number;
+    score: number;
+    topic: string;
+    subject: string;
+  }) => void;
 }
 
 interface CompletedQuizRecord {
@@ -57,6 +64,7 @@ export const AdaptiveQuiz: React.FC<AdaptiveQuizProps> = ({
   profile,
   onProfileUpdate,
   onNavigateToChat,
+  onQuizCompleted,
 }) => {
   // Target topic selection
   const weakTopics = profile.weakTopics && profile.weakTopics.length > 0
@@ -355,29 +363,66 @@ export const AdaptiveQuiz: React.FC<AdaptiveQuizProps> = ({
         }
       }
 
+      const todayStr = new Date().toISOString().split('T')[0];
+      const quizMinutesEarned = Math.max(15, totalCount * 5);
+      const existingFocusStats = profile.focusStats || {
+        totalFocusMinutes: 0,
+        completedSessions: 0,
+        todayFocusMinutes: 45,
+        lastSessionDate: todayStr,
+      };
+      const baseTodayFocusMinutes =
+        existingFocusStats.lastSessionDate === todayStr
+          ? existingFocusStats.todayFocusMinutes || 0
+          : 45;
+      const nextTodayFocusMinutes = baseTodayFocusMinutes + quizMinutesEarned;
+      const nextQuestionsToday = (profile.questionsAnsweredToday || 6) + totalCount;
+
+      try {
+        localStorage.setItem(`study_minutes_${profile.userId}_${todayStr}`, String(nextTodayFocusMinutes));
+        localStorage.setItem(`daily_questions_${profile.userId}_${todayStr}`, String(nextQuestionsToday));
+      } catch {}
+
       const updatedProfileData: Partial<StudentProfile> = {
         totalQuestionsAnswered: (profile.totalQuestionsAnswered || 0) + totalCount,
+        questionsAnsweredToday: nextQuestionsToday,
         correctAnswers: (profile.correctAnswers || 0) + finalScore,
         overallProgress: Math.min(100, (profile.overallProgress || 65) + (isMastered ? 4 : 1)),
         weakTopics: updatedWeakTopics,
         strongTopics: updatedStrongTopics,
+        focusStats: {
+          totalFocusMinutes: (existingFocusStats.totalFocusMinutes || 0) + quizMinutesEarned,
+          completedSessions: (existingFocusStats.completedSessions || 0) + 1,
+          todayFocusMinutes: nextTodayFocusMinutes,
+          lastSessionDate: todayStr,
+        },
         learningHistory: [
           ...(profile.learningHistory || []),
           {
             topic: selectedTopic,
             subject: questions[0]?.subject || 'Curriculum',
-            date: new Date().toISOString().split('T')[0],
+            date: todayStr,
             mastered: isMastered,
           },
         ],
       };
 
-      // 2. Update local state and history immediately
+      // 2. Update local state, daily goal progress bar, and history immediately
       setQuizHistory((prev) => [quizRecord, ...prev]);
       onProfileUpdate({
         ...profile,
         ...updatedProfileData,
       } as StudentProfile);
+
+      if (onQuizCompleted) {
+        onQuizCompleted({
+          minutesEarned: quizMinutesEarned,
+          questionsCount: totalCount,
+          score: finalScore,
+          topic: selectedTopic,
+          subject: questions[0]?.subject || 'Curriculum',
+        });
+      }
 
       // 3. Sync to local backend database
       await fetch('/api/quiz/record-result', {
@@ -390,6 +435,7 @@ export const AdaptiveQuiz: React.FC<AdaptiveQuizProps> = ({
           score: finalScore,
           totalQuestions: totalCount,
           difficulty: selectedDifficulty,
+          studyMinutesLogged: quizMinutesEarned,
         }),
       });
 

@@ -31,9 +31,12 @@ import { Badges, ProfileBadgesWidget } from './Badges.tsx';
 import { LearningRankCard } from './LearningRankCard.tsx';
 import { CircularStudyGoal } from './CircularStudyGoal.tsx';
 import { DailyStudyReminderCard } from './DailyStudyReminderCard.tsx';
+import { SmartStudyReminderFcm } from './SmartStudyReminderFcm.tsx';
 import { StreakNotification } from './StreakNotification.tsx';
 import { DailyLearningGoalTracker } from './DailyLearningGoalTracker.tsx';
+import { WeeklyGoalTracker } from './WeeklyGoalTracker.tsx';
 import { PomodoroFocusTimer } from './PomodoroFocusTimer.tsx';
+import { PomodoroStudyTimer } from './PomodoroStudyTimer.tsx';
 import { WeeklyStudyReport } from './WeeklyStudyReport.tsx';
 import { FlashcardDeckGenerator } from './FlashcardDeckGenerator.tsx';
 import { StudyMaterialsBrowser } from './StudyMaterialsBrowser.tsx';
@@ -42,6 +45,7 @@ import { CurriculumRoadmap } from './CurriculumRoadmap.tsx';
 import { LearningAchievementsCard } from './LearningAchievementsCard.tsx';
 import { KnowledgeGapsHeatmap } from './KnowledgeGapsHeatmap.tsx';
 import { WeeklyLearningActivityChart } from './WeeklyLearningActivityChart.tsx';
+import { WeeklyActivityChart } from './WeeklyActivityChart.tsx';
 import { DeepFocusOverlay } from './DeepFocusOverlay.tsx';
 import { GlobalPeerLeaderboard } from './GlobalPeerLeaderboard.tsx';
 import { DailyAffirmationsCard } from './DailyAffirmationsCard.tsx';
@@ -55,6 +59,19 @@ import { ThirtyDayProgressLineChart } from './ThirtyDayProgressLineChart.tsx';
 import { DailyFlashcards } from './DailyFlashcards.tsx';
 import { AcademicPdfExportCard } from './AcademicPdfExportCard.tsx';
 import { HighLevelThinkingModels } from './HighLevelThinkingModels.tsx';
+import { SubTopicMasteryHeatmapChart } from './SubTopicMasteryHeatmapChart.tsx';
+import { AchievementBadgesShowcase } from './AchievementBadgesShowcase.tsx';
+import { StudentAchievements } from './StudentAchievements.tsx';
+import { DsaAndGovExamHub } from './DsaAndGovExamHub.tsx';
+import { StudySessionPlanner } from './StudySessionPlanner.tsx';
+import { DailyQuizStreakCounter } from './DailyQuizStreakCounter.tsx';
+import { DailyStudyGoal } from './DailyStudyGoal.tsx';
+import {
+  IdentityAndCourseVerificationHub,
+  CourseEnrollmentVerificationModal,
+  EnrollableCourseTarget,
+} from './CourseEnrollmentVerificationModal.tsx';
+import { FaceAuthLoginModal } from './FaceAuthLoginModal.tsx';
 import { calculateLearningRank } from '../utils/learningRank.ts';
 import {
   generateStudentProgressPdf,
@@ -67,16 +84,24 @@ interface StudentDashboardProps {
   profile: StudentProfile;
   onProfileUpdate: (updated: StudentProfile) => void;
   onNavigateToChat: (prefilledText?: string) => void;
+  focusMode?: boolean;
+  onToggleFocusMode?: (nextState?: boolean) => void;
+  onOpenFaceAuth?: () => void;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   profile,
   onProfileUpdate,
   onNavigateToChat,
+  focusMode,
+  onToggleFocusMode,
+  onOpenFaceAuth,
 }) => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
+  const [enrollModalCourse, setEnrollModalCourse] = useState<EnrollableCourseTarget | null>(null);
+  const [localFaceAuthOpen, setLocalFaceAuthOpen] = useState<boolean>(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -93,12 +118,21 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     profile.dailyReminderEnabled !== undefined ? Boolean(profile.dailyReminderEnabled) : true
   );
   const [deepFocusActive, setDeepFocusActive] = useState<boolean>(
-    Boolean(profile.deepFocusEnabled)
+    focusMode !== undefined ? focusMode : Boolean(profile.deepFocusEnabled)
   );
+
+  useEffect(() => {
+    if (focusMode !== undefined && focusMode !== deepFocusActive) {
+      setDeepFocusActive(focusMode);
+    }
+  }, [focusMode]);
 
   const handleToggleDeepFocus = async (nextState?: boolean) => {
     const targetState = nextState !== undefined ? nextState : !deepFocusActive;
     setDeepFocusActive(targetState);
+    if (onToggleFocusMode) {
+      onToggleFocusMode(targetState);
+    }
     try {
       const res = await fetch(`/api/students/${profile.userId}`, {
         method: 'PUT',
@@ -118,9 +152,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     }
   };
 
-  // Daily Study Goal tracking state
+  // Daily Study Goal tracking state (synced with profile.studyHoursPerDay & real-time quiz completions)
   const todayStr = new Date().toISOString().split('T')[0];
   const [extraLoggedMinutesToday, setExtraLoggedMinutesToday] = useState<number>(() => {
+    if (
+      profile.focusStats?.lastSessionDate === todayStr &&
+      typeof profile.focusStats?.todayFocusMinutes === 'number'
+    ) {
+      return profile.focusStats.todayFocusMinutes;
+    }
     try {
       const saved = localStorage.getItem(`study_minutes_${profile.userId}_${todayStr}`);
       return saved !== null ? Number(saved) : 45;
@@ -128,6 +168,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       return 45;
     }
   });
+  const [lastSyncedQuestionsCount, setLastSyncedQuestionsCount] = useState<number>(
+    profile.totalQuestionsAnswered || 0
+  );
   const [isEditingDailyGoalRing, setIsEditingDailyGoalRing] = useState<boolean>(false);
   const [customGoalHoursInput, setCustomGoalHoursInput] = useState<number>(
     profile.studyHoursPerDay || 2
@@ -153,7 +196,59 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     },
   ]);
 
-  const handleAddStudyMinutes = (mins: number, activityLabel?: string) => {
+  // Real-time sync when profile.focusStats.todayFocusMinutes or profile.totalQuestionsAnswered updates (e.g. from completing a quiz)
+  useEffect(() => {
+    if (
+      profile.focusStats?.lastSessionDate === todayStr &&
+      typeof profile.focusStats?.todayFocusMinutes === 'number' &&
+      profile.focusStats.todayFocusMinutes !== extraLoggedMinutesToday
+    ) {
+      setExtraLoggedMinutesToday(profile.focusStats.todayFocusMinutes);
+      try {
+        localStorage.setItem(
+          `study_minutes_${profile.userId}_${todayStr}`,
+          String(profile.focusStats.todayFocusMinutes)
+        );
+      } catch {}
+    } else if (
+      typeof profile.totalQuestionsAnswered === 'number' &&
+      profile.totalQuestionsAnswered > lastSyncedQuestionsCount
+    ) {
+      const deltaQuestions = profile.totalQuestionsAnswered - lastSyncedQuestionsCount;
+      const earnedQuizMinutes = Math.max(5, deltaQuestions * 5);
+      const nextMinutes = extraLoggedMinutesToday + earnedQuizMinutes;
+      setExtraLoggedMinutesToday(nextMinutes);
+      try {
+        localStorage.setItem(`study_minutes_${profile.userId}_${todayStr}`, String(nextMinutes));
+      } catch {}
+      const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setActivityLogsToday((prev) => [
+        {
+          id: `quiz_sync_${Date.now()}`,
+          label: `Completed Quiz (+${deltaQuestions} Qs)`,
+          minutes: earnedQuizMinutes,
+          time: nowTime,
+        },
+        ...prev.slice(0, 4),
+      ]);
+    }
+    setLastSyncedQuestionsCount(profile.totalQuestionsAnswered || 0);
+  }, [
+    profile.focusStats?.todayFocusMinutes,
+    profile.focusStats?.lastSessionDate,
+    profile.totalQuestionsAnswered,
+    todayStr,
+  ]);
+
+  // Keep customGoalHoursInput synced with profile.studyHoursPerDay
+  useEffect(() => {
+    if (profile.studyHoursPerDay) {
+      setCustomGoalHoursInput(profile.studyHoursPerDay);
+      setStudyHours(profile.studyHoursPerDay);
+    }
+  }, [profile.studyHoursPerDay]);
+
+  const handleAddStudyMinutes = async (mins: number, activityLabel?: string) => {
     const nextVal = Math.max(0, extraLoggedMinutesToday + mins);
     setExtraLoggedMinutesToday(nextVal);
     try {
@@ -173,6 +268,31 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       ]);
     } else if (mins < 0) {
       setActivityLogsToday([]);
+    }
+
+    const updatedFocusStats = {
+      totalFocusMinutes: Math.max(0, (profile.focusStats?.totalFocusMinutes || 0) + mins),
+      completedSessions: (profile.focusStats?.completedSessions || 0) + (mins > 0 ? 1 : 0),
+      todayFocusMinutes: nextVal,
+      lastSessionDate: todayStr,
+    };
+
+    try {
+      const res = await fetch(`/api/students/${profile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          focusStats: updatedFocusStats,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onProfileUpdate(updated);
+      } else {
+        onProfileUpdate({ ...profile, focusStats: updatedFocusStats });
+      }
+    } catch {
+      onProfileUpdate({ ...profile, focusStats: updatedFocusStats });
     }
   };
 
@@ -394,6 +514,39 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Compact Daily Quiz Streak Fire Pill in Top Header */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('quiz')}
+            title="Daily Quiz Streak — Click to open Adaptive Quiz & Daily Streak Counter"
+            className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl border transition cursor-pointer ${
+              (profile.questionsAnsweredToday ?? 3) >= (profile.dailyQuestionsGoal ?? 5)
+                ? 'bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-rose-500/20 border-orange-500/50 text-amber-200 shadow-lg shadow-orange-500/10'
+                : 'bg-slate-900 border-slate-700/80 text-slate-200 hover:border-amber-500/40'
+            }`}
+          >
+            <Flame
+              className={`w-4 h-4 ${
+                (profile.questionsAnsweredToday ?? 3) >= (profile.dailyQuestionsGoal ?? 5)
+                  ? 'text-orange-400 fill-orange-400 animate-bounce'
+                  : 'text-amber-400 fill-amber-400/30 animate-pulse'
+              }`}
+            />
+            <div className="text-left">
+              <div className="text-xs font-extrabold leading-none flex items-center space-x-1">
+                <span>{profile.streak}d Streak</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold">
+                  {profile.questionsAnsweredToday ?? 3}/{profile.dailyQuestionsGoal ?? 5} Quiz
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                {(profile.questionsAnsweredToday ?? 3) >= (profile.dailyQuestionsGoal ?? 5)
+                  ? 'Daily Target Complete 🔥'
+                  : 'Complete Daily Quiz Target'}
+              </span>
+            </div>
+          </button>
+
           {/* Deep Focus Toggle (Mutes Non-Emergency WhatsApp Notifications & Activates Pomodoro Overlay) */}
           <div
             className={`flex items-center space-x-2.5 px-3.5 py-1.5 rounded-xl border transition ${
@@ -438,64 +591,74 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </button>
           </div>
 
-          {/* Export Notes Button (Learning History + RAG-Based Summaries PDF Study Guide) */}
-          <button
-            type="button"
-            onClick={handleExportNotesPdf}
-            disabled={isExportingNotes}
-            className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl border border-indigo-400/40 text-xs font-bold shadow-md shadow-indigo-600/20 transition active:scale-95 disabled:opacity-50 cursor-pointer"
-            title="Convert your learning history and RAG-based summaries into a clean downloadable PDF study guide"
-          >
-            {isExportingNotes ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Compiling Study Guide...</span>
-              </>
-            ) : exportNotesSuccess ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Study Guide Exported!</span>
-              </>
-            ) : (
-              <>
-                <FileText className="w-3.5 h-3.5 text-indigo-200" />
-                <span>Export Notes (PDF)</span>
-              </>
-            )}
-          </button>
+          {/* Export Notes & PDF Summary Buttons (Hidden in Focus Mode to eliminate clutter) */}
+          {!deepFocusActive && (
+            <>
+              <button
+                type="button"
+                onClick={handleExportNotesPdf}
+                disabled={isExportingNotes}
+                className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl border border-indigo-400/40 text-xs font-bold shadow-md shadow-indigo-600/20 transition active:scale-95 disabled:opacity-50 cursor-pointer"
+                title="Convert your learning history and RAG-based summaries into a clean downloadable PDF study guide"
+              >
+                {isExportingNotes ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Compiling Study Guide...</span>
+                  </>
+                ) : exportNotesSuccess ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Study Guide Exported!</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-3.5 h-3.5 text-indigo-200" />
+                    <span>Export Notes (PDF)</span>
+                  </>
+                )}
+              </button>
 
-          <button
-            onClick={generateProgressReportPdf}
-            disabled={isGeneratingPdf}
-            className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white px-3.5 py-1.5 rounded-xl border border-slate-700/80 hover:border-slate-600 text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
-            title="Download comprehensive PDF summary of streak, metrics, and milestones"
-          >
-            {isGeneratingPdf ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                <span>Generating PDF...</span>
-              </>
-            ) : pdfSuccess ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 font-bold">PDF Downloaded!</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Download PDF Summary</span>
-              </>
-            )}
-          </button>
+              <button
+                onClick={generateProgressReportPdf}
+                disabled={isGeneratingPdf}
+                className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white px-3.5 py-1.5 rounded-xl border border-slate-700/80 hover:border-slate-600 text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
+                title="Download comprehensive PDF summary of streak, metrics, and milestones"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                    <span>Generating PDF...</span>
+                  </>
+                ) : pdfSuccess ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 font-bold">PDF Downloaded!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Download PDF Summary</span>
+                  </>
+                )}
+              </button>
+            </>
+          )}
 
-          <div className="flex items-center space-x-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <div
+            className={`flex flex-wrap items-center gap-1.5 p-1 rounded-xl border transition-all ${
+              deepFocusActive
+                ? 'bg-slate-950 border-amber-500/40 shadow-lg shadow-amber-950/20'
+                : 'bg-slate-900 border-slate-800'
+            }`}
+          >
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                 activeTab === 'overview' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Overview
+              {deepFocusActive ? 'Focus Workspace' : 'Overview'}
             </button>
             <button
               onClick={() => setActiveTab('thinking_models')}
@@ -506,15 +669,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <Brain className="w-3.5 h-3.5 text-indigo-400" />
               <span>Thinking Models</span>
             </button>
-            <button
-              onClick={() => setActiveTab('circles')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                activeTab === 'circles' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Study Circles</span>
-            </button>
+            {!deepFocusActive && (
+              <button
+                onClick={() => setActiveTab('circles')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                  activeTab === 'circles' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Study Circles</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('materials')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
@@ -530,24 +695,28 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </span>
               )}
             </button>
-            <button
-              onClick={() => setActiveTab('courses')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                activeTab === 'courses' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Youtube className="w-3.5 h-3.5 text-red-400" />
-              <span>Free Courses & Videos</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('roadmap')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                activeTab === 'roadmap' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Curriculum Roadmap</span>
-            </button>
+            {!deepFocusActive && (
+              <>
+                <button
+                  onClick={() => setActiveTab('courses')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                    activeTab === 'courses' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Youtube className="w-3.5 h-3.5 text-red-400" />
+                  <span>Free Courses & Videos</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('roadmap')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                    activeTab === 'roadmap' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Curriculum Roadmap</span>
+                </button>
+              </>
+            )}
             <button
               onClick={() => setActiveTab('focus')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
@@ -557,15 +726,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <Clock className="w-3.5 h-3.5 text-amber-300" />
               <span>Pomodoro Focus</span>
             </button>
-            <button
-              onClick={() => setActiveTab('weekly_report')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                activeTab === 'weekly_report' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <BarChart2 className="w-3.5 h-3.5 text-sky-300" />
-              <span>Weekly Report</span>
-            </button>
+            {!deepFocusActive && (
+              <button
+                onClick={() => setActiveTab('weekly_report')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                  activeTab === 'weekly_report' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <BarChart2 className="w-3.5 h-3.5 text-sky-300" />
+                <span>Weekly Report</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('flashcards')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
@@ -592,20 +763,22 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               )}
             </button>
-            <button
-              onClick={() => setActiveTab('badges')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                activeTab === 'badges' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Award className="w-3.5 h-3.5 text-amber-300" />
-              <span>Virtual Badges</span>
-              {profile.earnedBadges && profile.earnedBadges.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-bold text-[9px]">
-                  {profile.earnedBadges.length}
-                </span>
-              )}
-            </button>
+            {!deepFocusActive && (
+              <button
+                onClick={() => setActiveTab('badges')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                  activeTab === 'badges' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Award className="w-3.5 h-3.5 text-amber-300" />
+                <span>Virtual Badges</span>
+                {profile.earnedBadges && profile.earnedBadges.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-bold text-[9px]">
+                    {profile.earnedBadges.length}
+                  </span>
+                )}
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('plan')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
@@ -615,56 +788,142 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <Calendar className="w-3.5 h-3.5" />
               <span>Study Planner</span>
             </button>
-            <button
-              onClick={() => setActiveTab('subjects')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                activeTab === 'subjects' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Curriculum Mastery
-            </button>
-            <button
-              onClick={() => setActiveTab('milestones')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-                activeTab === 'milestones' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Trophy className="w-3.5 h-3.5 text-amber-400" />
-              <span>Milestones</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                activeTab === 'settings' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Preferences
-            </button>
+            {!deepFocusActive && (
+              <>
+                <button
+                  onClick={() => setActiveTab('subjects')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    activeTab === 'subjects' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Curriculum Mastery
+                </button>
+                <button
+                  onClick={() => setActiveTab('milestones')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
+                    activeTab === 'milestones' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Milestones</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    activeTab === 'settings' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Preferences
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* Daily Morning Affirmations & Study Quote Card */}
-          <DailyAffirmationsCard
+          {/* Focus Mode Active Banner (Shown when Focus Mode is enabled) */}
+          {deepFocusActive && (
+            <div className="bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300">
+                  <BellOff className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400">
+                      Deep Work Focus Mode Active
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30">
+                      Distraction-Free Workspace
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Non-essential social feeds, leaderboards, badge vaults, and secondary analytics are hidden so you can concentrate on your daily learning goal and active study session.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleDeepFocus(false)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-bold transition shrink-0 cursor-pointer"
+              >
+                Exit Focus Mode
+              </button>
+            </div>
+          )}
+
+          {/* Daily Morning Affirmations & Study Quote Card (Hidden in Focus Mode) */}
+          {!deepFocusActive && (
+            <DailyAffirmationsCard
+              profile={profile}
+              onNavigateToChat={onNavigateToChat}
+            />
+          )}
+
+          {/* Biometric Face Authentication Login & Aadhaar / DigiLocker Course Enrollment Hub */}
+          {!deepFocusActive && (
+            <IdentityAndCourseVerificationHub
+              profile={profile}
+              onProfileUpdate={onProfileUpdate}
+              onOpenFaceAuthModal={() => {
+                if (onOpenFaceAuth) {
+                  onOpenFaceAuth();
+                } else {
+                  setLocalFaceAuthOpen(true);
+                }
+              }}
+              onOpenEnrollModal={(course) => setEnrollModalCourse(course)}
+            />
+          )}
+
+          {/* Visual Streak Alert & Toast Component (Hidden in Focus Mode) */}
+          {!deepFocusActive && (
+            <StreakNotification
+              profile={profile}
+              onNavigateToChat={onNavigateToChat}
+              onNavigateToQuiz={() => setActiveTab('quiz')}
+              onProfileUpdate={onProfileUpdate}
+            />
+          )}
+
+          {/* Daily Quiz Streak Visual Counter (Animated Fire Icon Indicator when Daily Target Completes) */}
+          <DailyQuizStreakCounter
             profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
             onNavigateToChat={onNavigateToChat}
+            onLogStudyMinutes={handleAddStudyMinutes}
           />
 
-          {/* Visual Streak Alert & Toast Component (Triggered on 3+ day streak) */}
-          <StreakNotification
+          {/* Daily Study Goal Progress Bar (Tracks Daily Study Hours Goal + Encouraging Message When Met) */}
+          <DailyStudyGoal
             profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            completedMinutesToday={totalStudiedMinutesToday}
+            onLogStudyMinutes={handleAddStudyMinutes}
+            onUpdateTargetHours={handleUpdateDailyTargetHours}
             onNavigateToChat={onNavigateToChat}
             onNavigateToQuiz={() => setActiveTab('quiz')}
-            onProfileUpdate={onProfileUpdate}
           />
 
-          {/* Daily Learning Goal Tracker (Questions Answered Progress Bar) */}
+          {/* Daily Learning Goal Tracker (Synced with studyHoursPerDay & Real-Time Quiz Progress Bar) */}
           <DailyLearningGoalTracker
             profile={profile}
             onProfileUpdate={onProfileUpdate}
             onNavigateToQuiz={() => setActiveTab('quiz')}
+            completedMinutesToday={totalStudiedMinutesToday}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
+
+          {/* Weekly Goal Tracker Section (Visualize study progress against defined weekly learning hours goal) */}
+          <WeeklyGoalTracker
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            completedMinutesToday={totalStudiedMinutesToday}
+            onLogStudyMinutes={handleAddStudyMinutes}
+            onNavigateToChat={onNavigateToChat}
           />
 
           {/* Daily Learning Mode Card (Requirement #12) */}
@@ -953,6 +1212,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           </div>
 
+          {/* Pomodoro-Style Study Timer (Synced with Progress + Browser Notification on Focus Block End) */}
+          <PomodoroStudyTimer
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onLogStudyMinutes={handleAddStudyMinutes}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            completedMinutesToday={totalStudiedMinutesToday}
+          />
+
           {/* Deep Focus Session Tracker (Synced with Pomodoro Timer + Browser Tab Lock Option) */}
           <DeepFocusSessionTracker
             profile={profile}
@@ -1054,75 +1323,145 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </div>
           </div>
 
-          {/* WhatsApp Daily Study Session Reminders Feature */}
-          <DailyStudyReminderCard
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-          />
+          {/* Non-Essential Reminders, Badges & Analytics (Hidden when Focus Mode is enabled) */}
+          {!deepFocusActive && (
+            <>
+              {/* Student Achievements System: Digital Badges ('Concept Master', 'Quiz Streak Hero', '100-Question Centurion') */}
+              <StudentAchievements
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onNavigateToRoadmap={() => setActiveTab('roadmap')}
+              />
 
-          {/* Virtual Badges Profile Section Showcase Widget */}
-          <ProfileBadgesWidget
-            profile={profile}
-            onNavigateToBadges={() => setActiveTab('badges')}
-          />
+              {/* Smart Study Reminder System (Firebase Cloud Messaging Push Notifications based on preferredStudyTime) */}
+              <SmartStudyReminderFcm
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+              />
 
-          {/* Curriculum Roadmap Progress Banner Spotlight */}
-          <div className="bg-gradient-to-r from-indigo-950/60 via-slate-900 to-emerald-950/50 border border-indigo-500/30 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-3.5">
-              <div className="w-11 h-11 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                    Curriculum Roadmap
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    Rural Offline Ready
-                  </span>
+              {/* Study Session Planner: Calendar Time-Blocking for DSA & Government Exams + Upcoming Event View */}
+              <StudySessionPlanner
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onLogStudyMinutes={handleAddStudyMinutes}
+              />
+
+              {/* DSA Study Materials & Government Exams Preparation Documents, Classes & Notifications */}
+              <DsaAndGovExamHub
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onOpenMaterialsTab={() => setActiveTab('materials')}
+                onLogStudyMinutes={handleAddStudyMinutes}
+              />
+
+              {/* WhatsApp Daily Study Session Reminders Feature */}
+              <DailyStudyReminderCard
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+              />
+
+              {/* Earned Achievement Badges Showcase: Streaks, Completed Lessons & High Quiz Scores */}
+              <AchievementBadgesShowcase
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onNavigateToLessons={() => setActiveTab('roadmap')}
+                onOpenFullVault={() => setActiveTab('badges')}
+              />
+
+              {/* Virtual Badges Profile Section Showcase Widget */}
+              <ProfileBadgesWidget
+                profile={profile}
+                onNavigateToBadges={() => setActiveTab('badges')}
+              />
+
+              {/* Curriculum Roadmap Progress Banner Spotlight */}
+              <div className="bg-gradient-to-r from-indigo-950/60 via-slate-900 to-emerald-950/50 border border-indigo-500/30 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                        Curriculum Roadmap
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Rural Offline Ready
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-white mt-0.5">
+                      Track Step-by-Step Milestones & Earn Badges
+                    </h4>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Structured checklists for Generative AI, AI Agents, Python, Java, C, C++, C#, R, DSA, and Calculus. Mark off milestones as you learn.
+                    </p>
+                  </div>
                 </div>
-                <h4 className="text-sm font-bold text-white mt-0.5">
-                  Track Step-by-Step Milestones & Earn Badges
-                </h4>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Structured checklists for Generative AI, AI Agents, Python, Java, C, C++, C#, R, DSA, and Calculus. Mark off milestones as you learn.
-                </p>
+
+                <button
+                  onClick={() => setActiveTab('roadmap')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/30 transition flex items-center justify-center space-x-1.5 shrink-0 cursor-pointer"
+                >
+                  <span>Open Roadmap Checklist</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-            </div>
 
-            <button
-              onClick={() => setActiveTab('roadmap')}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/30 transition flex items-center justify-center space-x-1.5 shrink-0 cursor-pointer"
-            >
-              <span>Open Roadmap Checklist</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+              {/* 30-Day Progress & Quiz Scores Line Graph (Recharts LineChart) */}
+              <ThirtyDayProgressLineChart
+                profile={profile}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onNavigateToChat={onNavigateToChat}
+              />
 
-          {/* 30-Day Progress & Quiz Scores Line Graph (Recharts LineChart) */}
-          <ThirtyDayProgressLineChart
-            profile={profile}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onNavigateToChat={onNavigateToChat}
-          />
+              {/* Weekly Activity Chart (Recharts: Questions Answered & Study Sessions Completed per Day of Week) */}
+              <WeeklyActivityChart
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                completedMinutesToday={totalStudiedMinutesToday}
+                onLogStudyMinutes={handleAddStudyMinutes}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onNavigateToChat={onNavigateToChat}
+              />
 
-          {/* Weekly Learning Activity Line Chart (Recharts: Daily Study Hours & Quiz Performance Trends) */}
-          <WeeklyLearningActivityChart
-            profile={profile}
-            extraMinutesToday={extraLoggedMinutesToday}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
+              {/* Weekly Learning Activity Line Chart (Recharts: Daily Study Hours & Quiz Performance Trends) */}
+              <WeeklyLearningActivityChart
+                profile={profile}
+                extraMinutesToday={extraLoggedMinutesToday}
+                onLogStudyMinutes={handleAddStudyMinutes}
+              />
 
-          {/* Knowledge Gaps Heatmap Visualization Widget (Click Low-Performing Areas for Targeted Review) */}
-          <KnowledgeGapsHeatmap
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-          />
+              {/* Recharts Sub-Topic Mastery Visual Heatmap (Quiz Performance & Learning History) */}
+              <SubTopicMasteryHeatmapChart
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+              />
 
-          {/* High-Level Thinking Models Studio for Students (First Principles, Feynman, Socratic, Systems, Bloom, Inversion) */}
+              {/* Knowledge Gaps Heatmap Visualization Widget (Click Low-Performing Areas for Targeted Review) */}
+              <KnowledgeGapsHeatmap
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onLogStudyMinutes={handleAddStudyMinutes}
+              />
+            </>
+          )}
+
+          {/* High-Level Thinking Models Studio for Students (Essential Deep-Work Tool — Kept visible in Focus Mode) */}
           <HighLevelThinkingModels
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -1130,149 +1469,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             onLogStudyMinutes={handleAddStudyMinutes}
           />
 
-          {/* 30-Day Streak & Learning Progress Visualization (Recharts) */}
-          <StudentProgressChart profile={profile} />
-
-          {/* Subject Mastery Breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-white text-base">Subject Mastery Breakdown</h3>
-                <span className="text-xs text-slate-400">Based on recent quizzes</span>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-white">Python Programming</span>
-                    <span className="text-emerald-400 font-semibold">82%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '82%' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-white">Java & Object-Oriented</span>
-                    <span className="text-emerald-400 font-semibold">74%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: '74%' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-white">Data Structures & Algorithms</span>
-                    <span className="text-amber-400 font-semibold">61%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full" style={{ width: '61%' }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-white">Calculus & Mathematics</span>
-                    <span className="text-rose-400 font-semibold">45%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-rose-500 rounded-full" style={{ width: '45%' }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Calculus requires priority revision</span>
-                <button
-                  onClick={() => onNavigateToChat('Revise Calculus limits and integrals')}
-                  className="text-emerald-400 hover:text-emerald-300 font-medium flex items-center space-x-1"
-                >
-                  <span>Revise Now</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* AI Recommendations (Requirement #10 & #13) */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-white text-base flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <span>AI Learning Recommendations</span>
-                </h3>
-                <span className="text-xs text-emerald-400 font-medium">Adaptive Engine</span>
-              </div>
-
-              <div className="space-y-3">
-                {recommendations.length > 0 ? (
-                  recommendations.map((rec) => (
-                    <div
-                      key={rec.id}
-                      className="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl hover:border-slate-600 transition"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-medium text-white text-sm">{rec.title}</div>
-                          <p className="text-xs text-slate-400 mt-0.5">{rec.reason}</p>
-                        </div>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            rec.priority === 'high'
-                              ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                              : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                          }`}
-                        >
-                          {rec.priority}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => onNavigateToChat(`Teach me ${rec.topic}`)}
-                        className="mt-2.5 text-xs text-emerald-400 hover:underline flex items-center space-x-1"
-                      >
-                        <span>Start Practice</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-slate-400">No pending recommendations. Keep learning!</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Badges & Achievements Collectible Digital Stickers Vault ('7-Day Streak', 'Top Performer', etc.) */}
-          <BadgesAndAchievements
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onOpenFullBadgesVault={() => setActiveTab('badges')}
-          />
-
-          {/* Learning Achievements System: Badges for Course Completions & Study Streaks */}
-          <LearningAchievementsCard
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToCourses={() => setActiveTab('courses')}
-            onNavigateToChat={onNavigateToChat}
-          />
-
-          {/* Global Peer Leaderboard Section (Rank Based on Total Learning Points / XP) */}
-          <GlobalPeerLeaderboard
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-          />
-
-          {/* Peer-to-Peer Study Circles (WhatsApp-Bridged Topic Chat Groups) */}
-          <StudyCircles
-            profile={profile}
-            onNavigateToChat={onNavigateToChat}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-
-          {/* Daily Flashcards (Gemini API Spaced-Repetition Flashcards from Weak Topics) */}
+          {/* Daily Flashcards (Essential Active Recall Tool — Kept visible in Focus Mode) */}
           <DailyFlashcards
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -1280,219 +1477,371 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             onLogStudyMinutes={handleAddStudyMinutes}
           />
 
-          {/* Spaced Repetition Flashcard Engine (5-Box Leitner System Pulling from RAG Knowledge Base) */}
-          <SpacedRepetitionEngine
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
+          {/* Secondary Analytics, Social Leaderboards, Study Circles & PDF Exporters (Hidden in Focus Mode) */}
+          {!deepFocusActive && (
+            <>
+              {/* 30-Day Streak & Learning Progress Visualization (Recharts) */}
+              <StudentProgressChart profile={profile} />
 
-          {/* Active Recall Flashcard Deck Generator Spotlight (Pulls Weak Topics) */}
-          <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-indigo-950/40 border border-amber-500/30 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/30 text-amber-400 shadow-md">
-                <Layers className="w-7 h-7" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                    Active Recall Memory Engine
-                  </span>
-                  {profile.weakTopics && profile.weakTopics.length > 0 && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
-                      {profile.weakTopics.length} Weak Areas Detected
-                    </span>
-                  )}
+              {/* Subject Mastery Breakdown */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-white text-base">Subject Mastery Breakdown</h3>
+                    <span className="text-xs text-slate-400">Based on recent quizzes</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-white">Python Programming</span>
+                        <span className="text-emerald-400 font-semibold">82%</span>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '82%' }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-white">Java & Object-Oriented</span>
+                        <span className="text-emerald-400 font-semibold">74%</span>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '74%' }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-white">Data Structures & Algorithms</span>
+                        <span className="text-amber-400 font-semibold">61%</span>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500 rounded-full" style={{ width: '61%' }} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-white">Calculus & Mathematics</span>
+                        <span className="text-rose-400 font-semibold">45%</span>
+                      </div>
+                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-rose-500 rounded-full" style={{ width: '45%' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Calculus requires priority revision</span>
+                    <button
+                      onClick={() => onNavigateToChat('Revise Calculus limits and integrals')}
+                      className="text-emerald-400 hover:text-emerald-300 font-medium flex items-center space-x-1"
+                    >
+                      <span>Revise Now</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-white mt-0.5">
-                  Flashcard Decks for Weak Topics
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                  Practice targeted active recall on {profile.weakTopics && profile.weakTopics.length > 0 ? profile.weakTopics.join(', ') : 'core curriculum topics'}. Flip cards, test memory, and graduate topics to mastered in your profile.
-                </p>
-              </div>
-            </div>
 
-            <button
-              onClick={() => setActiveTab('flashcards')}
-              className="flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black px-5 py-3 rounded-xl shadow-lg shadow-amber-500/20 transition active:scale-95 text-xs whitespace-nowrap cursor-pointer"
-            >
-              <Layers className="w-4 h-4 fill-slate-950" />
-              <span>Practice Flashcards Now</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+                {/* AI Recommendations (Requirement #10 & #13) */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-white text-base flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-emerald-400" />
+                      <span>AI Learning Recommendations</span>
+                    </h3>
+                    <span className="text-xs text-emerald-400 font-medium">Adaptive Engine</span>
+                  </div>
 
-          {/* Voice-to-Knowledge Feature (Record Verbal Summaries -> AI Structured Searchable RAG Notes) */}
-          <VoiceToKnowledgeCard
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToMaterials={() => setActiveTab('materials')}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-
-          {/* Pinned Study Materials & RAG Knowledge Base Spotlight */}
-          <div className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-teal-950/30 border border-emerald-500/30 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 text-emerald-400 shadow-md">
-                <BookOpen className="w-7 h-7" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                    RAG Knowledge Base & Study Notes
-                  </span>
-                  {profile.pinnedDocumentIds && profile.pinnedDocumentIds.length > 0 && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 flex items-center space-x-1">
-                      <Pin className="w-2.5 h-2.5 fill-amber-300" />
-                      <span>{profile.pinnedDocumentIds.length} Pinned for Chat</span>
-                    </span>
-                  )}
+                  <div className="space-y-3">
+                    {recommendations.length > 0 ? (
+                      recommendations.map((rec) => (
+                        <div
+                          key={rec.id}
+                          className="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl hover:border-slate-600 transition"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="font-medium text-white text-sm">{rec.title}</div>
+                              <p className="text-xs text-slate-400 mt-0.5">{rec.reason}</p>
+                            </div>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                rec.priority === 'high'
+                                  ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                                  : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                              }`}
+                            >
+                              {rec.priority}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => onNavigateToChat(`Teach me ${rec.topic}`)}
+                            className="mt-2.5 text-xs text-emerald-400 hover:underline flex items-center space-x-1"
+                          >
+                            <span>Start Practice</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400">No pending recommendations. Keep learning!</p>
+                    )}
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-white mt-0.5">
-                  Search & Pin Verified Curriculum Materials
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                  Browse verified course documents, textbook chapters, and cheatsheets. Pin your key materials to quickly ask doubts or generate targeted quizzes directly in the WhatsApp chat.
-                </p>
               </div>
-            </div>
 
-            <button
-              onClick={() => setActiveTab('materials')}
-              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black px-5 py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 text-xs whitespace-nowrap cursor-pointer"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Browse Study Materials</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+              {/* Badges & Achievements Collectible Digital Stickers Vault ('7-Day Streak', 'Top Performer', etc.) */}
+              <BadgesAndAchievements
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onOpenFullBadgesVault={() => setActiveTab('badges')}
+              />
 
-          {/* Smart Notification Scheduler (AI Next-Day Study Time Suggestions + WhatsApp Push) */}
-          <SmartNotificationScheduler
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-          />
+              {/* Learning Achievements System: Badges for Course Completions & Study Streaks */}
+              <LearningAchievementsCard
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToCourses={() => setActiveTab('courses')}
+                onNavigateToChat={onNavigateToChat}
+              />
 
-          {/* Study Planner & Exam Reminders Spotlight */}
-          <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/30 text-indigo-400 shadow-md">
-                <Calendar className="w-7 h-7" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Study Planner & Exam Radar</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                    {profile.examDates?.length || 0} Upcoming Exams
-                  </span>
+              {/* Global Peer Leaderboard Section (Rank Based on Total Learning Points / XP) */}
+              <GlobalPeerLeaderboard
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+              />
+
+              {/* Peer-to-Peer Study Circles (WhatsApp-Bridged Topic Chat Groups) */}
+              <StudyCircles
+                profile={profile}
+                onNavigateToChat={onNavigateToChat}
+                onLogStudyMinutes={handleAddStudyMinutes}
+              />
+
+              {/* Spaced Repetition Flashcard Engine (5-Box Leitner System Pulling from RAG Knowledge Base) */}
+              <SpacedRepetitionEngine
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onLogStudyMinutes={handleAddStudyMinutes}
+              />
+            </>
+          )}
+
+          {/* Secondary Promotional Banners & PDF Report Exporters (Hidden in Focus Mode) */}
+          {!deepFocusActive && (
+            <>
+              {/* Active Recall Flashcard Deck Generator Spotlight (Pulls Weak Topics) */}
+              <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-indigo-950/40 border border-amber-500/30 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/30 text-amber-400 shadow-md">
+                    <Layers className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+                        Active Recall Memory Engine
+                      </span>
+                      {profile.weakTopics && profile.weakTopics.length > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                          {profile.weakTopics.length} Weak Areas Detected
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      Flashcard Decks for Weak Topics
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                      Practice targeted active recall on {profile.weakTopics && profile.weakTopics.length > 0 ? profile.weakTopics.join(', ') : 'core curriculum topics'}. Flip cards, test memory, and graduate topics to mastered in your profile.
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-white mt-0.5">Daily Session Scheduling & WhatsApp Reminders</h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                  Schedule daily study sessions matching your {profile.studyHoursPerDay} hrs/day goal, set alerts for {profile.preferredStudyTime || '7:00 PM'}, and receive automated WhatsApp reminders for upcoming exams.
-                </p>
+
+                <button
+                  onClick={() => setActiveTab('flashcards')}
+                  className="flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black px-5 py-3 rounded-xl shadow-lg shadow-amber-500/20 transition active:scale-95 text-xs whitespace-nowrap cursor-pointer"
+                >
+                  <Layers className="w-4 h-4 fill-slate-950" />
+                  <span>Practice Flashcards Now</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-            </div>
 
-            <button
-              onClick={() => setActiveTab('plan')}
-              className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition active:scale-95 text-xs whitespace-nowrap"
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Open Study Planner</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+              {/* Voice-to-Knowledge Feature (Record Verbal Summaries -> AI Structured Searchable RAG Notes) */}
+              <VoiceToKnowledgeCard
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToMaterials={() => setActiveTab('materials')}
+                onLogStudyMinutes={handleAddStudyMinutes}
+              />
 
-          {/* Academic Progress Report PDF Exporter & Transcript Preview */}
-          <AcademicPdfExportCard
-            profile={profile}
-            studyPlan={studyPlan}
-            recommendations={recommendations}
-          />
-
-          {/* Download PDF Learning Summary Card */}
-          <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/30 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition">
-            <div className="flex items-center space-x-3.5">
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl shadow-sm">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h4 className="text-sm font-bold text-white">
-                    Download Learning Progress Summary (PDF)
-                  </h4>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
-                    Official Report
-                  </span>
+              {/* Pinned Study Materials & RAG Knowledge Base Spotlight */}
+              <div className="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-teal-950/30 border border-emerald-500/30 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 text-emerald-400 shadow-md">
+                    <BookOpen className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                        RAG Knowledge Base & Study Notes
+                      </span>
+                      {profile.pinnedDocumentIds && profile.pinnedDocumentIds.length > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 flex items-center space-x-1">
+                          <Pin className="w-2.5 h-2.5 fill-amber-300" />
+                          <span>{profile.pinnedDocumentIds.length} Pinned for Chat</span>
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-bold text-white mt-0.5">
+                      Search & Pin Verified Curriculum Materials
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                      Browse verified course documents, textbook chapters, and cheatsheets. Pin your key materials to quickly ask doubts or generate targeted quizzes directly in the WhatsApp chat.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-                  Export your current <span className="text-amber-400 font-semibold">{profile.streak}-day streak</span>, <span className="text-emerald-400 font-semibold">{accuracy}% quiz accuracy</span>, curriculum progress, and unlocked milestone badges into a clean printable PDF summary.
-                </p>
+
+                <button
+                  onClick={() => setActiveTab('materials')}
+                  className="flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black px-5 py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 text-xs whitespace-nowrap cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Browse Study Materials</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button
-                type="button"
-                onClick={handleExportNotesPdf}
-                disabled={isExportingNotes}
-                className="flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition active:scale-95 text-xs whitespace-nowrap disabled:opacity-50 cursor-pointer"
-                title="Export learning history and RAG-based summaries into a clean PDF study guide"
-              >
-                {isExportingNotes ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Exporting Notes...</span>
-                  </>
-                ) : exportNotesSuccess ? (
-                  <>
-                    <Check className="w-4 h-4 text-white" />
-                    <span>Notes PDF Exported!</span>
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4 text-white" />
-                    <span>Export Notes (RAG Study Guide)</span>
-                  </>
-                )}
-              </button>
+              {/* Smart Notification Scheduler (AI Next-Day Study Time Suggestions + WhatsApp Push) */}
+              <SmartNotificationScheduler
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToChat={onNavigateToChat}
+              />
 
-              <button
-                onClick={generateProgressReportPdf}
-                disabled={isGeneratingPdf}
-                className="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 text-xs whitespace-nowrap disabled:opacity-50 cursor-pointer"
-                title="Download comprehensive PDF summary"
-              >
-                {isGeneratingPdf ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Generating PDF...</span>
-                  </>
-                ) : pdfSuccess ? (
-                  <>
-                    <Check className="w-4 h-4 text-white" />
-                    <span>PDF Downloaded!</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 text-white" />
-                    <span>Download PDF Summary</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+              {/* Study Planner & Exam Reminders Spotlight */}
+              <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/30 text-indigo-400 shadow-md">
+                    <Calendar className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Study Planner & Exam Radar</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                        {profile.examDates?.length || 0} Upcoming Exams
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-white mt-0.5">Daily Session Scheduling & WhatsApp Reminders</h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                      Schedule daily study sessions matching your {profile.studyHoursPerDay} hrs/day goal, set alerts for {profile.preferredStudyTime || '7:00 PM'}, and receive automated WhatsApp reminders for upcoming exams.
+                    </p>
+                  </div>
+                </div>
 
-          {/* Weekly Study Report & Session Bar Chart */}
-          <WeeklyStudyReport
-            profile={profile}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-          />
+                <button
+                  onClick={() => setActiveTab('plan')}
+                  className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition active:scale-95 text-xs whitespace-nowrap"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Open Study Planner</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Academic Progress Report PDF Exporter & Transcript Preview */}
+              <AcademicPdfExportCard
+                profile={profile}
+                studyPlan={studyPlan}
+                recommendations={recommendations}
+              />
+
+              {/* Download PDF Learning Summary Card */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/30 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition">
+                <div className="flex items-center space-x-3.5">
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl shadow-sm">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-sm font-bold text-white">
+                        Download Learning Progress Summary (PDF)
+                      </h4>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
+                        Official Report
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                      Export your current <span className="text-amber-400 font-semibold">{profile.streak}-day streak</span>, <span className="text-emerald-400 font-semibold">{accuracy}% quiz accuracy</span>, curriculum progress, and unlocked milestone badges into a clean printable PDF summary.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleExportNotesPdf}
+                    disabled={isExportingNotes}
+                    className="flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition active:scale-95 text-xs whitespace-nowrap disabled:opacity-50 cursor-pointer"
+                    title="Export learning history and RAG-based summaries into a clean PDF study guide"
+                  >
+                    {isExportingNotes ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Exporting Notes...</span>
+                      </>
+                    ) : exportNotesSuccess ? (
+                      <>
+                        <Check className="w-4 h-4 text-white" />
+                        <span>Notes PDF Exported!</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 text-white" />
+                        <span>Export Notes (RAG Study Guide)</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={generateProgressReportPdf}
+                    disabled={isGeneratingPdf}
+                    className="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 text-xs whitespace-nowrap disabled:opacity-50 cursor-pointer"
+                    title="Download comprehensive PDF summary"
+                  >
+                    {isGeneratingPdf ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Generating PDF...</span>
+                      </>
+                    ) : pdfSuccess ? (
+                      <>
+                        <Check className="w-4 h-4 text-white" />
+                        <span>PDF Downloaded!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 text-white" />
+                        <span>Download PDF Summary</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Weekly Study Report & Session Bar Chart */}
+              <WeeklyStudyReport
+                profile={profile}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+              />
+            </>
+          )}
         </div>
       )}
 
@@ -1518,6 +1867,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {/* RAG Knowledge Base Study Materials & Pinned Documents Tab */}
       {activeTab === 'materials' && (
         <div className="space-y-6">
+          <DsaAndGovExamHub
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
           <VoiceToKnowledgeCard
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -1535,11 +1891,33 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
       {/* Free Courses & YouTube Videos Tab */}
       {activeTab === 'courses' && (
-        <FreeCoursesAndVideos
-          profile={profile}
-          onProfileUpdate={onProfileUpdate}
-          onNavigateToChat={onNavigateToChat}
-        />
+        <div className="space-y-6">
+          <IdentityAndCourseVerificationHub
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onOpenFaceAuthModal={() => {
+              if (onOpenFaceAuth) {
+                onOpenFaceAuth();
+              } else {
+                setLocalFaceAuthOpen(true);
+              }
+            }}
+            onOpenEnrollModal={(course) => setEnrollModalCourse(course)}
+          />
+          <DsaAndGovExamHub
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onOpenMaterialsTab={() => setActiveTab('materials')}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
+          <FreeCoursesAndVideos
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+          />
+        </div>
       )}
 
       {/* Curriculum Roadmap Step-by-Step Progress Checklist Tab */}
@@ -1555,6 +1933,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {/* Pomodoro Focus Deep Work Timer Tab */}
       {activeTab === 'focus' && (
         <div className="space-y-6">
+          <PomodoroStudyTimer
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onLogStudyMinutes={handleAddStudyMinutes}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            completedMinutesToday={totalStudiedMinutesToday}
+          />
           <DeepFocusSessionTracker
             profile={profile}
             deepFocusActive={deepFocusActive}
@@ -1573,6 +1959,21 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {/* Weekly Study Report Tab */}
       {activeTab === 'weekly_report' && (
         <div className="space-y-6">
+          <WeeklyGoalTracker
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            completedMinutesToday={totalStudiedMinutesToday}
+            onLogStudyMinutes={handleAddStudyMinutes}
+            onNavigateToChat={onNavigateToChat}
+          />
+          <WeeklyActivityChart
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            completedMinutesToday={totalStudiedMinutesToday}
+            onLogStudyMinutes={handleAddStudyMinutes}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onNavigateToChat={onNavigateToChat}
+          />
           <AcademicPdfExportCard
             profile={profile}
             studyPlan={studyPlan}
@@ -1610,15 +2011,60 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       )}
 
       {activeTab === 'quiz' && (
-        <AdaptiveQuiz
-          profile={profile}
-          onProfileUpdate={onProfileUpdate}
-          onNavigateToChat={onNavigateToChat}
-        />
+        <div className="space-y-6">
+          <DailyQuizStreakCounter
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onNavigateToChat={onNavigateToChat}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
+          <DailyLearningGoalTracker
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            completedMinutesToday={totalStudiedMinutesToday}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
+          <AdaptiveQuiz
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onQuizCompleted={({ minutesEarned, questionsCount, score, topic }) => {
+              const nowTime = new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              setActivityLogsToday((prev) => [
+                {
+                  id: `quiz_done_${Date.now()}`,
+                  label: `Quiz: ${topic} (${score}/${questionsCount})`,
+                  minutes: minutesEarned,
+                  time: nowTime,
+                },
+                ...prev.slice(0, 4),
+              ]);
+            }}
+          />
+        </div>
       )}
 
       {activeTab === 'badges' && (
         <div className="space-y-6">
+          <StudentAchievements
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onNavigateToRoadmap={() => setActiveTab('roadmap')}
+          />
+          <AchievementBadgesShowcase
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onNavigateToLessons={() => setActiveTab('roadmap')}
+          />
           <BadgesAndAchievements
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -1635,6 +2081,19 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
       {activeTab === 'plan' && (
         <div className="space-y-6">
+          <StudySessionPlanner
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
+          <SmartStudyReminderFcm
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+          />
           <SmartNotificationScheduler
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -1649,37 +2108,59 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       )}
 
       {activeTab === 'subjects' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {profile.subjects.map((sub) => (
-            <div key={sub} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition">
-              <div className="flex items-center justify-between mb-3">
-                <div className="font-semibold text-white text-base">{sub}</div>
-                <BookOpen className="w-5 h-5 text-emerald-400" />
+        <div className="space-y-6">
+          <KnowledgeGapsHeatmap
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
+          <SubTopicMasteryHeatmapChart
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {profile.subjects.map((sub) => (
+              <div key={sub} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="font-semibold text-white text-base">{sub}</div>
+                  <BookOpen className="w-5 h-5 text-emerald-400" />
+                </div>
+                <p className="text-xs text-slate-400 mb-4">
+                  Core concepts, algorithmic patterns, homework doubt solver, and practice questions.
+                </p>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => onNavigateToChat(`Teach me ${sub}`)}
+                    className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-xl text-white transition text-center"
+                  >
+                    Learn Concepts
+                  </button>
+                  <button
+                    onClick={() => onNavigateToChat(`/quiz ${sub}`)}
+                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-xl text-white transition text-center"
+                  >
+                    Take Quiz
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-slate-400 mb-4">
-                Core concepts, algorithmic patterns, homework doubt solver, and practice questions.
-              </p>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => onNavigateToChat(`Teach me ${sub}`)}
-                  className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-xl text-white transition text-center"
-                >
-                  Learn Concepts
-                </button>
-                <button
-                  onClick={() => onNavigateToChat(`/quiz ${sub}`)}
-                  className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-xl text-white transition text-center"
-                >
-                  Take Quiz
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
       {activeTab === 'milestones' && (
         <div className="space-y-8">
+          <StudentAchievements
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onNavigateToRoadmap={() => setActiveTab('roadmap')}
+          />
           <LearningAchievementsCard
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -1816,6 +2297,35 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         isActive={deepFocusActive}
         onToggleDeepFocus={(next) => handleToggleDeepFocus(next)}
         onSessionMinutesLogged={(mins) => handleAddStudyMinutes(mins)}
+      />
+
+      {/* Aadhaar e-KYC & DigiLocker Course Enrollment Verification Modal */}
+      <CourseEnrollmentVerificationModal
+        isOpen={!!enrollModalCourse}
+        onClose={() => setEnrollModalCourse(null)}
+        course={enrollModalCourse}
+        profile={profile}
+        onProfileUpdate={onProfileUpdate}
+        onOpenFaceAuth={() => {
+          setEnrollModalCourse(null);
+          if (onOpenFaceAuth) {
+            onOpenFaceAuth();
+          } else {
+            setLocalFaceAuthOpen(true);
+          }
+        }}
+      />
+
+      {/* Fallback Local Face Auth Modal if triggered inside StudentDashboard */}
+      <FaceAuthLoginModal
+        isOpen={localFaceAuthOpen}
+        onClose={() => setLocalFaceAuthOpen(false)}
+        profiles={[profile]}
+        selectedProfile={profile}
+        onFaceAuthSuccess={(updated) => {
+          onProfileUpdate(updated);
+          setLocalFaceAuthOpen(false);
+        }}
       />
     </div>
   );

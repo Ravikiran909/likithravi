@@ -74,6 +74,37 @@ export const DailyAffirmationsCard: React.FC<DailyAffirmationsCardProps> = ({
   const fetchMorningAffirmation = async (nextIndex?: number) => {
     setLoading(true);
     try {
+      const cachedKey = `gemini_daily_affirmation_${profile.userId}_${todayStr}`;
+      if (nextIndex === undefined) {
+        try {
+          const cached = localStorage.getItem(cachedKey);
+          if (cached) {
+            setData(JSON.parse(cached));
+            setLoading(false);
+            return;
+          }
+        } catch {}
+
+        // Fetch personalized daily motivational quote from Gemini
+        const geminiRes = await fetch('/api/daily-affirmation/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: profile.userId,
+            focusTopic: profile.weakTopics?.[0] || profile.subjects?.[0] || 'DSA & Exams',
+          }),
+        });
+        if (geminiRes.ok) {
+          const json = await geminiRes.json();
+          setData(json);
+          try {
+            localStorage.setItem(cachedKey, JSON.stringify(json));
+          } catch {}
+          setLoading(false);
+          return;
+        }
+      }
+
       const query =
         nextIndex !== undefined
           ? `/api/daily-affirmation?userId=${encodeURIComponent(profile.userId)}&index=${nextIndex}`
@@ -85,6 +116,34 @@ export const DailyAffirmationsCard: React.FC<DailyAffirmationsCardProps> = ({
       }
     } catch {
       // Keep fallback affirmation if offline
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFetchGeminiPersonalizedQuote = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/daily-affirmation/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: profile.userId,
+          focusTopic: profile.weakTopics?.[0] || profile.subjects?.[0] || 'DSA & Competitive Exams',
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+        try {
+          localStorage.setItem(
+            `gemini_daily_affirmation_${profile.userId}_${todayStr}`,
+            JSON.stringify(json)
+          );
+        } catch {}
+      }
+    } catch {
+      // fallback
     } finally {
       setLoading(false);
     }
@@ -133,13 +192,17 @@ export const DailyAffirmationsCard: React.FC<DailyAffirmationsCardProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
               <Sun className="w-3.5 h-3.5 text-amber-400" />
-              <span>Daily Morning Affirmation</span>
+              <span>Daily Study Affirmation</span>
+            </span>
+            <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <Sparkles className="w-3 h-3 text-indigo-400" />
+              <span>Personalized by Gemini</span>
             </span>
             <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-800/90 text-slate-300 border border-slate-700 font-medium">
               {data.category}
             </span>
             <span className="text-[11px] text-slate-400 font-mono">
-              • Synced {data.date} (Morning Edition)
+              • Synced {data.date}
             </span>
           </div>
 
@@ -195,13 +258,13 @@ export const DailyAffirmationsCard: React.FC<DailyAffirmationsCardProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => fetchMorningAffirmation((data.index + 1) % (data.totalQuotes || 7))}
+              onClick={handleFetchGeminiPersonalizedQuote}
               disabled={loading}
               className="flex-1 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl border border-slate-700 text-xs font-semibold transition flex items-center justify-center space-x-1.5 cursor-pointer active:scale-95"
-              title="Fetch another inspirational study quote"
+              title="Fetch a new personalized motivational quote from Gemini"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${loading ? 'animate-spin' : ''}`} />
-              <span>New Quote</span>
+              <span>{loading ? 'Asking Gemini...' : 'Gemini Quote'}</span>
             </button>
 
             <button

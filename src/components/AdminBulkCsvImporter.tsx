@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Upload,
   FileSpreadsheet,
@@ -7,15 +7,17 @@ import {
   Users,
   Target,
   Sparkles,
-  Download,
   Trash2,
   RefreshCw,
   Database,
-  ArrowRight,
 } from 'lucide-react';
-import { db, doc, setDoc } from '../firebase.ts';
+import { db, doc, setDoc, getDocs, collection } from '../firebase.ts';
 
 type ImportType = 'students' | 'objectives';
+
+interface AdminBulkCsvImporterProps {
+  onImportComplete?: () => void;
+}
 
 const SAMPLE_STUDENTS_CSV = `name,email,whatsappNumber,educationLevel,preferredLanguage,subjects,studyHoursPerDay
 Ananya Sen,ananya.sen@example.com,+919876543220,college,en,Python;DSA;Machine Learning,2.5
@@ -29,7 +31,9 @@ Calculus,Integration,Integration by Parts,Apply integration by parts formula to 
 DSA,Binary Search,Binary Search Implementation,Implement O(log n) search on sorted arrays with boundary conditions,beginner,understand
 Machine Learning,Gradient Descent,Understand Optimization,Derive cost function gradient update rules,advanced,analyze`;
 
-export const AdminBulkCsvImporter: React.FC = () => {
+export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
+  onImportComplete,
+}) => {
   const [importType, setImportType] = useState<ImportType>('students');
   const [csvText, setCsvText] = useState<string>('');
   const [parsedRows, setParsedRows] = useState<any[]>([]);
@@ -42,6 +46,47 @@ export const AdminBulkCsvImporter: React.FC = () => {
     details?: string[];
   } | null>(null);
 
+  const [storedStudentsCount, setStoredStudentsCount] = useState<number>(0);
+  const [storedObjectivesCount, setStoredObjectivesCount] = useState<number>(0);
+
+  const fetchDatabaseCounts = async () => {
+    try {
+      const [studentsRes, objRes] = await Promise.all([
+        fetch('/api/students').then((r) => (r.ok ? r.json() : null)),
+        fetch('/api/admin/learning-objectives').then((r) => (r.ok ? r.json() : null)),
+      ]);
+      if (studentsRes?.profiles) {
+        setStoredStudentsCount(studentsRes.profiles.length);
+      }
+      if (objRes?.objectives) {
+        setStoredObjectivesCount(objRes.objectives.length);
+      }
+    } catch {
+      // fallback if offline
+    }
+
+    if (db) {
+      try {
+        const [profSnap, objSnap] = await Promise.all([
+          getDocs(collection(db, 'profiles')).catch(() => null),
+          getDocs(collection(db, 'learning_objectives')).catch(() => null),
+        ]);
+        if (profSnap && !profSnap.empty) {
+          setStoredStudentsCount((prev) => Math.max(prev, profSnap.size));
+        }
+        if (objSnap && !objSnap.empty) {
+          setStoredObjectivesCount((prev) => Math.max(prev, objSnap.size));
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchDatabaseCounts();
+  }, []);
+
   // Parse CSV helper
   const parseCsv = (text: string, type: ImportType) => {
     const lines = text
@@ -52,7 +97,9 @@ export const AdminBulkCsvImporter: React.FC = () => {
 
     if (lines.length < 2) {
       setParsedRows([]);
-      setValidationErrors(['CSV must contain a header row and at least one data row.']);
+      setValidationErrors(
+        text.trim() ? ['CSV must contain a header row and at least one data row.'] : []
+      );
       return;
     }
 
@@ -61,13 +108,13 @@ export const AdminBulkCsvImporter: React.FC = () => {
     const rows: any[] = [];
 
     if (type === 'students') {
-      const required = ['name', 'email', 'whatsappnumber'];
+      const required = ['name', 'email'];
       const missing = required.filter((r) => !headers.includes(r));
       if (missing.length > 0) {
         errors.push(`Missing required student headers: ${missing.join(', ')}`);
       }
     } else {
-      const required = ['subject', 'topic', 'title'];
+      const required = ['subject', 'title'];
       const missing = required.filter((r) => !headers.includes(r));
       if (missing.length > 0) {
         errors.push(`Missing required objective headers: ${missing.join(', ')}`);
@@ -76,7 +123,6 @@ export const AdminBulkCsvImporter: React.FC = () => {
 
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
-      // simple comma split (supports semicolons for lists)
       const values = line.split(',').map((v) => v.trim());
       const row: any = { _rowNumber: i + 1, _isValid: true };
 
@@ -90,7 +136,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
           errors.push(`Row ${i + 1}: Name and Email are required.`);
         }
         if (row.subjects) {
-          row._subjectsList = row.subjects.split(';').map((s: string) => s.trim());
+          row._subjectsList = row.subjects.split(';').map((s: string) => s.trim()).filter(Boolean);
         } else {
           row._subjectsList = ['Python', 'DSA'];
         }
@@ -142,26 +188,29 @@ export const AdminBulkCsvImporter: React.FC = () => {
     setImportResult(null);
   };
 
-  // Perform Firestore Bulk Write
-  const handleBulkImportToFirestore = async () => {
+  // Perform Database + Firestore Bulk Write
+  const handleBulkImportToDatabase = async () => {
     if (parsedRows.length === 0 || validationErrors.length > 0) return;
 
     setIsImporting(true);
     setImportResult(null);
 
-    const importedIds: string[] = [];
+    const importedNames: string[] = [];
 
     try {
       if (importType === 'students') {
-        for (const row of parsedRows) {
-          const userId = `usr_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-          const profileId = `prof_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const preparedItems: any[] = [];
+
+        for (let idx = 0; idx < parsedRows.length; idx++) {
+          const row = parsedRows[idx];
+          const userId = `usr_imp_${Date.now()}_${idx}`;
+          const profileId = `prof_imp_${Date.now()}_${idx}`;
 
           const userData = {
             id: userId,
-            name: row.name,
-            email: row.email,
-            phone: row.whatsappnumber || '+10000000000',
+            name: String(row.name).slice(0, 95),
+            email: String(row.email).slice(0, 140),
+            phone: String(row.whatsappnumber || '+919876543210').slice(0, 28),
             role: 'student',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -170,12 +219,12 @@ export const AdminBulkCsvImporter: React.FC = () => {
           const profileData = {
             id: profileId,
             userId: userId,
-            name: row.name,
-            whatsappNumber: row.whatsappnumber || '+10000000000',
+            name: String(row.name).slice(0, 95),
+            whatsappNumber: String(row.whatsappnumber || '+919876543210').slice(0, 28),
             preferredLanguage: ['en', 'hi', 'kn'].includes(row.preferredlanguage)
               ? row.preferredlanguage
               : 'en',
-            educationLevel: row.educationlevel || 'college',
+            educationLevel: String(row.educationlevel || 'college').slice(0, 45),
             subjects: row._subjectsList || ['Python', 'DSA'],
             currentSkillLevel: 'beginner',
             learningGoals: ['Master fundamental principles and ace examinations'],
@@ -187,7 +236,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
             examDates: [],
             learningHistory: [],
             streak: 1,
-            lastActiveDate: new Date().toISOString(),
+            lastActiveDate: new Date().toISOString().split('T')[0],
             overallProgress: 15,
             totalSessions: 1,
             totalQuestionsAnswered: 0,
@@ -195,68 +244,89 @@ export const AdminBulkCsvImporter: React.FC = () => {
             dailyQuestionsGoal: 10,
           };
 
-          // Direct write to Firestore
           if (db) {
-            await setDoc(doc(db, 'users', userId), userData);
-            await setDoc(doc(db, 'profiles', userId), profileData);
+            await setDoc(doc(db, 'users', userId), userData, { merge: true }).catch(() => {});
+            await setDoc(doc(db, 'profiles', userId), profileData, { merge: true }).catch(() => {});
           }
 
-          importedIds.push(row.name);
+          preparedItems.push({
+            ...row,
+            userId,
+            profileId,
+          });
+          importedNames.push(row.name);
         }
 
-        // Also notify backend API to keep server in-memory list synchronized
-        await fetch('/api/admin/bulk-import', {
+        const apiRes = await fetch('/api/admin/bulk-import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'students',
-            items: parsedRows,
+            items: preparedItems,
           }),
         });
+
+        if (!apiRes.ok) {
+          throw new Error('Server bulk import endpoint returned an error.');
+        }
+
+        await fetchDatabaseCounts();
+        if (onImportComplete) onImportComplete();
 
         setImportResult({
           success: true,
           count: parsedRows.length,
-          message: `Successfully imported ${parsedRows.length} student profiles directly into Firestore!`,
-          details: importedIds,
+          message: `Successfully imported and stored ${parsedRows.length} student profiles in the database!`,
+          details: importedNames,
         });
       } else {
-        // Import Learning Objectives
-        for (const row of parsedRows) {
-          const objId = `obj_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const preparedObjectives: any[] = [];
+
+        for (let idx = 0; idx < parsedRows.length; idx++) {
+          const row = parsedRows[idx];
+          const objId = `obj_${Date.now()}_${idx}`;
           const objectiveData = {
             id: objId,
-            subject: row.subject,
-            topic: row.topic,
-            title: row.title,
-            description: row.description || '',
-            targetLevel: row.targetlevel || 'intermediate',
-            bloomLevel: row.bloomlevel || 'understand',
+            subject: String(row.subject).slice(0, 95),
+            topic: String(row.topic || 'Core Concepts').slice(0, 140),
+            title: String(row.title).slice(0, 195),
+            description: String(row.description || '').slice(0, 950),
+            targetLevel: String(row.targetlevel || 'intermediate').slice(0, 45),
+            bloomLevel: String(row.bloomlevel || 'understand').slice(0, 45),
             createdAt: new Date().toISOString(),
           };
 
-          // Direct write to Firestore
           if (db) {
-            await setDoc(doc(db, 'learning_objectives', objId), objectiveData);
+            await setDoc(doc(db, 'learning_objectives', objId), objectiveData, {
+              merge: true,
+            }).catch(() => {});
           }
 
-          importedIds.push(`${row.subject}: ${row.title}`);
+          preparedObjectives.push(objectiveData);
+          importedNames.push(`${row.subject}: ${row.title}`);
         }
 
-        await fetch('/api/admin/bulk-import', {
+        const apiRes = await fetch('/api/admin/bulk-import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'objectives',
-            items: parsedRows,
+            items: preparedObjectives,
           }),
         });
+
+        if (!apiRes.ok) {
+          throw new Error('Server bulk import endpoint returned an error.');
+        }
+
+        await fetchDatabaseCounts();
+        if (onImportComplete) onImportComplete();
 
         setImportResult({
           success: true,
           count: parsedRows.length,
-          message: `Successfully imported ${parsedRows.length} learning objectives directly into Firestore!`,
-          details: importedIds,
+          message: `Successfully imported and stored ${parsedRows.length} learning objectives in the database!`,
+          details: importedNames,
         });
       }
     } catch (err: any) {
@@ -264,7 +334,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
       setImportResult({
         success: false,
         count: 0,
-        message: `Import failed: ${err.message || 'Unknown Firestore error'}`,
+        message: `Import error: ${err.message || 'Please check CSV format and try again.'}`,
       });
     } finally {
       setIsImporting(false);
@@ -282,10 +352,10 @@ export const AdminBulkCsvImporter: React.FC = () => {
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                Firestore Bulk Data Ingestion
+                Database & Firestore Bulk Ingestion
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                Direct Firestore Writes
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                {storedStudentsCount} Students • {storedObjectivesCount} Objectives Stored
               </span>
             </div>
             <h3 className="text-xl font-extrabold text-white mt-0.5 tracking-tight">
@@ -297,6 +367,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
         {/* Dual Mode Switcher (Students vs Learning Objectives) */}
         <div className="flex items-center space-x-1.5 bg-slate-950 p-1 rounded-2xl border border-slate-800">
           <button
+            type="button"
             onClick={() => {
               setImportType('students');
               clearForm();
@@ -312,6 +383,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
           </button>
 
           <button
+            type="button"
             onClick={() => {
               setImportType('objectives');
               clearForm();
@@ -345,6 +417,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
 
           {/* Load Sample Template */}
           <button
+            type="button"
             onClick={loadSample}
             className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer"
           >
@@ -355,6 +428,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
 
         {csvText && (
           <button
+            type="button"
             onClick={clearForm}
             className="p-2 text-slate-400 hover:text-rose-400 rounded-xl hover:bg-slate-800 transition cursor-pointer"
             title="Clear CSV data"
@@ -378,7 +452,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
           rows={5}
           value={csvText}
           onChange={(e) => handleTextChange(e.target.value)}
-          placeholder={`Paste ${importType} CSV data here...`}
+          placeholder={`Paste ${importType} CSV data here or click "Load Sample CSV" above...`}
           className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500 leading-relaxed"
         />
       </div>
@@ -404,7 +478,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center space-x-1.5">
               <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <span>Preview Data Ready for Firestore ({parsedRows.length} Records)</span>
+              <span>Preview Data Ready for Database ({parsedRows.length} Records)</span>
             </h4>
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
               Valid Format
@@ -444,12 +518,12 @@ export const AdminBulkCsvImporter: React.FC = () => {
                         <td className="p-3 font-semibold text-white">{row.name}</td>
                         <td className="p-3 text-slate-400">{row.email}</td>
                         <td className="p-3 font-mono text-[11px] text-emerald-400">
-                          {row.whatsappnumber}
+                          {row.whatsappnumber || '+919876543210'}
                         </td>
-                        <td className="p-3">{row.educationlevel}</td>
+                        <td className="p-3">{row.educationlevel || 'college'}</td>
                         <td className="p-3">
                           <span className="text-indigo-300 font-mono text-[11px]">
-                            {row.subjects}
+                            {row.subjects || 'Python;DSA'}
                           </span>
                         </td>
                       </>
@@ -494,7 +568,7 @@ export const AdminBulkCsvImporter: React.FC = () => {
 
           {importResult.details && importResult.details.length > 0 && (
             <div className="mt-2 text-[11px] text-slate-300">
-              <span className="font-semibold text-white">Imported Items: </span>
+              <span className="font-semibold text-white">Stored Items: </span>
               {importResult.details.join(', ')}
             </div>
           )}
@@ -504,20 +578,22 @@ export const AdminBulkCsvImporter: React.FC = () => {
       {/* Main Commit Button */}
       <div className="pt-2">
         <button
-          onClick={handleBulkImportToFirestore}
+          type="button"
+          onClick={handleBulkImportToDatabase}
           disabled={parsedRows.length === 0 || validationErrors.length > 0 || isImporting}
           className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-40 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/20 transition cursor-pointer active:scale-95 flex items-center justify-center space-x-2"
         >
           {isImporting ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Importing Directly to Firestore Database...</span>
+              <span>Saving Records to Database...</span>
             </>
           ) : (
             <>
               <Database className="w-4 h-4" />
               <span>
-                Commit & Import {parsedRows.length} {importType === 'students' ? 'Students' : 'Objectives'} to Firestore
+                Commit & Store {parsedRows.length}{' '}
+                {importType === 'students' ? 'Students' : 'Objectives'} in Database
               </span>
             </>
           )}

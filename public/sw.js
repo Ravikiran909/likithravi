@@ -149,3 +149,53 @@ self.addEventListener('fetch', (event) => {
     fetch(request).catch(() => caches.match(request))
   );
 });
+
+// 4. Firebase Cloud Messaging (FCM) Push Notification Handler
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    if (event.data) {
+      payload = event.data.json();
+    }
+  } catch (e) {
+    payload = {
+      notification: {
+        title: 'Smart Study Reminder',
+        body: event.data ? event.data.text() : 'Time for your scheduled study session!',
+      },
+    };
+  }
+
+  const notification = payload.notification || {};
+  const data = payload.data || {};
+  const title = notification.title || data.title || 'Smart Study Reminder';
+  const options = {
+    body:
+      notification.body ||
+      data.body ||
+      'Time for your scheduled study session! Protect your daily learning streak.',
+    icon: '/assets/icon-192.png',
+    badge: '/assets/icon-192.png',
+    tag: data.tag || 'smart-study-reminder-fcm',
+    data: data,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow('/');
+      }
+    })
+  );
+});
+

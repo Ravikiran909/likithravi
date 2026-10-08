@@ -1,253 +1,347 @@
 import { db } from '../database/db.ts';
 import { generateDynamicQuiz } from '../gemini.ts';
-import { StudentProfile, QuizSession, QuizQuestion } from '../../src/types/index.ts';
+import { QuizSession, StudentProfile, QuizQuestion } from '../../src/types/index.ts';
 
-export class QuizAgent {
-  /**
-   * Start a Smart Study Session: 5-Minute Adaptive Quiz targeting the student's weakest topics
-   */
-  async startSmartStudySessionQuiz(
-    profile: StudentProfile,
-    requestedWeakTopic?: string
-  ): Promise<string> {
-    const weakTopics =
-      profile.weakTopics && profile.weakTopics.length > 0
-        ? profile.weakTopics
-        : [profile.subjects[0] || 'Python Recursion & Scoping'];
-    const targetWeakTopic = requestedWeakTopic?.trim() || weakTopics[0];
-    const allWeakTopicsSummary = weakTopics.slice(0, 3).join(', ');
+function normalizeOptionLetter(input: string, options: string[] = []): string {
+  const clean = (input || '').trim();
+  const upper = clean.toUpperCase();
 
-    // Infer matching subject from the weak topic
-    let chosenSubject = profile.subjects[0] || 'Python';
-    for (const sub of profile.subjects) {
-      if (targetWeakTopic.toLowerCase().includes(sub.toLowerCase())) {
-        chosenSubject = sub;
-        break;
-      }
+  // Direct letter match: "A", "B", "C", "D" or "A)", "A.", "OPTION A"
+  const letterMatch = upper.match(/^(?:OPTION\s+|ANSWER\s+IS\s+|ANS\s*[:=-]?\s*)?([A-D])(?:\b|[).:\s])/);
+  if (letterMatch) return letterMatch[1];
+  if (['A', 'B', 'C', 'D'].includes(upper)) return upper;
+
+  // Numeric match: "1" -> "A", "2" -> "B", "3" -> "C", "4" -> "D"
+  if (upper === '1' || upper === 'OPTION 1') return 'A';
+  if (upper === '2' || upper === 'OPTION 2') return 'B';
+  if (upper === '3' || upper === 'OPTION 3') return 'C';
+  if (upper === '4' || upper === 'OPTION 4') return 'D';
+
+  // Match against option text content
+  const letters = ['A', 'B', 'C', 'D'];
+  for (let i = 0; i < options.length; i++) {
+    const optText = (options[i] || '').replace(/^[A-Da-d][).:\s]+\s*/, '').trim().toLowerCase();
+    const userLower = clean.replace(/^[A-Da-d][).:\s]+\s*/, '').trim().toLowerCase();
+    if (optText && userLower && (optText === userLower || optText.includes(userLower))) {
+      return letters[i] || 'A';
     }
-    if (/calculus|integral|derivative|limit|math/i.test(targetWeakTopic)) {
-      chosenSubject = 'Calculus';
-    } else if (/dsa|tree|graph|binary|array|search|sort/i.test(targetWeakTopic)) {
-      chosenSubject = 'DSA';
-    } else if (/python|recursion|decorator|list|dict/i.test(targetWeakTopic)) {
-      chosenSubject = 'Python';
-    } else if (/java|jvm|oop/i.test(targetWeakTopic)) {
-      chosenSubject = 'Java';
-    }
-
-    const chosenDiff =
-      profile.currentSkillLevel === 'expert'
-        ? 'advanced'
-        : (profile.currentSkillLevel as any) || 'intermediate';
-
-    const questionsData = await generateDynamicQuiz(
-      chosenSubject,
-      targetWeakTopic,
-      chosenDiff,
-      5
-    );
-    const questions: QuizQuestion[] = questionsData.map((q, idx) => ({
-      id: `q_smart_${Date.now()}_${idx}`,
-      subject: chosenSubject,
-      topic: targetWeakTopic,
-      questionText: q.questionText,
-      type: q.type || 'mcq',
-      options: q.options || ['A) Option 1', 'B) Option 2', 'C) Option 3', 'D) Option 4'],
-      correctAnswer: q.correctAnswer || 'A',
-      explanation: q.explanation || 'Verified correct answer.',
-      difficulty: chosenDiff,
-    }));
-
-    const session: QuizSession = {
-      id: `smart_quiz_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      userId: profile.userId,
-      whatsappNumber: profile.whatsappNumber,
-      subject: chosenSubject,
-      topic: targetWeakTopic,
-      difficulty: chosenDiff,
-      totalQuestions: questions.length,
-      currentIndex: 0,
-      score: 0,
-      questions,
-      completed: false,
-      startedAt: new Date().toISOString(),
-    };
-
-    db.saveQuizSession(session);
-
-    return (
-      `⚡ *Smart Study Session: 5-Minute Adaptive Weak-Topic Quiz* 🧠\n` +
-      `⏱️ *Time Budget:* 5 Minutes (${questions.length} Rapid Adaptive Questions)\n` +
-      `🎯 *Weakest Topic Targeted:* *${targetWeakTopic}* (${chosenSubject})\n` +
-      `📊 *Detected Weak Areas:* _${allWeakTopicsSummary}_\n` +
-      `━━━━━━━━━━━━━━━━━━\n\n` +
-      this.formatQuestion(questions[0], 1, questions.length)
-    );
   }
 
-  /**
-   * Start a new quiz session for a student
-   */
+  return upper.charAt(0) || 'A';
+}
+
+export class QuizAgent {
   async startQuiz(
     profile: StudentProfile,
     subject?: string,
     topic?: string,
-    difficulty?: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+    difficulty?: string
   ): Promise<string> {
-    const chosenSubject = subject || profile.subjects[0] || 'Python';
-    const chosenTopic = topic || chosenSubject;
-    const chosenDiff = (difficulty === 'expert' ? 'advanced' : difficulty) || (profile.currentSkillLevel === 'expert' ? 'advanced' : (profile.currentSkillLevel as any) || 'intermediate');
+    const defaultSubj =
+      Array.isArray(profile.subjects) && profile.subjects.length > 0
+        ? profile.subjects[0]
+        : 'Python';
+    const targetSubject = (subject || defaultSubj).trim();
+    const targetTopic = (
+      topic ||
+      (Array.isArray(profile.weakTopics) && profile.weakTopics.length > 0
+        ? profile.weakTopics[0]
+        : targetSubject)
+    ).trim();
+    const targetDiff = (
+      difficulty ||
+      profile.currentSkillLevel ||
+      'intermediate'
+    ) as 'beginner' | 'intermediate' | 'advanced';
 
-    const questionsData = await generateDynamicQuiz(chosenSubject, chosenTopic, chosenDiff, 3);
-    const questions: QuizQuestion[] = questionsData.map((q, idx) => ({
+    const generated = await generateDynamicQuiz(
+      targetSubject,
+      targetTopic,
+      targetDiff,
+      3,
+      profile.preferredLanguage || 'en'
+    );
+
+    const rawList: any[] = Array.isArray(generated)
+      ? generated
+      : Array.isArray(generated?.questions)
+      ? generated.questions
+      : [];
+
+    const questions: QuizQuestion[] = rawList.map((q: any, idx: number) => ({
       id: `q_${Date.now()}_${idx}`,
-      subject: chosenSubject,
-      topic: chosenTopic,
-      questionText: q.questionText,
-      type: q.type || 'mcq',
-      options: q.options || ['A) Option 1', 'B) Option 2', 'C) Option 3', 'D) Option 4'],
-      correctAnswer: q.correctAnswer || 'A',
-      explanation: q.explanation || 'Verified correct answer.',
-      difficulty: chosenDiff,
+      subject: targetSubject,
+      topic: targetTopic,
+      difficulty: targetDiff,
+      questionText: q.questionText || q.question || `Question ${idx + 1} on ${targetTopic}`,
+      type: 'mcq',
+      options: Array.isArray(q.options)
+        ? q.options
+        : ['A) Option 1', 'B) Option 2', 'C) Option 3', 'D) Option 4'],
+      correctAnswer: normalizeOptionLetter(q.correctAnswer || 'A', q.options || []),
+      explanation: q.explanation || 'Review the core concept principles.',
     }));
 
     const session: QuizSession = {
-      id: `quiz_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      id: `quiz_${Date.now()}`,
       userId: profile.userId,
-      whatsappNumber: profile.whatsappNumber,
-      subject: chosenSubject,
-      topic: chosenTopic,
-      difficulty: chosenDiff,
-      totalQuestions: questions.length,
+      whatsappNumber: profile.whatsappNumber || '+919876543210',
+      subject: targetSubject,
+      topic: targetTopic,
+      difficulty: targetDiff,
+      questions,
       currentIndex: 0,
       score: 0,
-      questions,
+      totalQuestions: questions.length,
       completed: false,
       startedAt: new Date().toISOString(),
     };
 
     db.saveQuizSession(session);
 
+    const firstQ = questions[0];
     return (
-      `🧠 *Starting Quiz: ${chosenSubject}* (${chosenDiff.toUpperCase()})\n` +
-      `Topic: *${chosenTopic}*\n` +
-      `Total Questions: ${questions.length}\n\n` +
-      this.formatQuestion(questions[0], 1, questions.length)
+      `🎯 *QUIZ STARTED: ${targetSubject.toUpperCase()} — ${targetTopic}*\n` +
+      `Difficulty: _${targetDiff.toUpperCase()}_ | Total Questions: *${questions.length}*\n\n` +
+      `*Question 1 of ${questions.length}:*\n${firstQ.questionText}\n\n` +
+      `${(firstQ.options || []).join('\n')}\n\n` +
+      `👉 *Reply with A, B, C, or D* to submit your answer! _(or type "cancel quiz" to exit)_`
     );
   }
 
-  /**
-   * Evaluate student's answer for active quiz
-   */
-  async handleQuizAnswer(session: QuizSession, studentAnswer: string, profile: StudentProfile): Promise<string> {
-    const currentQ = session.questions[session.currentIndex];
-    const cleanAnswer = studentAnswer.trim().toUpperCase();
+  async startSmartStudySessionQuiz(
+    profile: StudentProfile,
+    customTopic?: string
+  ): Promise<string> {
+    const weakTopics = Array.isArray(profile.weakTopics) ? profile.weakTopics : [];
+    const subjects =
+      Array.isArray(profile.subjects) && profile.subjects.length > 0
+        ? profile.subjects
+        : ['Python', 'DSA', 'Calculus'];
 
-    // Check if letter matches (e.g. 'A' vs 'A' or 'B) O(log n)' vs 'B')
-    const correctLetter = currentQ.correctAnswer.trim().charAt(0).toUpperCase();
-    const studentLetter = cleanAnswer.charAt(0);
+    const progressRecords = db.getProgressByUserId(profile.userId);
+    const lowestMasteryRecord = [...progressRecords].sort(
+      (a, b) => a.masteryLevel - b.masteryLevel
+    )[0];
 
-    const isMatch =
-      cleanAnswer === currentQ.correctAnswer.toUpperCase() ||
-      studentLetter === correctLetter ||
-      (currentQ.options &&
-        currentQ.options.some((opt) => opt.toUpperCase().startsWith(cleanAnswer) && opt.toUpperCase().startsWith(correctLetter)));
+    let targetSubject = subjects[0];
+    let targetTopic = customTopic?.trim() || '';
 
-    if (isMatch) {
-      session.score += 1;
+    if (!targetTopic) {
+      if (weakTopics.length > 0) {
+        targetTopic = weakTopics[0];
+        const matchingSubj = subjects.find(
+          (s) =>
+            targetTopic.toLowerCase().includes(s.toLowerCase()) ||
+            s.toLowerCase().includes(targetTopic.toLowerCase())
+        );
+        if (matchingSubj) targetSubject = matchingSubj;
+      } else if (lowestMasteryRecord) {
+        targetSubject = lowestMasteryRecord.subject;
+        targetTopic = lowestMasteryRecord.topic;
+      } else {
+        targetTopic = `${targetSubject} Core Concepts`;
+      }
+    } else {
+      const matchingSubj = subjects.find(
+        (s) =>
+          targetTopic.toLowerCase().includes(s.toLowerCase()) ||
+          s.toLowerCase().includes(targetTopic.toLowerCase())
+      );
+      if (matchingSubj) targetSubject = matchingSubj;
     }
 
+    const accuracy =
+      profile.totalQuestionsAnswered > 0
+        ? Math.round((profile.correctAnswers / profile.totalQuestionsAnswered) * 100)
+        : 65;
+
+    let adaptiveDifficulty: 'beginner' | 'intermediate' | 'advanced' =
+      (profile.currentSkillLevel === 'expert' ? 'advanced' : profile.currentSkillLevel) ||
+      'intermediate';
+    if (accuracy >= 82) {
+      adaptiveDifficulty = 'advanced';
+    } else if (accuracy < 50) {
+      adaptiveDifficulty = 'beginner';
+    }
+
+    const generated = await generateDynamicQuiz(
+      targetSubject,
+      targetTopic,
+      adaptiveDifficulty,
+      5,
+      profile.preferredLanguage || 'en'
+    );
+
+    const rawList: any[] = Array.isArray(generated)
+      ? generated
+      : Array.isArray(generated?.questions)
+      ? generated.questions
+      : [];
+
+    const questions: QuizQuestion[] = rawList.map((q: any, idx: number) => ({
+      id: `smartq_${Date.now()}_${idx}`,
+      subject: targetSubject,
+      topic: targetTopic,
+      difficulty: adaptiveDifficulty,
+      questionText: q.questionText || q.question || `Question ${idx + 1} on ${targetTopic}`,
+      type: 'mcq',
+      options: Array.isArray(q.options)
+        ? q.options
+        : ['A) Option 1', 'B) Option 2', 'C) Option 3', 'D) Option 4'],
+      correctAnswer: normalizeOptionLetter(q.correctAnswer || 'A', q.options || []),
+      explanation: q.explanation || 'Review the key derivation and complexity bounds.',
+    }));
+
+    const session: QuizSession = {
+      id: `smart_quiz_${Date.now()}`,
+      userId: profile.userId,
+      whatsappNumber: profile.whatsappNumber || '+919876543210',
+      subject: targetSubject,
+      topic: targetTopic,
+      difficulty: adaptiveDifficulty,
+      questions,
+      currentIndex: 0,
+      score: 0,
+      totalQuestions: questions.length,
+      completed: false,
+      startedAt: new Date().toISOString(),
+    };
+
+    db.saveQuizSession(session);
+
+    const firstQ = questions[0];
+    return (
+      `⚡ *5-MINUTE SMART STUDY SESSION ACTIVATED*\n` +
+      `🎯 *Target Focus:* ${targetSubject} — *${targetTopic}*\n` +
+      `🧠 *Adaptive Level:* _${adaptiveDifficulty.toUpperCase()}_ (Calibrated to your ${accuracy}% accuracy)\n` +
+      `⏱️ *Format:* ${questions.length} Rapid-Fire Concept Checks\n\n` +
+      `*Question 1 of ${questions.length}:*\n${firstQ.questionText}\n\n` +
+      `${(firstQ.options || []).join('\n')}\n\n` +
+      `👉 *Reply with A, B, C, or D* to lock in your answer!`
+    );
+  }
+
+  async handleQuizAnswer(
+    session: QuizSession,
+    userAnswer: string,
+    profile: StudentProfile
+  ): Promise<string> {
+    const currentQ = session.questions[session.currentIndex];
+    if (!currentQ) {
+      session.completed = true;
+      db.saveQuizSession(session);
+      return `✅ Your quiz session is already completed! Type */quiz* to start a new quiz.`;
+    }
+
+    const opts = currentQ.options || [];
+    const selectedLetter = normalizeOptionLetter(userAnswer, opts);
+    const expectedLetter = normalizeOptionLetter(currentQ.correctAnswer, opts);
+    const isCorrect = selectedLetter === expectedLetter;
+
+    const letters = ['A', 'B', 'C', 'D'];
+    const correctOptionFull = opts[letters.indexOf(expectedLetter)] || currentQ.correctAnswer;
+
     db.recordQuizAnswer({
-      id: 'ans_' + Date.now(),
+      id: `ans_${Date.now()}`,
       quizSessionId: session.id,
       questionId: currentQ.id,
-      studentAnswer,
-      isCorrect: Boolean(isMatch),
+      studentAnswer: selectedLetter,
+      isCorrect,
       feedback: currentQ.explanation,
       submittedAt: new Date().toISOString(),
     });
 
-    const prefix = isMatch ? '✅ *Correct!*' : `❌ *Not quite.* (Correct: *${currentQ.correctAnswer}*)`;
-    const explanationText = `${prefix}\n${currentQ.explanation}\nScore: ${session.score}/${session.currentIndex + 1}`;
+    if (isCorrect) {
+      session.score += 1;
+    }
 
     session.currentIndex += 1;
 
-    // Check if quiz is complete
-    if (session.currentIndex >= session.totalQuestions) {
-      session.completed = true;
-      session.completedAt = new Date().toISOString();
+    // Update student profile question counters
+    const totalQ = (profile.totalQuestionsAnswered || 0) + 1;
+    const totalCorrect = (profile.correctAnswers || 0) + (isCorrect ? 1 : 0);
+    db.updateProfile(profile.userId, {
+      totalQuestionsAnswered: totalQ,
+      correctAnswers: totalCorrect,
+    });
+
+    const feedbackHeader = isCorrect
+      ? `✅ *Correct! (${selectedLetter})* Great job, ${profile.name}! 🎉\n💡 *Why:* ${currentQ.explanation}`
+      : `❌ *Not quite! You chose ${selectedLetter}, but the correct answer is ${correctOptionFull}.*\n💡 *Explanation:* ${currentQ.explanation}`;
+
+    // Check if more questions remain
+    if (session.currentIndex < session.questions.length) {
       db.saveQuizSession(session);
-
-      // Update student overall stats
-      const accuracy = Math.round((session.score / session.totalQuestions) * 100);
-      const totalAnswered = profile.totalQuestionsAnswered + session.totalQuestions;
-      const totalCorrect = profile.correctAnswers + session.score;
-      const newOverallProgress = Math.min(100, Math.round((totalCorrect / Math.max(1, totalAnswered)) * 100));
-
-      const updates: Partial<StudentProfile> = {
-        totalQuestionsAnswered: totalAnswered,
-        correctAnswers: totalCorrect,
-        overallProgress: newOverallProgress,
-      };
-
-      if (accuracy < 60) {
-        // Mark as weak topic
-        if (!profile.weakTopics.includes(session.topic)) {
-          updates.weakTopics = [...profile.weakTopics, session.topic];
-        }
-        db.addRecommendation({
-          id: 'rec_' + Date.now(),
-          userId: profile.userId,
-          title: `Revise ${session.topic}`,
-          subject: session.subject,
-          topic: session.topic,
-          reason: `You scored ${accuracy}% on your latest ${session.topic} quiz.`,
-          actionType: 'revision',
-          priority: 'high',
-          isCompleted: false,
-          createdAt: new Date().toISOString(),
-        });
-      } else if (accuracy >= 80) {
-        if (!profile.strongTopics.includes(session.topic)) {
-          updates.strongTopics = [...profile.strongTopics, session.topic];
-        }
-      }
-
-      db.updateProfile(profile.userId, updates);
-
+      const nextQ = session.questions[session.currentIndex];
       return (
-        `${explanationText}\n\n` +
-        `━━━━━━━━━━━━━━━━━━\n` +
-        `🎯 *Quiz Completed!*\n\n` +
-        `📊 *Final Score:* ${session.score}/${session.totalQuestions}\n` +
-        `📈 *Accuracy:* ${accuracy}%\n\n` +
-        (accuracy >= 80
-          ? `🌟 *Excellent work!* You've demonstrated strong mastery of *${session.topic}*!`
-          : accuracy >= 50
-          ? `👍 *Good effort!* A little more practice on tricky edge cases will boost your score to 90%+!`
-          : `⚠️ *Recommended:* Let's spend 15 minutes reviewing *${session.topic}*. Type "Explain ${session.topic}" to review.`) +
-        `\n\nType */quiz* to try another topic or */progress* to see your full report.`
+        `${feedbackHeader}\n\n` +
+        `────────────────────\n` +
+        `*Question ${session.currentIndex + 1} of ${session.questions.length}:*\n${nextQ.questionText}\n\n` +
+        `${(nextQ.options || []).join('\n')}\n\n` +
+        `👉 *Reply with A, B, C, or D*`
       );
     }
 
+    // Quiz Completed!
+    session.completed = true;
+    session.completedAt = new Date().toISOString();
     db.saveQuizSession(session);
-    const nextQ = session.questions[session.currentIndex];
-    return (
-      `${explanationText}\n\n` +
-      `━━━━━━━━━━━━━━━━━━\n` +
-      this.formatQuestion(nextQ, session.currentIndex + 1, session.totalQuestions)
-    );
-  }
 
-  private formatQuestion(q: QuizQuestion, num: number, total: number): string {
-    let text = `*Question ${num}/${total}*\n\n${q.questionText}\n\n`;
-    if (q.options && q.options.length > 0) {
-      text += q.options.join('\n') + '\n\n';
-      text += `_Reply with A, B, C, or D_`;
-    } else {
-      text += `_Type your answer below:_`;
+    const pct = Math.round((session.score / session.questions.length) * 100);
+    db.upsertProgress(profile.userId, session.subject, session.topic, pct);
+
+    // Update weakTopics / strongTopics + dailyStudyMinutesCompleted
+    const weakSet = new Set(profile.weakTopics || []);
+    const strongSet = new Set(profile.strongTopics || []);
+
+    if (pct < 60) {
+      weakSet.add(session.topic);
+      strongSet.delete(session.topic);
+    } else if (pct >= 80) {
+      strongSet.add(session.topic);
+      weakSet.delete(session.topic);
     }
-    return text;
+
+    const addedMinutes = session.id.startsWith('smart_quiz_') ? 5 : 10;
+    const currentDailyMins = Number(profile.dailyStudyMinutesCompleted || 0);
+    const allProgress = db.getProgressByUserId(profile.userId);
+    const avgMastery =
+      allProgress.length > 0
+        ? Math.round(allProgress.reduce((acc, p) => acc + p.masteryLevel, 0) / allProgress.length)
+        : Math.max(profile.overallProgress || 70, pct);
+
+    db.updateProfile(profile.userId, {
+      weakTopics: Array.from(weakSet),
+      strongTopics: Array.from(strongSet),
+      dailyStudyMinutesCompleted: currentDailyMins + addedMinutes,
+      overallProgress: avgMastery,
+    });
+
+    // Check and award any newly unlocked achievements
+    const newBadges = db.checkAndAwardAchievements(profile.userId);
+    const badgeAnnouncement =
+      newBadges.length > 0
+        ? `\n\n🏅 *NEW ACHIEVEMENT UNLOCKED:* ${newBadges.map((b) => `*${b.title}* (+${b.xpReward} XP)`).join(', ')}!`
+        : '';
+
+    let performanceAdvice = '';
+    if (pct === 100) {
+      performanceAdvice = `🌟 *Flawless Mastery!* You've mastered *${session.topic}*. Ready for an advanced challenge?`;
+    } else if (pct >= 65) {
+      performanceAdvice = `👏 *Solid Performance!* You have a good grasp of *${session.topic}*. Keep practicing to hit 100%!`;
+    } else {
+      performanceAdvice = `📚 *Added "${session.topic}" to your Priority Revision List.* Reply with *"Explain ${session.topic}"* for a step-by-step breakdown!`;
+    }
+
+    return (
+      `${feedbackHeader}\n\n` +
+      `🏆 *QUIZ COMPLETE: ${session.subject} (${session.topic})*\n` +
+      `📊 *Final Score:* *${session.score} / ${session.questions.length}* (*${pct}%*)\n` +
+      `⏱️ *Study Goal Progress:* +${addedMinutes} mins logged today\n\n` +
+      `${performanceAdvice}${badgeAnnouncement}\n\n` +
+      `_What's next? Reply with */quiz* for another test, */progress* to see your stats, or ask me to explain any question!_`
+    );
   }
 }
 

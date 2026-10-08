@@ -103,7 +103,20 @@ export const MaterialReviewModal: React.FC<MaterialReviewModalProps> = ({
         // Also sync to Firestore if db is active
         try {
           if (db && data.review) {
-            await setDoc(doc(collection(db, 'material_reviews'), data.review.id), data.review);
+            await setDoc(
+              doc(db, 'material_reviews', data.review.id),
+              {
+                id: String(data.review.id),
+                materialId: String(data.review.materialId || materialId),
+                materialType: data.review.materialType === 'course' ? 'course' : 'document',
+                userId: String(data.review.userId || profile?.userId || 'usr_guest'),
+                userName: String(data.review.userName || profile?.name || 'Verified Student').slice(0, 95),
+                rating: Number(data.review.rating) || 5,
+                comment: String(data.review.comment || commentText.trim()).slice(0, 1900),
+                createdAt: String(data.review.createdAt || new Date().toISOString()),
+              },
+              { merge: true }
+            );
           }
         } catch (fErr) {
           console.warn('Firestore review sync warning:', fErr);

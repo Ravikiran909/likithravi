@@ -497,13 +497,22 @@ function createSampleVoiceWav(frequency = 440): string {
     }
   };
 
-  // Extract interactive choices (A, B, C, D) if present in bot message
+  // Extract contextual interactive quick-reply buttons based on the agent response
   const extractQuickChoices = (content: string) => {
-    if (content.includes('Reply with A, B, C, or D') || (content.includes('A)') && content.includes('B)'))) {
+    if (
+      content.includes('Reply with A, B, C, or D') ||
+      (content.includes('Question ') && content.includes('A)') && content.includes('B)'))
+    ) {
       return ['A', 'B', 'C', 'D'];
     }
-    if (content.includes('1️⃣') && content.includes('2️⃣') && content.includes('3️⃣')) {
-      return ['Beginner', 'Intermediate', 'Advanced'];
+    if (content.includes("TODAY'S STUDY PLAN")) {
+      return ['Done 1', '/smart-quiz', 'Exam in 14 days'];
+    }
+    if (content.includes('STUDENT PROFILE')) {
+      return ['Set language to Kannada', 'Set language to English', 'Set study hours to 3 hours'];
+    }
+    if (content.includes('LEARNING ANALYTICS & PROGRESS REPORT')) {
+      return ['/smart-quiz', 'What should I study next?', "Today's study plan"];
     }
     return null;
   };
@@ -532,48 +541,60 @@ function createSampleVoiceWav(frequency = 440): string {
           </div>
         </div>
 
-        {/* Quick prompt shortcuts */}
+        {/* Quick prompt shortcuts for all agents */}
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => sendMessage('Explain recursion')}
-            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition"
+            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
-            Explain Recursion
+            👨‍🏫 Tutor: Recursion
           </button>
           <button
             onClick={() => sendMessage('/quiz Python')}
-            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition"
+            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
-            /quiz Python
+            🧠 /quiz Python
           </button>
           <button
-            onClick={() => sendMessage('I have an exam in 15 days')}
-            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition"
+            onClick={() => sendMessage('/smart-quiz')}
+            className="px-2.5 py-1 text-xs bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 rounded-lg border border-amber-700/50 transition cursor-pointer font-semibold"
           >
-            Exam in 15 Days
+            ⚡ Smart 5m Quiz
           </button>
           <button
-            onClick={() => sendMessage('Today\'s study plan')}
-            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition"
+            onClick={() => sendMessage("Today's study plan")}
+            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
-            Daily Plan
+            📅 Study Plan
           </button>
           <button
             onClick={() => sendMessage('/progress')}
-            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition"
+            className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
-            /progress
+            📊 /progress
+          </button>
+          <button
+            onClick={() => sendMessage('/smartreminder')}
+            className="px-2.5 py-1 text-xs bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 rounded-lg border border-emerald-700/50 transition cursor-pointer font-semibold"
+          >
+            ⏰ Smart Reminder
+          </button>
+          <button
+            onClick={() => sendMessage('/profile')}
+            className="px-2.5 py-1 text-xs bg-violet-950/60 hover:bg-violet-900/60 text-violet-300 rounded-lg border border-violet-700/50 transition cursor-pointer font-semibold"
+          >
+            👤 /profile
           </button>
           <button
             onClick={() => sendMessage('ನನಗೆ recursion explain ಮಾಡಿ')}
-            className="px-2.5 py-1 text-xs bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 rounded-lg border border-amber-800/40 transition"
+            className="px-2.5 py-1 text-xs bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 rounded-lg border border-amber-800/40 transition cursor-pointer"
             title="Kannada prompt"
           >
             ಕನ್ನಡ (Recursion)
           </button>
           <button
             onClick={() => sendMessage('मुझे कैलकुलस में Limits समझाओ')}
-            className="px-2.5 py-1 text-xs bg-sky-950/40 hover:bg-sky-900/50 text-sky-300 rounded-lg border border-sky-800/40 transition"
+            className="px-2.5 py-1 text-xs bg-sky-950/40 hover:bg-sky-900/50 text-sky-300 rounded-lg border border-sky-800/40 transition cursor-pointer"
             title="Hindi prompt"
           >
             हिंदी (Limits)

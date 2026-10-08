@@ -6,22 +6,20 @@ import { AdminDashboard } from './components/AdminDashboard.tsx';
 import { VoiceAIAgent } from './components/VoiceAIAgent.tsx';
 import { StudyDocuments } from './components/StudyDocuments.tsx';
 import { OfflineIndicator } from './components/OfflineIndicator.tsx';
+import { FaceAuthLoginModal } from './components/FaceAuthLoginModal.tsx';
 import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
 import {
   auth,
   db,
-  googleProvider,
-  signInWithPopup,
-  firebaseSignOut,
+  googleSignIn,
+  logout,
   onAuthStateChanged,
   doc,
   setDoc,
   getDoc,
   onSnapshot,
   testConnection,
-  handleFirestoreError,
-  OperationType,
   FirebaseUser,
 } from './firebase.ts';
 
@@ -34,6 +32,33 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(true);
+  const [focusMode, setFocusMode] = useState<boolean>(false);
+  const [isFaceAuthModalOpen, setIsFaceAuthModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (selectedProfile?.deepFocusEnabled !== undefined) {
+      setFocusMode(Boolean(selectedProfile.deepFocusEnabled));
+    }
+  }, [selectedProfile?.userId, selectedProfile?.deepFocusEnabled]);
+
+  const handleToggleFocusMode = async (nextState?: boolean) => {
+    const target = nextState !== undefined ? nextState : !focusMode;
+    setFocusMode(target);
+    if (target && activeTab !== 'student') {
+      setActiveTab('student');
+    }
+    if (selectedProfile) {
+      const updated = { ...selectedProfile, deepFocusEnabled: target };
+      handleProfileUpdate(updated);
+      try {
+        await fetch(`/api/students/${selectedProfile.userId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deepFocusEnabled: target }),
+        });
+      } catch {}
+    }
+  };
 
   useEffect(() => {
     testConnection().then((connected) => setIsFirebaseConnected(connected));
@@ -95,6 +120,13 @@ export default function App() {
 
             await setDoc(profileDocRef, userProfile);
           }
+
+          // Sync profile to backend in-memory DB so all AI agents have the active student profile
+          fetch(`/api/students/${userProfile.userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userProfile),
+          }).catch(() => {});
 
           // Add to profiles state and select
           setProfiles((prev) => {
@@ -192,7 +224,7 @@ export default function App() {
 
   const handleSignInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      await googleSignIn();
     } catch (err: any) {
       console.error('Google Sign-in error:', err);
     }
@@ -200,7 +232,7 @@ export default function App() {
 
   const handleSignOut = async () => {
     try {
-      await firebaseSignOut(auth);
+      await logout();
       // Fallback to first seeded profile
       if (profiles.length > 0) {
         setSelectedProfile(profiles[0]);
@@ -222,7 +254,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div
+      className={`min-h-screen text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200 transition-colors duration-500 ${
+        focusMode ? 'bg-black' : 'bg-slate-950'
+      }`}
+    >
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -234,9 +270,34 @@ export default function App() {
         onSignInWithGoogle={handleSignInWithGoogle}
         onSignOut={handleSignOut}
         isFirebaseConnected={isFirebaseConnected}
+        focusMode={focusMode}
+        onToggleFocusMode={handleToggleFocusMode}
+        onOpenFaceAuth={() => setIsFaceAuthModalOpen(true)}
       />
 
-      <main className="flex-1">
+      <FaceAuthLoginModal
+        isOpen={isFaceAuthModalOpen}
+        onClose={() => setIsFaceAuthModalOpen(false)}
+        profiles={profiles}
+        selectedProfile={selectedProfile}
+        onFaceAuthSuccess={(authenticatedProfile) => {
+          handleProfileUpdate(authenticatedProfile);
+        }}
+      />
+
+      {/* Ambient Focus Mode Dimming Vignette around the active study workspace */}
+      {focusMode && (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 pointer-events-none z-30 shadow-[inset_0_0_120px_rgba(0,0,0,0.85)] border border-amber-500/10"
+        />
+      )}
+
+      <main
+        className={`flex-1 relative z-40 transition-all duration-500 ${
+          focusMode && activeTab !== 'student' ? 'opacity-40 hover:opacity-95 filter brightness-75' : ''
+        }`}
+      >
         {activeTab === 'simulator' && (
           <WhatsAppSimulator
             selectedProfile={selectedProfile}
@@ -273,13 +334,20 @@ export default function App() {
               if (text) setPendingChatPrompt(text);
               setActiveTab('simulator');
             }}
+            focusMode={focusMode}
+            onToggleFocusMode={handleToggleFocusMode}
+            onOpenFaceAuth={() => setIsFaceAuthModalOpen(true)}
           />
         )}
 
         {activeTab === 'admin' && <AdminDashboard />}
       </main>
 
-      <footer className="bg-slate-900 border-t border-slate-800 text-slate-400 py-4 px-4 text-center text-xs">
+      <footer
+        className={`bg-slate-900 border-t border-slate-800 text-slate-400 py-4 px-4 text-center text-xs transition-opacity duration-500 ${
+          focusMode ? 'opacity-25 hover:opacity-80' : ''
+        }`}
+      >
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
             WhatsApp AI Learning Agent • Official WhatsApp Cloud API & Socratic Pedagogical Engine

@@ -7,6 +7,7 @@ import { plannerAgent } from './planner_agent.ts';
 import { progressAgent } from './progress_agent.ts';
 import { recommendationAgent } from './recommendation_agent.ts';
 import { reminderAgent } from './reminder_agent.ts';
+import { profileAgent } from './profile_agent.ts';
 import { StudentProfile } from '../../src/types/index.ts';
 
 export interface ProcessMessageInput {
@@ -40,14 +41,17 @@ export async function orchestrateMessage(
     mimeType,
   } = input || {};
 
-  // 1. Resolve student profile by userId first, then phone, then fallback to default seeded profile
+  // 1. Resolve student profile by userId first, then phone, preserving requested userId
   const cleanPhone = (rawPhone || '').trim() || '+919876543210';
   const existingProfile = userId ? db.getProfileByUserId(userId) : undefined;
   let profile: StudentProfile =
-    existingProfile || db.getOrCreateProfile(cleanPhone, senderName).profile;
+    existingProfile || db.getOrCreateProfile(cleanPhone, senderName, userId).profile;
 
   // Ensure all array/numeric fields on profile are safely initialized
-  profile.subjects = Array.isArray(profile.subjects) && profile.subjects.length > 0 ? profile.subjects : ['Python', 'DSA', 'Calculus'];
+  profile.subjects =
+    Array.isArray(profile.subjects) && profile.subjects.length > 0
+      ? profile.subjects
+      : ['Python', 'DSA', 'Calculus'];
   profile.weakTopics = Array.isArray(profile.weakTopics) ? profile.weakTopics : [];
   profile.strongTopics = Array.isArray(profile.strongTopics) ? profile.strongTopics : [];
   profile.learningGoals = Array.isArray(profile.learningGoals) ? profile.learningGoals : [];
@@ -57,9 +61,12 @@ export async function orchestrateMessage(
   profile.studyHoursPerDay = profile.studyHoursPerDay || 2;
   profile.streak = typeof profile.streak === 'number' ? profile.streak : 1;
   profile.totalSessions = typeof profile.totalSessions === 'number' ? profile.totalSessions : 1;
-  profile.totalQuestionsAnswered = typeof profile.totalQuestionsAnswered === 'number' ? profile.totalQuestionsAnswered : 0;
-  profile.correctAnswers = typeof profile.correctAnswers === 'number' ? profile.correctAnswers : 0;
-  profile.overallProgress = typeof profile.overallProgress === 'number' ? profile.overallProgress : 70;
+  profile.totalQuestionsAnswered =
+    typeof profile.totalQuestionsAnswered === 'number' ? profile.totalQuestionsAnswered : 0;
+  profile.correctAnswers =
+    typeof profile.correctAnswers === 'number' ? profile.correctAnswers : 0;
+  profile.overallProgress =
+    typeof profile.overallProgress === 'number' ? profile.overallProgress : 70;
 
   const targetPhone = profile.whatsappNumber || cleanPhone;
 
@@ -77,7 +84,11 @@ export async function orchestrateMessage(
   let audioTranscription = '';
   if (mediaType === 'audio') {
     try {
-      audioTranscription = await transcribeAudio(mediaBase64 || '', mimeType || 'audio/webm', effectiveText);
+      audioTranscription = await transcribeAudio(
+        mediaBase64 || '',
+        mimeType || 'audio/webm',
+        effectiveText
+      );
       effectiveText = audioTranscription || effectiveText || 'Explain recursion with an example';
     } catch {
       effectiveText = effectiveText || 'Explain recursion with an example';
@@ -94,7 +105,9 @@ export async function orchestrateMessage(
     whatsappNumber: targetPhone,
     direction: 'incoming',
     messageType: mediaType,
-    content: effectiveText || (mediaType === 'image' ? '[Sent an image of question]' : '[Voice note audio]'),
+    content:
+      effectiveText ||
+      (mediaType === 'image' ? '[Sent an image of question]' : '[Voice note audio]'),
   });
 
   let intent = 'GENERAL_CONVERSATION';
@@ -113,7 +126,6 @@ export async function orchestrateMessage(
         profile.preferredLanguage
       );
     } else {
-      // Check if there is an active quiz session
       const activeQuiz = db.getActiveQuizSession(profile.userId);
       const cleanLower = effectiveText.trim().toLowerCase();
 
@@ -128,66 +140,64 @@ export async function orchestrateMessage(
       ) {
         activeQuiz.completed = true;
         db.saveQuizSession(activeQuiz);
-        responseText = `⏹️ *Quiz cancelled.* You completed ${activeQuiz.currentIndex} question(s). You can start a new quiz anytime with */quiz*!`;
+        responseText = `⏹️ *Quiz cancelled.* You completed ${activeQuiz.currentIndex} question(s). You can start a new quiz anytime with */quiz* or */smart-quiz*!`;
         intent = 'CANCEL_QUIZ';
         agentName = 'Quiz Agent';
       } else {
+        // Check if message is an answer to the active quiz question
+        const currentQ = activeQuiz?.questions?.[activeQuiz.currentIndex];
+        const matchesCurrentOptionText =
+          currentQ &&
+          Array.isArray(currentQ.options) &&
+          currentQ.options.some((opt) => {
+            const stripped = opt.replace(/^[A-Da-d][).:\s]+\s*/, '').trim().toLowerCase();
+            return stripped.length > 1 && cleanLower === stripped;
+          });
+
         const isExplicitAnswer =
-          cleanLower === 'a' ||
-          cleanLower === 'b' ||
-          cleanLower === 'c' ||
-          cleanLower === 'd' ||
-          cleanLower === '1' ||
-          cleanLower === '2' ||
-          cleanLower === '3' ||
-          cleanLower === '4' ||
-          cleanLower.startsWith('a)') ||
-          cleanLower.startsWith('b)') ||
-          cleanLower.startsWith('c)') ||
-          cleanLower.startsWith('d)') ||
-          cleanLower.startsWith('option a') ||
-          cleanLower.startsWith('option b') ||
-          cleanLower.startsWith('option c') ||
-          cleanLower.startsWith('option d') ||
-          cleanLower.startsWith('answer is');
+          /^(?:option\s+|answer\s+is\s+|ans\s*[:=-]?\s*)?[a-d1-4](?:[).:\s]|$)/i.test(cleanLower) &&
+          cleanLower.length <= 24;
 
         const isQuizAnswerCandidate =
-          activeQuiz && isExplicitAnswer && !cleanLower.startsWith('/') && !cleanLower.includes('?');
+          Boolean(activeQuiz) &&
+          (isExplicitAnswer || Boolean(matchesCurrentOptionText)) &&
+          !cleanLower.startsWith('/') &&
+          !cleanLower.includes('?') &&
+          !cleanLower.startsWith('explain') &&
+          !cleanLower.startsWith('teach') &&
+          !cleanLower.startsWith('remind') &&
+          !cleanLower.startsWith('show') &&
+          !cleanLower.startsWith('set ');
 
         if (activeQuiz && isQuizAnswerCandidate) {
           intent = 'CHECK_ANSWER';
-          agentName = 'Quiz Agent';
-          let answerToEval = effectiveText;
-          if (cleanLower === '1' || cleanLower.includes('option 1')) answerToEval = 'A';
-          else if (cleanLower === '2' || cleanLower.includes('option 2')) answerToEval = 'B';
-          else if (cleanLower === '3' || cleanLower.includes('option 3')) answerToEval = 'C';
-          else if (cleanLower === '4' || cleanLower.includes('option 4')) answerToEval = 'D';
-
-          responseText = await quizAgent.handleQuizAnswer(activeQuiz, answerToEval, profile);
-        } else if (
-          cleanLower.startsWith('/smart-quiz') ||
-          cleanLower.includes('smart study session') ||
-          cleanLower.includes('5-minute adaptive quiz') ||
-          cleanLower.includes('5-min adaptive quiz')
-        ) {
-          intent = 'SMART_STUDY_SESSION_QUIZ';
-          agentName = 'Adaptive Smart Quiz Agent';
-          const customTopic = effectiveText
-            .replace(/^\/smart-quiz\s*/i, '')
-            .replace(/start smart study session:?/i, '')
-            .trim();
-          responseText = await quizAgent.startSmartStudySessionQuiz(
-            profile,
-            customTopic || undefined
-          );
+          agentName = activeQuiz.id.startsWith('smart_quiz_')
+            ? 'Adaptive Smart Quiz Agent'
+            : 'Quiz Agent';
+          responseText = await quizAgent.handleQuizAnswer(activeQuiz, effectiveText, profile);
         } else {
-          // 5. Intent detection
+          // 5. Fast & accurate Intent Detection
           const contextStr = `Name: ${profile.name}, Education: ${profile.educationLevel}, Level: ${profile.currentSkillLevel}, Subjects: ${profile.subjects.join(', ')}`;
           const detected = await detectIntent(effectiveText, contextStr);
           intent = detected.intent || 'LEARN_TOPIC';
 
-          // 6. Route to specialized agent
+          // 6. Route to the specialized agent
           switch (intent) {
+            case 'SMART_STUDY_SESSION_QUIZ': {
+              agentName = 'Adaptive Smart Quiz Agent';
+              const customTopic = effectiveText
+                .replace(/^\/(smart-quiz|smartquiz|5m|smart5m)\s*/i, '')
+                .replace(/start smart study session:?/i, '')
+                .replace(/5-min(?:ute)? adaptive quiz:?/i, '')
+                .replace(/smart 5m(?:in)? quiz:?/i, '')
+                .trim();
+              responseText = await quizAgent.startSmartStudySessionQuiz(
+                profile,
+                customTopic || detected.topic || undefined
+              );
+              break;
+            }
+
             case 'GENERATE_QUIZ': {
               agentName = 'Quiz Agent';
               responseText = await quizAgent.startQuiz(
@@ -226,64 +236,34 @@ export async function orchestrateMessage(
 
             case 'UPDATE_PROFILE': {
               agentName = 'Profile Agent';
-              const updates: Partial<StudentProfile> = {};
-              if (cleanLower.includes('kannada') || cleanLower.includes('kn')) {
-                updates.preferredLanguage = 'kn';
-              } else if (cleanLower.includes('hindi') || cleanLower.includes('hi')) {
-                updates.preferredLanguage = 'hi';
-              } else if (cleanLower.includes('english') || cleanLower.includes('en')) {
-                updates.preferredLanguage = 'en';
-              }
-              const hoursMatch = effectiveText.match(/(\d+(\.\d+)?)\s*(hours|hour|hrs|hr)/i);
-              if (hoursMatch) {
-                updates.studyHoursPerDay = Math.min(8, Math.max(0.5, parseFloat(hoursMatch[1])));
-              }
-              if (cleanLower.includes('beginner')) updates.currentSkillLevel = 'beginner';
-              else if (cleanLower.includes('intermediate')) updates.currentSkillLevel = 'intermediate';
-              else if (cleanLower.includes('advanced')) updates.currentSkillLevel = 'advanced';
-
-              const updatedProf = db.updateProfile(profile.userId, updates) || profile;
-              profile = updatedProf;
-              responseText =
-                `✅ *Profile Preferences Updated!* 🎯\n\n` +
-                `• *Language:* ${profile.preferredLanguage.toUpperCase()}\n` +
-                `• *Daily Study Target:* ${profile.studyHoursPerDay} hrs/day\n` +
-                `• *Skill Level:* ${profile.currentSkillLevel.toUpperCase()}\n\n` +
-                `What would you like to study next, ${profile.name}?`;
+              const res = profileAgent.handleUpdateProfile(effectiveText, profile);
+              profile = res.updatedProfile;
+              responseText = res.responseText;
               break;
             }
 
             case 'GET_PROFILE': {
               agentName = 'Profile Agent';
-              responseText =
-                `📋 *STUDENT PROFILE*\n\n` +
-                `• *Name:* ${profile.name}\n` +
-                `• *WhatsApp:* ${profile.whatsappNumber}\n` +
-                `• *Education Level:* ${profile.educationLevel.toUpperCase()}\n` +
-                `• *Current Skill:* ${profile.currentSkillLevel.toUpperCase()}\n` +
-                `• *Preferred Language:* ${profile.preferredLanguage.toUpperCase()} (English / Hindi / Kannada)\n` +
-                `• *Subjects:* ${profile.subjects.join(', ')}\n` +
-                `• *Study Goal:* ${profile.studyHoursPerDay} hrs/day\n` +
-                `• *Streak:* ${profile.streak} Days 🔥\n` +
-                `• *Overall Mastery:* ${profile.overallProgress}%\n\n` +
-                `_To change settings, reply with "Set language to Kannada" or "Set study hours to 3"_`;
+              const res = profileAgent.handleGetProfile(profile);
+              profile = res.updatedProfile;
+              responseText = res.responseText;
               break;
             }
 
             case 'HELP': {
               agentName = 'Orchestrator Agent';
               responseText =
-                `👋 *Hey ${profile.name}! I'm your AI Learning Mentor on WhatsApp.*\n\n` +
-                `I'm here 24/7 to teach concepts, test your skills, and keep you on track.\n\n` +
-                `*What would you like to do?*\n` +
-                `📚 *Learn a topic:* "Explain recursion", "Teach me calculus limits"\n` +
-                `🧠 *Take a quiz:* "/quiz Python", "Test me on Java"\n` +
-                `📝 *Ask a doubt:* Send any question or snapshot photo 📸\n` +
-                `📅 *Study Plan:* "I have exam in 15 days", "Today's study plan"\n` +
-                `📊 *Progress:* "/progress", "Check my streak"\n` +
-                `⏰ *Reminders:* "Remind me to study DSA at 7 PM"\n` +
-                `💡 *Recommendations:* "What should I learn next?"\n\n` +
-                `_Reply with any question or command to begin!_`;
+                `👋 *Hey ${profile.name}! I'm your Multi-Agent AI Learning Mentor.*\n\n` +
+                `Here are all the specialized AI agents ready to help you right now:\n\n` +
+                `👨‍🏫 *Tutor Agent:* _"Explain recursion"_, _"Teach me Calculus limits"_\n` +
+                `🧠 *Quiz Agent:* _"/quiz Python"_, _"Quiz me on DSA"_\n` +
+                `⚡ *Smart 5m Agent:* _"/smart-quiz"_, _"Start 5-minute adaptive quiz"_\n` +
+                `📅 *Study Planner Agent:* _"Today's study plan"_, _"Exam in 14 days"_\n` +
+                `📊 *Progress Agent:* _"/progress"_, _"Show my progress report"_\n` +
+                `⏰ *Reminder Agent:* _"/smartreminder"_, _"Remind me at 7 PM for DSA"_\n` +
+                `👤 *Profile Agent:* _"/profile"_, _"Set language to Kannada"_\n` +
+                `💡 *Recommendation Agent:* _"What should I study next?"_\n\n` +
+                `_Tap any quick action chip below or type your command to begin!_`;
               break;
             }
 
@@ -309,9 +289,9 @@ export async function orchestrateMessage(
       () =>
         `*Hello ${profile.name}!* 👋\n\n` +
         `Let's break down *"${effectiveText}"* step by step:\n\n` +
-        `1️⃣ *Core Principle*: Start by identifying the base conditions and key invariants of the problem.\n` +
-        `2️⃣ *Structured Execution*: Decompose the problem into smaller, verifiable sub-steps.\n` +
-        `3️⃣ *Active Check*: Reply with */quiz* to test your understanding with 3 interactive questions, or ask me to explain a specific example!`
+        `1️⃣ *Core Principle*: Identify the base case and key state transitions.\n` +
+        `2️⃣ *Worked Execution*: Trace the input through each transformation step.\n` +
+        `3️⃣ *Active Check*: Reply with */quiz* or */smart-quiz* to test your understanding!`
     );
   }
 
@@ -346,7 +326,7 @@ export async function orchestrateMessage(
     rawPayload: { wamid: sendResult.messageId },
   });
 
-  // Fetch latest updated profile after agent mutations (e.g. quiz score updates)
+  // Fetch latest updated profile after agent mutations
   const finalProfile = db.getProfileByUserId(profile.userId) || profile;
 
   return {

@@ -9,209 +9,257 @@ import {
   Zap,
   ArrowRight,
   BookOpen,
-  RefreshCw,
+  Clock,
   X,
-  TrendingUp,
   Target,
   Filter,
+  Code2,
+  Building2,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
+import { db, doc, setDoc } from '../firebase.ts';
 
 interface KnowledgeGapsHeatmapProps {
   profile: StudentProfile;
   onProfileUpdate: (updated: StudentProfile) => void;
   onNavigateToChat: (prefilledText?: string) => void;
   onNavigateToQuiz?: () => void;
+  onLogStudyMinutes?: (mins: number, label?: string) => void;
 }
 
 export interface TopicHeatmapCell {
   id: string;
-  subject: string;
+  subject: 'DSA' | 'Government Exams' | string;
+  subCategory: string;
   topic: string;
-  masteryScore: number; // 0 - 100
+  masteryScore: number; // 0 - 100 quiz accuracy %
+  gapIntensity: number; // 0 - 100 (100 - masteryScore)
+  recommendedStudyMinutes: number; // Calculated study time needed based on quiz accuracy
+  quizHistoryScores: number[]; // Recent quiz performance history (%)
   attempts: number;
   lastTested: string;
-  status: 'critical' | 'developing' | 'proficient' | 'mastered';
+  status: 'critical' | 'high_need' | 'developing' | 'mastered';
   isWeakTopic: boolean;
   keyConcepts: string[];
   commonPitfall: string;
 }
 
-const SUBJECT_CURRICULUM_TOPICS: Record<
-  string,
-  { topic: string; defaultScore: number; keyConcepts: string[]; pitfall: string }[]
-> = {
-  Python: [
-    {
-      topic: 'Recursion & Base Cases',
-      defaultScore: 42,
-      keyConcepts: ['Call stack frames', 'Termination base condition', 'Tail recursion optimization'],
-      pitfall: 'Missing return on recursive step or stack overflow on edge inputs (n <= 0).',
-    },
-    {
-      topic: 'Decorators & Closures',
-      defaultScore: 48,
-      keyConcepts: ['Higher-order functions', 'functools.wraps', 'Lexical scope binding'],
-      pitfall: 'Losing function metadata or mutating outer state without nonlocal.',
-    },
-    {
-      topic: 'Asyncio & Concurrency',
-      defaultScore: 54,
-      keyConcepts: ['Event loop', 'async/await coroutines', 'asyncio.gather'],
-      pitfall: 'Blocking the event loop with synchronous time.sleep() instead of await asyncio.sleep().',
-    },
-    {
-      topic: 'List Comprehensions & Generators',
-      defaultScore: 78,
-      keyConcepts: ['Lazy evaluation', 'yield keyword', 'Memory-efficient pipelines'],
-      pitfall: 'Exhausting a generator iterator multiple times.',
-    },
-    {
-      topic: 'Functions & Scoping (LEGB)',
-      defaultScore: 86,
-      keyConcepts: ['Local, Enclosing, Global, Built-in', '*args and **kwargs', 'Default mutable args'],
-      pitfall: 'Using a mutable default argument like def fn(items=[]) across calls.',
-    },
-    {
-      topic: 'OOP & Dunder Methods',
-      defaultScore: 91,
-      keyConcepts: ['__init__, __repr__, __eq__', 'Inheritance & super()', 'Class vs instance attributes'],
-      pitfall: 'Confusing class-level shared variables with instance variables.',
-    },
-  ],
+interface SubTopicTemplate {
+  subCategory: string;
+  topic: string;
+  defaultScore: number;
+  quizHistory: number[];
+  keyConcepts: string[];
+  pitfall: string;
+}
+
+const SUBJECT_CURRICULUM_TOPICS: Record<string, SubTopicTemplate[]> = {
   DSA: [
     {
-      topic: 'Dynamic Programming & Memoization',
-      defaultScore: 38,
-      keyConcepts: ['Overlapping subproblems', 'Optimal substructure', 'Top-down vs Bottom-up DP'],
-      pitfall: 'Incorrect state transition equation or off-by-one table initialization.',
+      subCategory: 'Dynamic Programming',
+      topic: '0/1 Knapsack, LCS & Memoization State Transitions',
+      defaultScore: 36,
+      quizHistory: [28, 35, 40, 36],
+      keyConcepts: [
+        'Overlapping subproblems & memo table dimensions',
+        '1D reverse-capacity space optimization',
+        'Longest Common Subsequence (LCS) recurrence',
+      ],
+      pitfall: 'Iterating capacity forward in 1D 0/1 Knapsack, accidentally reusing the same item multiple times (Unbounded Knapsack bug).',
     },
     {
-      topic: 'Graph Shortest Paths (Dijkstra / BFS)',
-      defaultScore: 46,
-      keyConcepts: ['Priority queue relaxation', 'Adjacency list traversal', 'Cycle detection'],
-      pitfall: 'Applying Dijkstra on graphs with negative edge weights instead of Bellman-Ford.',
+      subCategory: 'Graph Algorithms',
+      topic: 'Dijkstra Shortest Paths, Bellman-Ford & Topological Sort',
+      defaultScore: 44,
+      quizHistory: [38, 42, 48, 44],
+      keyConcepts: [
+        'Priority Queue min-heap edge relaxation O((V+E) log V)',
+        "Kahn's BFS in-degree cycle detection",
+        'Disjoint Set Union (DSU) path compression',
+      ],
+      pitfall: 'Applying Dijkstra on graphs with negative edge weights or forgetting to skip stale heap entries (d > dist[u]).',
     },
     {
-      topic: 'Trees & BST Balancing',
-      defaultScore: 63,
-      keyConcepts: ['Inorder/Preorder/Postorder', 'AVL rotations', 'Lowest Common Ancestor'],
-      pitfall: 'Checking only immediate children instead of subtree min/max bounds for BST validity.',
+      subCategory: 'Trees & Priority Queues',
+      topic: 'Binary Search Tree (BST) Invariants, LCA & Morris Traversal',
+      defaultScore: 54,
+      quizHistory: [45, 52, 58, 54],
+      keyConcepts: [
+        'Strict [minVal, maxVal] range validation in O(n)',
+        'Lowest Common Ancestor (LCA) single-pass recursion',
+        'Two-Heap median maintenance (Max-Heap + Min-Heap)',
+      ],
+      pitfall: 'Checking only immediate left/right children instead of passing global subtree range bounds during BST validation.',
     },
     {
-      topic: 'Two Pointers & Sliding Window',
-      defaultScore: 79,
-      keyConcepts: ['Window expansion/contraction', 'Monotonic deque', 'Subarray invariants'],
-      pitfall: 'Failing to shrink the left pointer properly when window constraint breaks.',
+      subCategory: 'Stacks & Monotonic Queues',
+      topic: 'Monotonic Stack: Next Greater Element & Histogram Area',
+      defaultScore: 62,
+      quizHistory: [55, 60, 64, 62],
+      keyConcepts: [
+        'Amortized O(n) push/pop invariant',
+        'Previous & Next Smaller Element boundary indices',
+        'Sliding Window Maximum with monotonic deque',
+      ],
+      pitfall: 'Storing raw values instead of indices on the monotonic stack, making width calculation impossible.',
     },
     {
-      topic: 'Binary Search & Monotonic Space',
-      defaultScore: 88,
-      keyConcepts: ['Search space halving O(log n)', 'Lower/upper bound', 'Midpoint overflow prevention'],
-      pitfall: 'Infinite loop when updating left = mid with mid = (left + right) // 2.',
+      subCategory: 'Binary Search',
+      topic: 'Binary Search on Monotonic Answer Space & Rotated Arrays',
+      defaultScore: 76,
+      quizHistory: [68, 72, 78, 76],
+      keyConcepts: [
+        'Overflow-safe mid = low + (high - low) // 2',
+        'Feasibility predicate check(mid) on [minAns, maxAns]',
+        'Lower bound & upper bound invariants',
+      ],
+      pitfall: 'Infinite loop when setting low = mid without biasing mid upward as low + (high - low + 1) // 2.',
     },
     {
-      topic: 'Arrays & Hash Maps',
-      defaultScore: 94,
-      keyConcepts: ['Amortized O(1) lookup', 'Prefix sums', 'Collision handling'],
-      pitfall: 'Mutating keys in place while iterating over hash map entries.',
+      subCategory: 'Arrays & Sliding Window',
+      topic: "Kadane's Subarray Sum, Two Pointers & Prefix Sums",
+      defaultScore: 89,
+      quizHistory: [80, 85, 92, 89],
+      keyConcepts: [
+        'Variable window expansion & contraction invariant',
+        'Prefix sum hash map for subarray sum equals K',
+        "Kadane's O(n) local vs global maximum",
+      ],
+      pitfall: 'Using two pointers on arrays containing negative numbers for subarray sum problems instead of Prefix Sum + HashMap.',
+    },
+  ],
+  'Government Exams': [
+    {
+      subCategory: 'UPSC CSE / State PCS',
+      topic: 'Indian Polity: Fundamental Rights (Art 12–35), Writs & Parliament',
+      defaultScore: 41,
+      quizHistory: [35, 40, 44, 41],
+      keyConcepts: [
+        'Articles 14–32 & 5 Constitutional Writs (Habeas Corpus to Quo Warranto)',
+        'Basic Structure Doctrine (Kesavananda Bharati 1973)',
+        'Money Bill (Art 110) vs Financial Bill & Joint Sitting',
+      ],
+      pitfall: 'Confusing Rights available only to Citizens (Articles 15, 16, 19, 29, 30) with Rights available to all persons.',
+    },
+    {
+      subCategory: 'SSC CGL Tier-I & II',
+      topic: 'Quantitative Aptitude: Time & Work LCM, Profit/Loss & Geometry',
+      defaultScore: 47,
+      quizHistory: [40, 45, 50, 47],
+      keyConcepts: [
+        'Successive percentage change A + B + (AB)/100',
+        'Total Work = LCM of days efficiency method',
+        'Circle secant-tangent PT² = PA·PB & triangle similarity',
+      ],
+      pitfall: 'Calculating discount on Cost Price (CP) instead of Marked Price (MP) in compound markup-discount questions.',
+    },
+    {
+      subCategory: 'IBPS PO / SBI PO / RBI Grade B',
+      topic: 'Circular Seating Puzzles, Syllogisms & RBI Monetary Policy',
+      defaultScore: 53,
+      quizHistory: [48, 50, 56, 53],
+      keyConcepts: [
+        '8-person Circular Arrangement (inward vs outward facing)',
+        'Only-a-few Syllogism Venn diagram possibility rules',
+        'Repo Rate, SDF, Reverse Repo, CRR & SLR instruments',
+      ],
+      pitfall: 'Reversing left/right seating directions when some persons face the center and others face outward.',
+    },
+    {
+      subCategory: 'GATE CS/IT & PSU Scientist',
+      topic: 'Operating Systems Deadlocks, DBMS BCNF & TCP Congestion',
+      defaultScore: 59,
+      quizHistory: [52, 58, 61, 59],
+      keyConcepts: [
+        "Banker's Algorithm safety sequence & resource allocation graph",
+        '3NF vs BCNF lossless-join & dependency preservation',
+        'TCP Slow Start + Congestion Avoidance AIMD window math',
+      ],
+      pitfall: 'Assuming every 3NF relation is automatically in BCNF when overlapping candidate keys exist.',
+    },
+    {
+      subCategory: 'UPSC & SSC General Studies',
+      topic: 'Modern Indian History (1885–1947) & Macroeconomic Indicators',
+      defaultScore: 74,
+      quizHistory: [66, 70, 76, 74],
+      keyConcepts: [
+        'Swadeshi (1905), Non-Cooperation (1920), Civil Disobedience (1930), Quit India (1942)',
+        'Fiscal Deficit vs Primary Deficit & Real vs Nominal GDP',
+        'CPI vs WPI inflation basket weighting',
+      ],
+      pitfall: 'Mixing up chronological order of Cripps Mission (1942), Wavell Plan (1945), and Cabinet Mission (1946).',
+    },
+    {
+      subCategory: 'CSAT & Banking DI',
+      topic: 'Data Interpretation: Ratio-Percentage Tables & Caselet Speed Math',
+      defaultScore: 86,
+      quizHistory: [78, 82, 88, 86],
+      keyConcepts: [
+        'Reciprocal fraction-to-percentage benchmarks (1/6 to 1/19)',
+        'Weighted average & Alligation cross-difference rule',
+        'Approximation techniques for multi-chart DI sets',
+      ],
+      pitfall: 'Using the wrong base year denominator when computing percentage growth across consecutive bars.',
+    },
+  ],
+  Python: [
+    {
+      subCategory: 'Core Python',
+      topic: 'Recursion, Call Stack Frames & LEGB Variable Scope',
+      defaultScore: 48,
+      quizHistory: [42, 46, 50, 48],
+      keyConcepts: ['Call stack frames', 'Termination base condition', 'Local/Enclosing/Global/Built-in'],
+      pitfall: 'Missing return on recursive step or using mutable default arguments def fn(items=[]).',
+    },
+    {
+      subCategory: 'Advanced Python',
+      topic: 'Asyncio Coroutines, Generators & Decorators',
+      defaultScore: 78,
+      quizHistory: [70, 75, 80, 78],
+      keyConcepts: ['Event loop & async/await', 'Lazy yield generators', 'functools.wraps closures'],
+      pitfall: 'Blocking the event loop with synchronous time.sleep() instead of await asyncio.sleep().',
     },
   ],
   Calculus: [
     {
-      topic: 'Integration by Parts & Substitution',
-      defaultScore: 39,
+      subCategory: 'Integral Calculus',
+      topic: 'Integration by Parts (LIATE) & Definite Substitution',
+      defaultScore: 43,
+      quizHistory: [38, 40, 45, 43],
       keyConcepts: ['LIATE rule for u-selection', 'u-substitution Jacobian dx', 'Definite integral bounds'],
       pitfall: 'Forgetting to transform integration limits [a, b] when changing variables.',
     },
     {
-      topic: 'Differential Equations (ODEs)',
-      defaultScore: 45,
-      keyConcepts: ['Separable variables', 'Integrating factor e^(∫P dx)', 'Initial value problems'],
-      pitfall: 'Dropping the constant of integration +C before applying initial conditions.',
-    },
-    {
-      topic: 'Taylor & Maclaurin Series',
-      defaultScore: 58,
-      keyConcepts: ['Polynomial approximation', 'Radius of convergence', 'Lagrange error bound'],
-      pitfall: 'Factorial denominator mismatch in n-th derivative term.',
-    },
-    {
-      topic: 'Multivariable Partial Derivatives',
-      defaultScore: 67,
-      keyConcepts: ['Gradient vector ∇f', 'Directional derivatives', 'Chain rule on surfaces'],
-      pitfall: 'Treating dependent intermediate variables as constants during chain rule.',
-    },
-    {
-      topic: 'Limits & L’Hôpital’s Rule',
-      defaultScore: 82,
-      keyConcepts: ['Indeterminate forms 0/0, ∞/∞', 'Squeeze theorem', 'One-sided continuity'],
-      pitfall: 'Applying L’Hôpital’s Rule when the limit is not in 0/0 or ∞/∞ form.',
-    },
-    {
-      topic: 'Derivatives & Chain Rule',
-      defaultScore: 90,
-      keyConcepts: ['Power, product, quotient rules', 'Implicit differentiation', 'Tangent slopes'],
-      pitfall: 'Omitting the inner derivative g′(x) in composite functions f(g(x)).',
-    },
-  ],
-  'Generative AI': [
-    {
-      topic: 'RAG Vector Chunking & Hybrid Search',
-      defaultScore: 49,
-      keyConcepts: ['Cosine similarity', 'Semantic chunk overlap', 'Reciprocal Rank Fusion (RRF)'],
-      pitfall: 'Splitting mid-sentence without overlap, losing cross-paragraph context.',
-    },
-    {
-      topic: 'LoRA & Parameter-Efficient Fine-Tuning',
-      defaultScore: 56,
-      keyConcepts: ['Low-rank decomposition A×B', '4-bit quantization (QLoRA)', 'Rank r & alpha scaling'],
-      pitfall: 'Overfitting small instruction datasets with an excessively high learning rate.',
-    },
-    {
-      topic: 'Transformer Self-Attention Math',
-      defaultScore: 74,
-      keyConcepts: ['Scaled dot-product softmax(QK^T / √d_k)V', 'Multi-head projection', 'Positional encoding'],
-      pitfall: 'Forgetting the 1/√d_k scaling factor, causing vanishing softmax gradients.',
-    },
-    {
-      topic: 'Prompt Engineering & Structured JSON',
-      defaultScore: 89,
-      keyConcepts: ['Few-shot exemplars', 'Chain-of-Thought reasoning', 'Schema validation'],
-      pitfall: 'Unconstrained prompt instructions leading to hallucinated JSON keys.',
-    },
-  ],
-  'AI Agents': [
-    {
-      topic: 'Multi-Agent State Graphs (LangGraph)',
-      defaultScore: 44,
-      keyConcepts: ['Cyclic state machines', 'Conditional edges', 'Checkpointer persistence'],
-      pitfall: 'Infinite agent routing loops without a max_iterations termination guard.',
-    },
-    {
-      topic: 'ReAct Loop & Tool Calling Recovery',
-      defaultScore: 62,
-      keyConcepts: ['Thought → Action → Observation', 'Function schema validation', 'Error self-correction'],
-      pitfall: 'Passing malformed tool arguments without retry feedback to the LLM.',
-    },
-    {
-      topic: 'Episodic & Semantic Agent Memory',
-      defaultScore: 81,
-      keyConcepts: ['Short-term context window', 'Long-term vector recall', 'Entity summarization'],
-      pitfall: 'Context window overflow from unbounded raw conversation history.',
+      subCategory: 'Differential Calculus',
+      topic: "Limits, L'Hôpital's Rule & Multivariable Chain Rule",
+      defaultScore: 84,
+      quizHistory: [78, 82, 86, 84],
+      keyConcepts: ['Indeterminate forms 0/0', 'Gradient vector ∇f', 'Composite function chain rule'],
+      pitfall: "Applying L'Hôpital's Rule when the limit is not in 0/0 or ∞/∞ form.",
     },
   ],
 };
+
+function computeRecommendedMinutes(masteryScore: number): number {
+  if (masteryScore < 45) return 60;
+  if (masteryScore < 55) return 45;
+  if (masteryScore < 70) return 35;
+  if (masteryScore < 85) return 20;
+  return 10;
+}
 
 export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
   profile,
   onProfileUpdate,
   onNavigateToChat,
   onNavigateToQuiz,
+  onLogStudyMinutes,
 }) => {
-  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'critical' | 'developing' | 'mastered'>('all');
-  const [selectedCell, setSelectedCell] = useState<TopicHeatmapCell | null>(null);
+  // Default to showing DSA & Government Exams prominently as requested
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('dsa_gov_focus');
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'critical' | 'high_need' | 'developing' | 'mastered'
+  >('all');
   const [activeReviewPlan, setActiveReviewPlan] = useState<{
     cell: TopicHeatmapCell;
     steps: string[];
@@ -225,135 +273,110 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isUpdatingMastery, setIsUpdatingMastery] = useState(false);
   const [localScoreBoosts, setLocalScoreBoosts] = useState<Record<string, number>>({});
+  const [scheduledToast, setScheduledToast] = useState<string | null>(null);
 
-  // Build heatmap cells from profile subjects + weakTopics + strongTopics
+  // Build heatmap cells from DSA + Government Exams + profile quiz performance history
   const heatmapCells: TopicHeatmapCell[] = useMemo(() => {
-    const activeSubjects = Array.from(
-      new Set([...(profile.subjects || []), 'Python', 'DSA', 'Calculus', 'Generative AI', 'AI Agents'])
-    );
-
-    const cells: TopicHeatmapCell[] = [];
+    const subjectsOrder = ['DSA', 'Government Exams', 'Python', 'Calculus'];
     const weakList = (profile.weakTopics || []).map((w) => w.toLowerCase());
     const strongList = (profile.strongTopics || []).map((s) => s.toLowerCase());
+    const historyItems = profile.learningHistory || [];
 
-    // First, ensure any explicit weakTopics from the student's profile are represented
-    activeSubjects.forEach((subject) => {
-      const templates = SUBJECT_CURRICULUM_TOPICS[subject] || [
-        {
-          topic: `${subject} Core Foundations`,
-          defaultScore: 84,
-          keyConcepts: [`${subject} syntax & semantics`, 'Standard idioms', 'Debugging patterns'],
-          pitfall: 'Skipping foundational edge-case tests.',
-        },
-        {
-          topic: `${subject} Advanced Problem Solving`,
-          defaultScore: 47,
-          keyConcepts: ['Algorithmic optimization', 'Time & space complexity', 'Boundary conditions'],
-          pitfall: 'Suboptimal brute-force approach on large inputs.',
-        },
-      ];
+    const cells: TopicHeatmapCell[] = [];
 
+    subjectsOrder.forEach((subject) => {
+      const templates = SUBJECT_CURRICULUM_TOPICS[subject] || [];
       templates.forEach((tpl, idx) => {
-        const cellId = `cell_${subject}_${idx}`;
+        const cellId = `heatmap_${subject.replace(/\s+/g, '_').toLowerCase()}_${idx}`;
+
+        // Check if student's learningHistory has quiz scores for this topic or subject
+        const matchingHistory = historyItems.filter(
+          (h) =>
+            h.topic.toLowerCase().includes(tpl.subCategory.toLowerCase()) ||
+            tpl.topic.toLowerCase().includes(h.topic.toLowerCase())
+        );
+
         const matchesWeak = weakList.some(
           (w) =>
             tpl.topic.toLowerCase().includes(w) ||
-            w.includes(tpl.topic.toLowerCase().split(' ')[0])
+            tpl.subCategory.toLowerCase().includes(w) ||
+            w.includes(tpl.subCategory.toLowerCase().split(' ')[0])
         );
         const matchesStrong = strongList.some(
           (s) =>
             tpl.topic.toLowerCase().includes(s) ||
-            s.includes(tpl.topic.toLowerCase().split(' ')[0])
+            tpl.subCategory.toLowerCase().includes(s)
         );
 
         let score = tpl.defaultScore;
-        if (matchesWeak) score = Math.min(score, 43);
-        if (matchesStrong) score = Math.max(score, 88);
+        if (matchingHistory.length > 0) {
+          const scored = matchingHistory.find((h) => typeof h.score === 'number');
+          if (scored && typeof scored.score === 'number') {
+            score = scored.score;
+          }
+        }
+        if (matchesWeak) score = Math.min(score, 44);
+        if (matchesStrong) score = Math.max(score, 86);
         if (localScoreBoosts[cellId] !== undefined) {
           score = Math.min(100, localScoreBoosts[cellId]);
         }
 
         const status: TopicHeatmapCell['status'] =
-          score < 50
+          score < 48
             ? 'critical'
-            : score < 70
+            : score < 60
+            ? 'high_need'
+            : score < 78
             ? 'developing'
-            : score < 85
-            ? 'proficient'
             : 'mastered';
+
+        const gapIntensity = Math.max(0, 100 - score);
+        const recommendedStudyMinutes = computeRecommendedMinutes(score);
+        const updatedHistory =
+          localScoreBoosts[cellId] !== undefined
+            ? [...tpl.quizHistory.slice(1), score]
+            : tpl.quizHistory;
 
         cells.push({
           id: cellId,
           subject,
+          subCategory: tpl.subCategory,
           topic: tpl.topic,
           masteryScore: score,
-          attempts: 3 + ((idx * 2) % 5),
-          lastTested: idx === 0 ? 'Today' : `${idx + 1}d ago`,
+          gapIntensity,
+          recommendedStudyMinutes,
+          quizHistoryScores: updatedHistory,
+          attempts: tpl.quizHistory.length + matchingHistory.length,
+          lastTested: idx === 0 ? 'Today' : idx === 1 ? 'Yesterday' : `${idx + 1}d ago`,
           status,
-          isWeakTopic: score < 55 || matchesWeak,
+          isWeakTopic: score < 60 || matchesWeak,
           keyConcepts: tpl.keyConcepts,
           commonPitfall: tpl.pitfall,
         });
       });
     });
 
-    // Also inject any custom profile.weakTopics not yet matched
-    (profile.weakTopics || []).forEach((weakTopic, wIdx) => {
-      const alreadyExists = cells.some(
-        (c) => c.topic.toLowerCase() === weakTopic.toLowerCase()
-      );
-      if (!alreadyExists) {
-        const cellId = `cell_custom_weak_${wIdx}`;
-        const boosted = localScoreBoosts[cellId];
-        const score = boosted !== undefined ? boosted : 36;
-        const status: TopicHeatmapCell['status'] =
-          score < 50
-            ? 'critical'
-            : score < 70
-            ? 'developing'
-            : score < 85
-            ? 'proficient'
-            : 'mastered';
-
-        cells.push({
-          id: cellId,
-          subject: profile.subjects[0] || 'Core Curriculum',
-          topic: weakTopic,
-          masteryScore: score,
-          attempts: 4,
-          lastTested: 'Yesterday',
-          status,
-          isWeakTopic: score < 60,
-          keyConcepts: [
-            `Core formulation of ${weakTopic}`,
-            `Step-by-step boundary analysis`,
-            `Exam-style application of ${weakTopic}`,
-          ],
-          commonPitfall: `Misapplying standard rules on edge cases in ${weakTopic}.`,
-        });
-      }
-    });
-
     return cells;
-  }, [profile.subjects, profile.weakTopics, profile.strongTopics, localScoreBoosts]);
-
-  const subjectsList = useMemo(
-    () => Array.from(new Set(heatmapCells.map((c) => c.subject))),
-    [heatmapCells]
-  );
+  }, [
+    profile.weakTopics,
+    profile.strongTopics,
+    profile.learningHistory,
+    localScoreBoosts,
+  ]);
 
   const filteredCells = useMemo(() => {
     return heatmapCells.filter((c) => {
-      if (selectedSubjectFilter !== 'all' && c.subject !== selectedSubjectFilter) return false;
-      if (statusFilter === 'critical' && c.status !== 'critical') return false;
-      if (statusFilter === 'developing' && c.status !== 'developing') return false;
-      if (statusFilter === 'mastered' && c.status !== 'mastered' && c.status !== 'proficient')
+      if (selectedSubjectFilter === 'dsa_gov_focus') {
+        if (c.subject !== 'DSA' && c.subject !== 'Government Exams') return false;
+      } else if (selectedSubjectFilter !== 'all' && c.subject !== selectedSubjectFilter) {
         return false;
+      }
+
+      if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       return true;
     });
   }, [heatmapCells, selectedSubjectFilter, statusFilter]);
 
-  // Group filtered cells by subject for the matrix view
   const groupedBySubject = useMemo(() => {
     const map = new Map<string, TopicHeatmapCell[]>();
     filteredCells.forEach((cell) => {
@@ -364,217 +387,310 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
     return map;
   }, [filteredCells]);
 
-  const criticalCount = heatmapCells.filter((c) => c.status === 'critical').length;
-  const developingCount = heatmapCells.filter((c) => c.status === 'developing').length;
-  const masteredCount = heatmapCells.filter(
-    (c) => c.status === 'mastered' || c.status === 'proficient'
-  ).length;
+  // Summary metrics specifically for DSA & Government Exams
+  const dsaAndGovCells = useMemo(
+    () => heatmapCells.filter((c) => c.subject === 'DSA' || c.subject === 'Government Exams'),
+    [heatmapCells]
+  );
+  const criticalCount = dsaAndGovCells.filter((c) => c.status === 'critical').length;
+  const highNeedCount = dsaAndGovCells.filter((c) => c.status === 'high_need').length;
+  const developingCount = dsaAndGovCells.filter((c) => c.status === 'developing').length;
+  const masteredCount = dsaAndGovCells.filter((c) => c.status === 'mastered').length;
+  const totalRecommendedMinutes = dsaAndGovCells
+    .filter((c) => c.status === 'critical' || c.status === 'high_need')
+    .reduce((sum, c) => sum + c.recommendedStudyMinutes, 0);
 
-  // Generate an interactive targeted review session for the clicked cell
-  const handleGenerateTargetedReview = (cell: TopicHeatmapCell) => {
-    setSelectedCell(cell);
+  // Open targeted review drawer for a sub-topic cell
+  const handleSelectCell = (cell: TopicHeatmapCell) => {
     setSelectedAnswer(null);
     setActiveReviewPlan({
       cell,
       steps: [
-        `Concept Intuition: Master ${cell.keyConcepts[0]} and how it governs ${cell.topic}.`,
-        `Trap Avoidance: Watch out for the #1 student mistake — ${cell.commonPitfall}`,
-        `Active Application: Apply ${cell.keyConcepts[1] || cell.topic} to solve the verification check below.`,
+        `Core Invariant: Master ${cell.keyConcepts[0]} (${cell.subCategory}).`,
+        `Exam Trap Alert: Avoid the #1 quiz error — ${cell.commonPitfall}`,
+        `Recommended Study Block: Complete a ${cell.recommendedStudyMinutes}-minute focused practice sprint on ${cell.subCategory}.`,
       ],
       practiceQuestion: {
-        question: `In ${cell.subject} (${cell.topic}), which strategy best prevents "${cell.commonPitfall}" while ensuring optimal correctness?`,
+        question: `[${cell.subject} · ${cell.subCategory}] Based on your quiz history (${cell.masteryScore}% accuracy), which principle prevents "${cell.commonPitfall}"?`,
         options: [
-          `A) Explicitly verify boundary invariants and apply ${cell.keyConcepts[0]} before execution`,
-          `B) Skip base-case validation to reduce code length`,
-          `C) Rely on unconstrained global state mutations`,
-          `D) Ignore edge inputs and assume uniform distribution`,
+          `A) Apply ${cell.keyConcepts[0]} and explicitly verify boundary invariants before execution`,
+          `B) Skip edge-case validation and assume uniform input constraints`,
+          `C) Use unoptimized brute-force traversal without state tracking`,
+          `D) Ignore base conditions to shorten solution time`,
         ],
         correctLetter: 'A',
-        explanation: `Correct! Grounding your implementation in ${cell.keyConcepts[0]} and checking boundary invariants directly eliminates the pitfall: "${cell.commonPitfall}"`,
+        explanation: `Correct! Grounding your approach in ${cell.keyConcepts[0]} directly resolves the quiz pitfall and boosts your ${cell.subCategory} mastery.`,
       },
     });
   };
 
-  // Mark topic as remediated / boost mastery score
-  const handleCompleteTargetedReview = async (cell: TopicHeatmapCell) => {
+  // Remediate gap & sync updated quiz mastery to profile + Firestore
+  const handleRemediateSubTopic = async (cell: TopicHeatmapCell) => {
     setIsUpdatingMastery(true);
-    const nextScore = Math.min(100, Math.max(85, cell.masteryScore + 35));
-    setLocalScoreBoosts((prev) => ({ ...prev, [cell.id]: nextScore }));
+    const boostedScore = Math.min(100, cell.masteryScore + 28);
+    setLocalScoreBoosts((prev) => ({ ...prev, [cell.id]: boostedScore }));
+
+    if (onLogStudyMinutes) {
+      onLogStudyMinutes(
+        cell.recommendedStudyMinutes,
+        `Heatmap Gap Remediation: [${cell.subject}] ${cell.subCategory}`
+      );
+    }
 
     const updatedWeak = (profile.weakTopics || []).filter(
-      (t) => !cell.topic.toLowerCase().includes(t.toLowerCase()) && t.toLowerCase() !== cell.topic.toLowerCase()
+      (t) =>
+        !cell.topic.toLowerCase().includes(t.toLowerCase()) &&
+        !cell.subCategory.toLowerCase().includes(t.toLowerCase())
     );
-    const updatedStrong = Array.from(new Set([...(profile.strongTopics || []), cell.topic]));
+    const updatedStrong = Array.from(
+      new Set([...(profile.strongTopics || []), `${cell.subject}: ${cell.subCategory}`])
+    );
+    const updatedHistory = [
+      ...(profile.learningHistory || []),
+      {
+        topic: `${cell.subCategory}: ${cell.topic}`,
+        subject: cell.subject,
+        date: new Date().toISOString().split('T')[0],
+        score: boostedScore,
+        mastered: boostedScore >= 78,
+      },
+    ];
+
+    const updatedProfile: StudentProfile = {
+      ...profile,
+      weakTopics: updatedWeak,
+      strongTopics: updatedStrong,
+      learningHistory: updatedHistory,
+      overallProgress: Math.min(100, (profile.overallProgress || 65) + 2),
+    };
+
+    onProfileUpdate(updatedProfile);
 
     try {
-      const res = await fetch(`/api/students/${profile.userId}`, {
+      if (db && profile.userId) {
+        await setDoc(
+          doc(db, 'profiles', profile.userId),
+          {
+            weakTopics: updatedWeak,
+            strongTopics: updatedStrong,
+            learningHistory: updatedHistory,
+            overallProgress: updatedProfile.overallProgress,
+          },
+          { merge: true }
+        );
+      }
+      await fetch(`/api/students/${profile.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           weakTopics: updatedWeak,
           strongTopics: updatedStrong,
-          overallProgress: Math.min(100, (profile.overallProgress || 65) + 2),
+          learningHistory: updatedHistory,
+          overallProgress: updatedProfile.overallProgress,
         }),
-      });
-      if (res.ok) {
-        const updatedProfile = await res.json();
-        onProfileUpdate(updatedProfile);
-      } else {
-        onProfileUpdate({
-          ...profile,
-          weakTopics: updatedWeak,
-          strongTopics: updatedStrong,
-        });
-      }
+      }).catch(() => {});
     } catch {
-      onProfileUpdate({
-        ...profile,
-        weakTopics: updatedWeak,
-        strongTopics: updatedStrong,
-      });
+      // Non-blocking fallback
     } finally {
       setIsUpdatingMastery(false);
+      setScheduledToast(
+        `Updated quiz mastery for "${cell.subCategory}" to ${boostedScore}% and logged +${cell.recommendedStudyMinutes}m study time!`
+      );
+      setTimeout(() => setScheduledToast(null), 4500);
     }
   };
 
-  const getHeatmapCellStyle = (status: TopicHeatmapCell['status']) => {
+  // Color-coded heatmap intensity styles (Higher gap need = deeper warm crimson/orange/amber intensity; High mastery = cool emerald)
+  const getCellIntensityStyles = (status: TopicHeatmapCell['status']) => {
     switch (status) {
       case 'critical':
-        return 'bg-rose-950/60 hover:bg-rose-900/70 border-rose-500/50 text-rose-200 shadow-rose-950/40';
+        return {
+          card: 'bg-rose-950/75 hover:bg-rose-900/80 border-rose-500/70 shadow-lg shadow-rose-950/50',
+          bar: 'bg-rose-500',
+          scoreText: 'text-rose-300',
+          intensityLabel: 'High Study Need · Critical Gap',
+          needColor: 'text-rose-300',
+        };
+      case 'high_need':
+        return {
+          card: 'bg-orange-950/65 hover:bg-orange-900/70 border-orange-500/60 shadow-md shadow-orange-950/40',
+          bar: 'bg-orange-500',
+          scoreText: 'text-orange-300',
+          intensityLabel: 'Elevated Study Need',
+          needColor: 'text-orange-300',
+        };
       case 'developing':
-        return 'bg-amber-950/50 hover:bg-amber-900/60 border-amber-500/40 text-amber-200 shadow-amber-950/30';
-      case 'proficient':
-        return 'bg-teal-950/50 hover:bg-teal-900/60 border-teal-500/40 text-teal-200 shadow-teal-950/30';
+        return {
+          card: 'bg-amber-950/45 hover:bg-amber-900/55 border-amber-500/45',
+          bar: 'bg-amber-400',
+          scoreText: 'text-amber-300',
+          intensityLabel: 'Moderate Reinforcement',
+          needColor: 'text-amber-300',
+        };
       case 'mastered':
-        return 'bg-emerald-950/60 hover:bg-emerald-900/70 border-emerald-500/50 text-emerald-200 shadow-emerald-950/40';
-    }
-  };
-
-  const getScoreBadgeStyle = (status: TopicHeatmapCell['status']) => {
-    switch (status) {
-      case 'critical':
-        return 'bg-rose-500/20 text-rose-300 border-rose-500/40';
-      case 'developing':
-        return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-      case 'proficient':
-        return 'bg-teal-500/20 text-teal-300 border-teal-500/40';
-      case 'mastered':
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+        return {
+          card: 'bg-emerald-950/45 hover:bg-emerald-900/55 border-emerald-500/45',
+          bar: 'bg-emerald-400',
+          scoreText: 'text-emerald-300',
+          intensityLabel: 'Strong Quiz Mastery',
+          needColor: 'text-emerald-300',
+        };
     }
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden space-y-6">
-      {/* Decorative background glow */}
-      <div className="absolute -top-16 -right-16 w-72 h-72 bg-rose-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-16 -left-16 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Header & Summary Legend */}
-      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        <div className="flex items-start space-x-3.5">
-          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 shadow-inner shrink-0">
-            <Grid className="w-6 h-6" />
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+      {/* Header & Color Intensity Legend */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-rose-400">
+            <Grid className="w-4 h-4" />
+            <span>Knowledge Gaps Heatmap</span>
+            <span aria-hidden="true" className="text-slate-600">
+              ·
+            </span>
+            <span className="text-amber-400">DSA & Government Exams Sub-Topic Intensity</span>
+            <span aria-hidden="true" className="text-slate-600">
+              ·
+            </span>
+            <span className="text-slate-400 font-mono tabular-nums">
+              {totalRecommendedMinutes}m Priority Study Time Needed
+            </span>
           </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-400">
-                Diagnostic Competency Matrix
-              </span>
-              {criticalCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center space-x-1 animate-pulse">
-                  <AlertTriangle className="w-3 h-3" />
-                  <span>{criticalCount} Knowledge Gaps Detected</span>
-                </span>
-              )}
-            </div>
-            <h3 className="text-lg font-bold text-white mt-0.5">
-              Knowledge Gaps & Topic Mastery Heatmap
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
-              Click any low-performing <span className="text-rose-400 font-semibold">Critical Gap (&lt;50%)</span> or{' '}
-              <span className="text-amber-400 font-semibold">Developing (50–69%)</span> cell to immediately generate a targeted AI review session or launch a 5-minute remediation quiz.
-            </p>
-          </div>
+          <h3 className="text-xl font-bold text-white tracking-tight">
+            Quiz Performance History & Sub-Topic Study Time Intensity Matrix
+          </h3>
+          <p className="text-xs text-slate-400 max-w-3xl">
+            Color-coded heat intensity highlights which specific sub-topics in <strong className="text-slate-200">DSA</strong> and <strong className="text-slate-200">Government Exams</strong> need more study time based on your recent quiz performance history. Click any cell to inspect quiz trends and launch a targeted remediation session.
+          </p>
         </div>
 
-        {/* Heatmap Color Scale Legend */}
-        <div className="flex flex-wrap items-center gap-2 bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl text-[11px] shrink-0">
+        {/* Interactive Intensity Legend Filter */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 border border-slate-800 p-1.5 rounded-xl text-xs self-start lg:self-center">
           <button
             type="button"
             onClick={() => setStatusFilter(statusFilter === 'critical' ? 'all' : 'critical')}
-            className={`flex items-center space-x-1.5 px-2 py-1 rounded-lg border transition cursor-pointer ${
+            className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer ${
               statusFilter === 'critical'
-                ? 'bg-rose-500/20 border-rose-500 text-white'
-                : 'border-transparent text-slate-300 hover:bg-slate-900'
+                ? 'bg-rose-500/20 text-white font-semibold'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
-            <span className="w-3 h-3 rounded bg-rose-500/80 border border-rose-400 inline-block" />
-            <span>Critical (&lt;50%)</span>
-            <span className="font-bold text-rose-400">({criticalCount})</span>
+            <span className="w-2.5 h-2.5 rounded-sm bg-rose-500 inline-block" />
+            <span>Critical (&lt;48%)</span>
+            <span className="font-mono tabular-nums text-rose-400">{criticalCount}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === 'high_need' ? 'all' : 'high_need')}
+            className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer ${
+              statusFilter === 'high_need'
+                ? 'bg-orange-500/20 text-white font-semibold'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-sm bg-orange-500 inline-block" />
+            <span>High Need (48–59%)</span>
+            <span className="font-mono tabular-nums text-orange-400">{highNeedCount}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setStatusFilter(statusFilter === 'developing' ? 'all' : 'developing')}
-            className={`flex items-center space-x-1.5 px-2 py-1 rounded-lg border transition cursor-pointer ${
+            className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer ${
               statusFilter === 'developing'
-                ? 'bg-amber-500/20 border-amber-500 text-white'
-                : 'border-transparent text-slate-300 hover:bg-slate-900'
+                ? 'bg-amber-500/20 text-white font-semibold'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
-            <span className="w-3 h-3 rounded bg-amber-500/80 border border-amber-400 inline-block" />
-            <span>Developing (50–69%)</span>
-            <span className="font-bold text-amber-400">({developingCount})</span>
+            <span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block" />
+            <span>Developing (60–77%)</span>
+            <span className="font-mono tabular-nums text-amber-400">{developingCount}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setStatusFilter(statusFilter === 'mastered' ? 'all' : 'mastered')}
-            className={`flex items-center space-x-1.5 px-2 py-1 rounded-lg border transition cursor-pointer ${
+            className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer ${
               statusFilter === 'mastered'
-                ? 'bg-emerald-500/20 border-emerald-500 text-white'
-                : 'border-transparent text-slate-300 hover:bg-slate-900'
+                ? 'bg-emerald-500/20 text-white font-semibold'
+                : 'text-slate-300 hover:text-white'
             }`}
           >
-            <span className="w-3 h-3 rounded bg-emerald-500/80 border border-emerald-400 inline-block" />
-            <span>Mastered (70%+)</span>
-            <span className="font-bold text-emerald-400">({masteredCount})</span>
+            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block" />
+            <span>Mastered (78%+)</span>
+            <span className="font-mono tabular-nums text-emerald-400">{masteredCount}</span>
           </button>
         </div>
       </div>
 
-      {/* Subject Filter Pills */}
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-slate-400 font-medium flex items-center space-x-1 mr-1">
-            <Filter className="w-3.5 h-3.5 text-slate-500" />
-            <span>Subject:</span>
-          </span>
+      {/* Feedback Toast */}
+      {scheduledToast && (
+        <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-between text-xs text-emerald-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{scheduledToast}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setScheduledToast(null)}
+            className="text-slate-400 hover:text-white cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Track Switcher Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setSelectedSubjectFilter('dsa_gov_focus')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+              selectedSubjectFilter === 'dsa_gov_focus'
+                ? 'bg-slate-800 text-white font-semibold shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            DSA & Government Exams Focus (12 Sub-Topics)
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedSubjectFilter('DSA')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer ${
+              selectedSubjectFilter === 'DSA'
+                ? 'bg-emerald-600 text-white font-semibold shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Code2 className="w-3.5 h-3.5" />
+            <span>DSA Only</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedSubjectFilter('Government Exams')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer ${
+              selectedSubjectFilter === 'Government Exams'
+                ? 'bg-amber-500 text-slate-950 font-semibold shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Government Exams Only</span>
+          </button>
           <button
             type="button"
             onClick={() => setSelectedSubjectFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
               selectedSubjectFilter === 'all'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-slate-800 text-slate-300 hover:text-white'
+                ? 'bg-slate-800 text-white font-semibold shadow-sm'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            All Subjects
+            All Curriculum Tracks
           </button>
-          {subjectsList.map((sub) => (
-            <button
-              key={sub}
-              type="button"
-              onClick={() => setSelectedSubjectFilter(sub)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                selectedSubjectFilter === sub
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'bg-slate-800 text-slate-300 hover:text-white'
-              }`}
-            >
-              {sub}
-            </button>
-          ))}
         </div>
 
         {statusFilter !== 'all' && (
@@ -583,202 +699,227 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
             onClick={() => setStatusFilter('all')}
             className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
           >
-            Reset Status Filter
+            Show All Intensity Levels
           </button>
         )}
       </div>
 
-      {/* Heatmap Matrix Rows by Subject */}
-      <div className="relative z-10 space-y-5">
-        {Array.from(groupedBySubject.entries()).map(([subject, cells]) => (
-          <div key={subject} className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-                  {subject}
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  ({cells.filter((c) => c.status === 'critical').length} critical gaps)
-                </span>
-              </div>
-              <span className="text-[11px] text-slate-400">
-                Avg Mastery:{' '}
-                <strong className="text-white">
-                  {Math.round(cells.reduce((acc, c) => acc + c.masteryScore, 0) / cells.length)}%
-                </strong>
-              </span>
-            </div>
+      {/* Heatmap Matrix Grouped by Track (DSA & Government Exams) */}
+      <div className="space-y-6">
+        {Array.from(groupedBySubject.entries()).map(([subject, cells]) => {
+          const avgQuizAccuracy = Math.round(
+            cells.reduce((acc, c) => acc + c.masteryScore, 0) / Math.max(1, cells.length)
+          );
+          const trackStudyMinsNeeded = cells
+            .filter((c) => c.status !== 'mastered')
+            .reduce((acc, c) => acc + c.recommendedStudyMinutes, 0);
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {cells.map((cell) => {
-                const isSelected = activeReviewPlan?.cell.id === cell.id;
-                return (
-                  <button
-                    key={cell.id}
-                    type="button"
-                    onClick={() => handleGenerateTargetedReview(cell)}
-                    className={`p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer relative group flex flex-col justify-between shadow-md ${getHeatmapCellStyle(
-                      cell.status
-                    )} ${isSelected ? 'ring-2 ring-white scale-[1.01]' : 'hover:-translate-y-0.5'}`}
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-bold text-white group-hover:underline leading-snug">
-                          {cell.topic}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-black border shrink-0 ${getScoreBadgeStyle(
-                            cell.status
-                          )}`}
-                        >
-                          {cell.masteryScore}%
-                        </span>
-                      </div>
-
-                      {/* Mini Heat Intensity Bar */}
-                      <div className="w-full h-1.5 bg-slate-950/70 rounded-full overflow-hidden mt-2.5">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            cell.status === 'critical'
-                              ? 'bg-rose-500'
-                              : cell.status === 'developing'
-                              ? 'bg-amber-400'
-                              : cell.status === 'proficient'
-                              ? 'bg-teal-400'
-                              : 'bg-emerald-400'
-                          }`}
-                          style={{ width: `${cell.masteryScore}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
-                      <span className="opacity-80">
-                        {cell.status === 'critical'
-                          ? '⚠️ Needs Targeted Review'
-                          : cell.status === 'developing'
-                          ? '⚡ Reinforce Concept'
-                          : '✓ Solid Mastery'}
-                      </span>
-                      <span className="font-bold flex items-center space-x-1 text-white group-hover:translate-x-0.5 transition-transform">
-                        <span>
-                          {cell.status === 'critical' || cell.status === 'developing'
-                            ? 'Review Gap'
-                            : 'Practice'}
-                        </span>
-                        <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Interactive Targeted Review Session Drawer / Panel when a cell is clicked */}
-      {activeReviewPlan && (
-        <div className="relative z-10 mt-6 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/50 border-2 border-amber-500/40 rounded-2xl p-5 shadow-2xl space-y-4 animate-in fade-in duration-200">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-3.5">
-            <div className="flex items-start space-x-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 shrink-0">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Targeted Review Session Generated
+          return (
+            <div key={subject} className="space-y-3">
+              {/* Track Header Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-sm font-bold text-white">{subject}</span>
+                  <span aria-hidden="true" className="text-slate-600">
+                    ·
                   </span>
-                  <span className="text-xs text-slate-400">
-                    {activeReviewPlan.cell.subject} • Current Mastery:{' '}
-                    <strong className="text-white">{activeReviewPlan.cell.masteryScore}%</strong>
+                  <span className="text-rose-400 font-medium">
+                    {cells.filter((c) => c.status === 'critical' || c.status === 'high_need').length}{' '}
+                    high-intensity gaps
+                  </span>
+                  <span aria-hidden="true" className="text-slate-600">
+                    ·
+                  </span>
+                  <span className="text-slate-400 font-mono tabular-nums">
+                    +{trackStudyMinsNeeded}m recommended study time
                   </span>
                 </div>
-                <h4 className="text-base font-bold text-white mt-1">
-                  Remediation Plan: {activeReviewPlan.cell.topic}
-                </h4>
+
+                <div className="text-xs text-slate-400 font-mono tabular-nums">
+                  Avg Quiz Score: <strong className="text-white">{avgQuizAccuracy}%</strong>
+                </div>
               </div>
+
+              {/* 3-Column Color-Coded Sub-Topic Heatmap Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {cells.map((cell) => {
+                  const style = getCellIntensityStyles(cell.status);
+                  const isSelected = activeReviewPlan?.cell.id === cell.id;
+
+                  return (
+                    <button
+                      key={cell.id}
+                      type="button"
+                      onClick={() => handleSelectCell(cell)}
+                      className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                        style.card
+                      } ${isSelected ? 'ring-2 ring-white' : ''}`}
+                    >
+                      <div className="space-y-2.5">
+                        {/* Unboxed Metadata Kicker: Sub-Category · Study Time Needed */}
+                        <div className="flex items-center justify-between gap-2 text-[11px]">
+                          <span className={`font-semibold ${style.needColor}`}>
+                            {cell.subCategory}
+                          </span>
+                          <span className="font-mono tabular-nums text-white font-bold">
+                            {cell.masteryScore}% Quiz Avg
+                          </span>
+                        </div>
+
+                        {/* Sub-Topic Title */}
+                        <h4 className="text-xs font-bold text-white leading-snug">
+                          {cell.topic}
+                        </h4>
+
+                        {/* Heat Intensity Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="w-full h-2 bg-slate-950/80 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${style.bar}`}
+                              style={{ width: `${cell.masteryScore}%` }}
+                            />
+                          </div>
+
+                          {/* Quiz Performance History Sparkline Bars + Study Time Needed */}
+                          <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-slate-400">Quiz History:</span>
+                              <span className="font-mono tabular-nums text-slate-200">
+                                {cell.quizHistoryScores.map((s) => `${s}%`).join(' → ')}
+                              </span>
+                            </div>
+                            <span className="font-mono tabular-nums font-semibold text-amber-300">
+                              Need +{cell.recommendedStudyMinutes}m
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px]">
+                        <span className="text-slate-300">{style.intensityLabel}</span>
+                        <span className="font-semibold text-white flex items-center gap-1">
+                          <span>Remediate</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Interactive Remediation Drawer when any Sub-Topic Cell is selected */}
+      {activeReviewPlan && (
+        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-3.5">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-amber-400 font-semibold">
+                <Sparkles className="w-4 h-4" />
+                <span>{activeReviewPlan.cell.subject}</span>
+                <span aria-hidden="true" className="text-slate-600">
+                  ·
+                </span>
+                <span>{activeReviewPlan.cell.subCategory}</span>
+                <span aria-hidden="true" className="text-slate-600">
+                  ·
+                </span>
+                <span className="font-mono tabular-nums text-rose-300">
+                  Quiz Accuracy: {activeReviewPlan.cell.masteryScore}% (Needs +
+                  {activeReviewPlan.cell.recommendedStudyMinutes}m Study Time)
+                </span>
+              </div>
+              <h4 className="text-base font-bold text-white">
+                Targeted Gap Remediation: {activeReviewPlan.cell.topic}
+              </h4>
             </div>
 
             <button
               type="button"
               onClick={() => setActiveReviewPlan(null)}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer"
-              title="Close review panel"
+              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              title="Close remediation drawer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            {/* Left: 3-Step Targeted Review Breakdown & Key Concepts (7 cols) */}
+            {/* Left 7 Cols: Actionable Study Briefing & Launch Controls */}
             <div className="lg:col-span-7 space-y-3">
-              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                <span>3-Step Micro-Review Briefing</span>
+              <div className="text-xs font-semibold text-slate-300">
+                3-Step Sub-Topic Remediation Plan
               </div>
 
               <div className="space-y-2">
                 {activeReviewPlan.steps.map((step, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-200 flex items-start space-x-2.5"
+                    className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5"
                   >
-                    <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
-                      {idx + 1}
+                    <span className="font-mono font-bold text-amber-400 shrink-0">
+                      0{idx + 1}.
                     </span>
                     <span className="leading-relaxed">{step}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Action Buttons to launch on WhatsApp Simulator */}
               <div className="flex flex-wrap items-center gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() =>
                     onNavigateToChat(
-                      `Start a targeted review session on ${activeReviewPlan.cell.topic} in ${activeReviewPlan.cell.subject} and walk me through my knowledge gaps step by step`
+                      `I have a knowledge gap in ${activeReviewPlan.cell.subject} — "${activeReviewPlan.cell.topic}" (quiz score: ${activeReviewPlan.cell.masteryScore}%). Teach me ${activeReviewPlan.cell.keyConcepts.join(', ')} and help me avoid "${activeReviewPlan.cell.commonPitfall}".`
                     )
                   }
-                  className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                  className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5 fill-slate-950" />
-                  <span>Launch Socratic Review on WhatsApp</span>
+                  <span>Study Sub-Topic with AI Tutor</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    onNavigateToChat(`/smart-quiz ${activeReviewPlan.cell.topic}`)
-                  }
-                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                  onClick={() => {
+                    if (onNavigateToQuiz) {
+                      onNavigateToQuiz();
+                    } else {
+                      onNavigateToChat(`/smart-quiz ${activeReviewPlan.cell.subCategory}`);
+                    }
+                  }}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                  <span>Start 5-Min Adaptive Quiz on WhatsApp</span>
+                  <span>Take Sub-Topic Remediation Quiz</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleCompleteTargetedReview(activeReviewPlan.cell)}
+                  onClick={() => handleRemediateSubTopic(activeReviewPlan.cell)}
                   disabled={isUpdatingMastery}
-                  className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer"
+                  className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30 font-semibold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{isUpdatingMastery ? 'Updating...' : 'Mark Gap Remediated (+35%)'}</span>
+                  <span>
+                    {isUpdatingMastery
+                      ? 'Syncing...'
+                      : `Log +${activeReviewPlan.cell.recommendedStudyMinutes}m & Boost Mastery`}
+                  </span>
                 </button>
               </div>
             </div>
 
-            {/* Right: Instant Concept Check Question (5 cols) */}
-            <div className="lg:col-span-5 bg-slate-900/95 border border-slate-800 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center space-x-1.5">
+            {/* Right 5 Cols: Instant Diagnostic Check */}
+            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-amber-400 flex items-center gap-1.5">
                   <Brain className="w-3.5 h-3.5" />
-                  <span>Instant Gap Verification Check</span>
+                  <span>Instant Sub-Topic Verification</span>
                 </span>
-                <span className="text-[10px] text-slate-400">+35% Mastery Boost</span>
+                <span className="font-mono tabular-nums text-emerald-400">+28% Quiz Mastery</span>
               </div>
 
               <p className="text-xs text-white font-medium leading-relaxed">
@@ -798,7 +939,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
                       onClick={() => {
                         setSelectedAnswer(letter);
                         if (isCorrect) {
-                          handleCompleteTargetedReview(activeReviewPlan.cell);
+                          handleRemediateSubTopic(activeReviewPlan.cell);
                         }
                       }}
                       className={`w-full text-left p-2.5 rounded-xl border text-xs transition cursor-pointer ${

@@ -15,19 +15,26 @@ export interface StudentProfile {
   name: string;
   whatsappNumber: string;
   preferredLanguage: string; // e.g. 'en', 'hi', 'kn', 'ta', 'te', 'es', 'fr', 'de', 'ja', 'ar', etc.
-  educationLevel: 'school' | 'college' | 'competitive_exam' | 'professional';
+  educationLevel: 'school' | 'college' | 'competitive_exam' | 'professional' | 'competitive' | 'engineering';
   subjects: string[];
   currentSkillLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   learningGoals: string[];
   weakTopics: string[];
   strongTopics: string[];
   studyHoursPerDay: number;
+  weeklyStudyHoursGoal?: number;
+  weeklyHoursCompleted?: number;
+  dailyStudyMinutesCompleted?: number;
   preferredStudyTime: string; // e.g. "7:00 PM"
   dailyReminderEnabled?: boolean;
+  fcmToken?: string;
+  fcmPushEnabled?: boolean;
+  fcmRegisteredAt?: string;
+  lastFcmPushSentAt?: string;
   deepFocusEnabled?: boolean;
   mutedNotificationsCount?: number;
   examDates: { subject: string; date: string; title: string }[];
-  learningHistory: { topic: string; subject: string; date: string; mastered: boolean }[];
+  learningHistory: { topic: string; subject: string; date: string; score?: number; mastered: boolean }[];
   streak: number;
   lastActiveDate: string;
   overallProgress: number; // 0-100
@@ -37,7 +44,7 @@ export interface StudentProfile {
   learningRank?: 'Novice' | 'Apprentice' | 'Scholar' | 'Master';
   earnedBadges?: { id: string; name: string; awardedAt: string }[];
   completedCourseIds?: string[];
-  achievements?: string[];
+  achievements?: any[];
   dailyQuestionsGoal?: number;
   questionsAnsweredToday?: number;
   focusStats?: {
@@ -48,6 +55,39 @@ export interface StudentProfile {
   };
   pinnedDocumentIds?: string[];
   notes?: string;
+  faceAuthEnabled?: boolean;
+  faceAuthVerifiedAt?: string;
+  faceBiometricHash?: string;
+  aadhaarVerification?: {
+    verified: boolean;
+    maskedAadhaar: string;
+    holderName: string;
+    verifiedAt: string;
+    referenceId: string;
+  };
+  digilockerVerification?: {
+    verified: boolean;
+    digilockerId: string;
+    fetchedDocuments: {
+      docType: string;
+      docNumber: string;
+      issuer: string;
+      status: 'Verified';
+    }[];
+    verifiedAt: string;
+  };
+  enrolledCourseIds?: string[];
+  courseEnrollments?: {
+    courseId: string;
+    courseTitle: string;
+    subject: string;
+    provider?: string;
+    enrolledAt: string;
+    enrollmentRef: string;
+    aadhaarRef: string;
+    digilockerId: string;
+    faceVerified?: boolean;
+  }[];
 }
 
 export interface FocusSession {
@@ -111,6 +151,7 @@ export interface LearningResource {
     | 'C#'
     | 'R'
     | 'DSA'
+    | 'Government Exams'
     | 'Mathematics'
     | 'Generative AI'
     | 'AI Agents'
@@ -372,6 +413,9 @@ export interface DocumentChunk {
   chunkIndex: number;
   content: string;
   keywords: string[];
+  embedding?: number[];
+  similarityScore?: number;
+  matchedConcepts?: string[];
 }
 
 export interface Recommendation {
