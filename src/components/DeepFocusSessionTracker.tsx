@@ -215,7 +215,12 @@ export const DeepFocusSessionTracker: React.FC<DeepFocusSessionTrackerProps> = (
       if (db && profile.userId) {
         await setDoc(
           doc(db, 'profiles', profile.userId),
-          { focusStats: updatedFocusStats },
+          {
+            userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'en',
+            focusStats: updatedFocusStats,
+          },
           { merge: true }
         );
       }

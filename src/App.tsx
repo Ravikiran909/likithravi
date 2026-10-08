@@ -212,10 +212,19 @@ export default function App() {
       setSelectedProfile(updated);
     }
 
-    // Persist to Firestore if user is authenticated
-    if (currentUser && currentUser.uid === updated.userId) {
+    // Persist to Firestore database
+    if (db && updated.userId) {
       try {
-        await setDoc(doc(db, 'profiles', updated.userId), updated, { merge: true });
+        await setDoc(
+          doc(db, 'profiles', updated.userId),
+          {
+            ...updated,
+            userId: updated.userId,
+            name: updated.name || 'Student',
+            preferredLanguage: updated.preferredLanguage || 'en',
+          },
+          { merge: true }
+        );
       } catch (err) {
         console.warn('Failed to sync updated profile to Firestore:', err);
       }

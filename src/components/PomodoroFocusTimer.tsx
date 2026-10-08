@@ -137,6 +137,9 @@ export const PomodoroFocusTimer: React.FC<PomodoroFocusTimerProps> = ({
           await setDoc(
             doc(db, 'profiles', profile.userId),
             {
+              userId: profile.userId,
+              name: profile.name || 'Student',
+              preferredLanguage: profile.preferredLanguage || 'en',
               focusStats: {
                 totalFocusMinutes: newTotal,
                 completedSessions: newSessions,

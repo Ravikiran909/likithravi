@@ -142,6 +142,8 @@ export const CourseEnrollmentVerificationModal: React.FC<
           doc(db, 'profiles', profile.userId),
           {
             userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'en',
             aadhaarVerification: verificationPayload,
           },
           { merge: true }
@@ -210,6 +212,8 @@ export const CourseEnrollmentVerificationModal: React.FC<
           doc(db, 'profiles', profile.userId),
           {
             userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'en',
             digilockerVerification: digilockerPayload,
           },
           { merge: true }
@@ -309,6 +313,8 @@ export const CourseEnrollmentVerificationModal: React.FC<
           doc(db, 'profiles', profile.userId),
           {
             userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'en',
             enrolledCourseIds: nextEnrolledIds,
             courseEnrollments: nextEnrollments,
           },

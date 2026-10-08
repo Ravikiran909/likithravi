@@ -238,6 +238,9 @@ export const SmartStudyReminderFcm: React.FC<SmartStudyReminderFcmProps> = ({
 
       // Persist token and preferredStudyTime to Firestore & Express backend
       const updatedFields = {
+        userId: profile.userId,
+        name: profile.name || 'Student',
+        preferredLanguage: profile.preferredLanguage || 'en',
         fcmToken: result.token,
         fcmPushEnabled: true,
         preferredStudyTime,
@@ -293,6 +296,9 @@ export const SmartStudyReminderFcm: React.FC<SmartStudyReminderFcmProps> = ({
     setFcmPushEnabled(nextEnabled);
 
     const updatedFields = {
+      userId: profile.userId,
+      name: profile.name || 'Student',
+      preferredLanguage: profile.preferredLanguage || 'en',
       preferredStudyTime: cleanTime,
       fcmPushEnabled: nextEnabled,
       dailyReminderEnabled: nextEnabled,

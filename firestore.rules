@@ -28,16 +28,16 @@ service cloud.firestore {
     }
 
     function isValidUser(data) {
-      return data.id is string && data.id.size() <= 128
-        && data.name is string && data.name.size() <= 100
-        && data.email is string && data.email.size() <= 150
-        && data.role in ['student', 'admin'];
+      return (!('id' in data) || (data.id is string && data.id.size() <= 128))
+        && (!('name' in data) || (data.name is string && data.name.size() <= 100))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 150))
+        && (!('role' in data) || (data.role in ['student', 'admin']));
     }
 
     function isValidStudentProfile(data) {
-      return data.userId is string && data.userId.size() <= 128
-        && data.name is string && data.name.size() <= 100
-        && data.preferredLanguage is string && data.preferredLanguage.size() <= 20;
+      return (!('userId' in data) || (data.userId is string && data.userId.size() <= 128))
+        && (!('name' in data) || (data.name is string && data.name.size() <= 100))
+        && (!('preferredLanguage' in data) || (data.preferredLanguage is string && data.preferredLanguage.size() <= 20));
     }
 
     function isValidDocumentRecord(data) {

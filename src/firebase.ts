@@ -112,11 +112,7 @@ export const googleSignIn = async (): Promise<{ user: FirebaseUser; accessToken:
     isSigningIn = true;
     const result = await signInWithPopup(auth, googleProvider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Failed to get Google Calendar access token from Firebase Auth');
-    }
-
-    cachedAccessToken = credential.accessToken;
+    cachedAccessToken = credential?.accessToken || '';
     notifyTokenListeners();
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {

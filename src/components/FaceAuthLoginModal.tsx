@@ -171,6 +171,7 @@ export const FaceAuthLoginModal: React.FC<FaceAuthLoginModalProps> = ({
           {
             userId: updatedProfile.userId,
             name: updatedProfile.name,
+            preferredLanguage: updatedProfile.preferredLanguage || 'en',
             faceAuthEnabled: true,
             faceAuthVerifiedAt: nowIso,
             faceBiometricHash: generatedHash,

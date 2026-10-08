@@ -298,6 +298,9 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
           await setDoc(
             doc(db, 'profiles', profile.userId),
             {
+              userId: profile.userId,
+              name: profile.name || 'Student',
+              preferredLanguage: profile.preferredLanguage || 'en',
               dailyStudyMinutesCompleted: newDailyMinutes,
               weeklyHoursCompleted: newWeeklyHours,
               totalSessions: newTotalSessions,
