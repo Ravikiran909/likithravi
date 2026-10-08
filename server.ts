@@ -1736,12 +1736,27 @@ app.get('/api/recommendations/:userId', (req, res) => {
   res.json(db.getRecommendations(req.params.userId));
 });
 
+const flashcardDeckCache = new Map<string, any[]>();
+
 // Generate Active Recall Flashcards for Weak Topics using Gemini 3.8
 app.post('/api/flashcards/generate', async (req, res) => {
   try {
     const { topic, subject, count = 5, level = 'intermediate' } = req.body;
     if (!topic) {
       return res.status(400).json({ error: 'Topic is required' });
+    }
+
+    const cacheKey = `${String(subject || 'general').toLowerCase()}::${String(topic).toLowerCase()}::${count}::${level}`;
+    const cachedCards = flashcardDeckCache.get(cacheKey);
+    if (cachedCards && cachedCards.length > 0) {
+      return res.json({
+        success: true,
+        topic,
+        subject: subject || 'Curriculum',
+        cards: cachedCards,
+        flashcards: cachedCards,
+        count: cachedCards.length,
+      });
     }
 
     const ai = getGeminiAI();
@@ -1779,10 +1794,15 @@ Respond strictly with a JSON array:
             temperature: 0.6,
           },
           preferredModel: 'gemini-3.8-flash',
-          timeoutMs: 12000,
+          timeoutMs: 8000,
         });
 
-        const parsed = JSON.parse(geminiRes.text || '[]');
+        const cleanJson = (geminiRes.text || '[]')
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .trim();
+        const parsed = JSON.parse(cleanJson || '[]');
         if (Array.isArray(parsed) && parsed.length > 0) {
           cards = parsed.map((c, i) => ({
             id: c.id || `card_${Date.now()}_${i}`,
@@ -1794,8 +1814,8 @@ Respond strictly with a JSON array:
             subject: subject || 'Curriculum',
           }));
         }
-      } catch (err) {
-        console.warn('Gemini flashcard generation fallback:', err);
+      } catch {
+        // Gracefully fall back to curated pedagogical deck below when rate-limited or offline
       }
     }
 
@@ -1904,11 +1924,16 @@ Respond strictly with a JSON array:
       }
     }
 
+    if (cards.length > 0) {
+      flashcardDeckCache.set(cacheKey, cards);
+    }
+
     res.json({
       success: true,
       topic,
       subject: subject || 'Curriculum',
       cards,
+      flashcards: cards,
       count: cards.length,
     });
   } catch (err: any) {
@@ -3186,7 +3211,6 @@ app.post('/api/documents/test-tutor-response', async (req, res) => {
       contextString: searchRes.contextString,
     });
   } catch (err: any) {
-    console.error('Tutor response test error:', err);
     res.status(500).json({ error: err.message || 'Failed to simulate tutor response' });
   }
 });

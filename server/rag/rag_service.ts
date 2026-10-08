@@ -1,6 +1,6 @@
 import { db } from '../database/db.ts';
 import { DocumentRecord, DocumentChunk, LearningResource } from '../../src/types/index.ts';
-import { getGeminiAI } from '../gemini.ts';
+import { getGeminiAI, isModelInCooldown, markModelCooldown } from '../gemini.ts';
 import { CURATED_LEARNING_RESOURCES } from '../database/learningResources.ts';
 
 /**
@@ -248,7 +248,7 @@ export class RagService {
     }
 
     const ai = getGeminiAI();
-    if (!ai) return null;
+    if (!ai || isModelInCooldown('gemini-embedding-2-preview')) return null;
 
     let timer: NodeJS.Timeout | null = null;
     try {
@@ -269,7 +269,8 @@ export class RagService {
         return normalized;
       }
       return null;
-    } catch {
+    } catch (err) {
+      markModelCooldown('gemini-embedding-2-preview', err);
       return null;
     } finally {
       if (timer) clearTimeout(timer);

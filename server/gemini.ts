@@ -26,6 +26,41 @@ export function getGeminiAI(): GoogleGenAI | null {
  */
 const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
 
+// Track models that hit 429 RESOURCE_EXHAUSTED so we skip them during their quota cooldown window
+const modelCooldownUntil = new Map<string, number>();
+
+export function isModelInCooldown(model: string): boolean {
+  const until = modelCooldownUntil.get(model);
+  if (!until) return false;
+  if (Date.now() >= until) {
+    modelCooldownUntil.delete(model);
+    return false;
+  }
+  return true;
+}
+
+export function markModelCooldown(model: string, err: any): void {
+  const msg = String(err?.message || err || '');
+  const status = err?.status || err?.code || err?.error?.code;
+  const isQuotaOrRateLimit =
+    status === 429 ||
+    status === 'RESOURCE_EXHAUSTED' ||
+    msg.includes('429') ||
+    msg.includes('RESOURCE_EXHAUSTED') ||
+    msg.includes('Quota exceeded') ||
+    msg.includes('rate limit');
+
+  if (isQuotaOrRateLimit) {
+    // If daily quota is exhausted, cool down this specific model for 30 minutes; otherwise 2 minutes
+    const isDailyQuota =
+      msg.includes('PerDay') || msg.includes('free_tier_requests') || msg.includes('retryDelay');
+    const cooldownMs = isDailyQuota ? 30 * 60 * 1000 : 2 * 60 * 1000;
+    modelCooldownUntil.set(model, Date.now() + cooldownMs);
+  } else if (status === 503 || msg.includes('503') || msg.includes('UNAVAILABLE')) {
+    modelCooldownUntil.set(model, Date.now() + 30 * 1000);
+  }
+}
+
 export interface GenerateContentRetryOptions {
   contents: any;
   config?: any;
@@ -36,7 +71,7 @@ export interface GenerateContentRetryOptions {
 
 /**
  * Robust Gemini caller that automatically handles 503 (high demand), 429 (rate limits),
- * model cascading, and exponential backoff retry.
+ * model cascading, and quota cooldown tracking.
  */
 export async function generateContentWithRetry(
   options: GenerateContentRetryOptions
@@ -47,14 +82,23 @@ export async function generateContentWithRetry(
   }
 
   const preferred = options.preferredModel || 'gemini-3.8-flash';
-  const models = [preferred, ...CANDIDATE_MODELS.filter((m) => m !== preferred)];
+  const allModels = [preferred, ...CANDIDATE_MODELS.filter((m) => m !== preferred)];
+  const availableModels = allModels.filter((m) => !isModelInCooldown(m));
+
+  // If all candidate models have exhausted their quota, bail out immediately so callers use deterministic fallback
+  if (availableModels.length === 0) {
+    throw new Error('All Gemini candidate models are currently in quota cooldown.');
+  }
+
   const maxAttempts = options.maxAttempts ?? 1;
   const timeoutMs = options.timeoutMs ?? 6500;
 
   let lastError: any = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    for (const model of models) {
+    for (const model of availableModels) {
+      if (isModelInCooldown(model)) continue;
+
       try {
         const callPromise = ai.models.generateContent({
           model,
@@ -77,6 +121,7 @@ export async function generateContentWithRetry(
           if (timer) clearTimeout(timer);
         }
       } catch (err: any) {
+        markModelCooldown(model, err);
         lastError = err;
         continue;
       }
@@ -843,25 +888,27 @@ export async function transcribeAudio(
   };
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-transcribe',
-      contents: {
-        parts: [
-          audioPart,
-          {
-            text: 'Transcribe this student audio query accurately into text. If the student speaks English, Hindi, or Kannada, preserve the language and vocabulary verbatim. Return only the transcription.',
-          },
-        ],
-      },
-    });
-
-    if (response.text && response.text.trim().length > 0) {
-      return response.text.trim();
-    }
-  } catch {
-    try {
+    if (!isModelInCooldown('gemini-3.5-transcribe')) {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-3.5-transcribe',
+        contents: {
+          parts: [
+            audioPart,
+            {
+              text: 'Transcribe this student audio query accurately into text. If the student speaks English, Hindi, or Kannada, preserve the language and vocabulary verbatim. Return only the transcription.',
+            },
+          ],
+        },
+      });
+
+      if (response.text && response.text.trim().length > 0) {
+        return response.text.trim();
+      }
+    }
+  } catch (err) {
+    markModelCooldown('gemini-3.5-transcribe', err);
+    try {
+      const response = await generateContentWithRetry({
         contents: {
           parts: [
             audioPart,

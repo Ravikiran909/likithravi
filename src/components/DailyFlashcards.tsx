@@ -85,7 +85,8 @@ export const DailyFlashcards: React.FC<DailyFlashcardsProps> = ({
       });
       if (res.ok) {
         const data = await res.json();
-        const generated: SpacedFlashcardItem[] = (data.flashcards || []).map(
+        const rawList = data.cards || data.flashcards || [];
+        const generated: SpacedFlashcardItem[] = rawList.map(
           (c: Flashcard) => ({
             ...c,
             intervalDays: 1,
@@ -93,8 +94,8 @@ export const DailyFlashcards: React.FC<DailyFlashcardsProps> = ({
         );
         setCards(generated);
       }
-    } catch (err) {
-      console.warn('Daily flashcards generation error:', err);
+    } catch {
+      // Handled gracefully
     } finally {
       setIsGenerating(false);
     }
@@ -140,9 +141,13 @@ export const DailyFlashcards: React.FC<DailyFlashcardsProps> = ({
         await setDoc(
           doc(db, 'profiles', profile.userId),
           {
+            userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'English',
             weakTopics: nextWeak,
             strongTopics: nextStrong,
             overallProgress: updatedProfile.overallProgress,
+            updatedAt: new Date().toISOString(),
           },
           { merge: true }
         ).catch(() => {});
