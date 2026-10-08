@@ -176,15 +176,19 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     profile.studyHoursPerDay || 2
   );
   const [customLogMinutes, setCustomLogMinutes] = useState<number>(20);
+  const safeSubjects =
+    Array.isArray(profile.subjects) && profile.subjects.length > 0
+      ? profile.subjects
+      : ['Python', 'DSA', 'Calculus'];
   const [customLogTopic, setCustomLogTopic] = useState<string>(
-    profile.subjects[0] || 'Python Practice'
+    safeSubjects[0] || 'Python Practice'
   );
   const [activityLogsToday, setActivityLogsToday] = useState<
     { id: string; label: string; minutes: number; time: string }[]
   >([
     {
       id: 'init_log_1',
-      label: `${profile.subjects[0] || 'Python'} Socratic Review`,
+      label: `${safeSubjects[0] || 'Python'} Socratic Review`,
       minutes: 25,
       time: 'Earlier today',
     },
@@ -260,7 +264,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       setActivityLogsToday((prev) => [
         {
           id: `log_${Date.now()}`,
-          label: activityLabel || `${profile.subjects[0] || 'Curriculum'} Study Session`,
+          label: activityLabel || `${safeSubjects[0] || 'Curriculum'} Study Session`,
           minutes: mins,
           time: nowTime,
         },
@@ -1007,7 +1011,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   remainingMinutes={remainingMinutes}
                   progressPercent={goalProgressPercent}
                   isGoalAchieved={isGoalAchieved}
-                  size={160}
+                  streak={profile.streak || 1}
+                  size={168}
                   strokeWidth={12}
                 />
                 <button
@@ -2123,7 +2128,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             onNavigateToQuiz={() => setActiveTab('quiz')}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {profile.subjects.map((sub) => (
+            {safeSubjects.map((sub) => (
               <div key={sub} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition">
                 <div className="flex items-center justify-between mb-3">
                   <div className="font-semibold text-white text-base">{sub}</div>

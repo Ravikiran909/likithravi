@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
 import { db, doc, setDoc } from '../firebase.ts';
+import { CircularStudyGoal } from './CircularStudyGoal.tsx';
 
 interface DailyStudyGoalProps {
   profile: StudentProfile;
@@ -164,6 +165,8 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
           doc(db, 'profiles', profile.userId),
           {
             userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'en',
             studyHoursPerDay: clamped,
             updatedAt: new Date().toISOString(),
           },
@@ -177,6 +180,46 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
     const needed = Math.max(15, targetMinutes - studiedMinutes);
     onLogStudyMinutes(needed, 'Completed Daily Study Goal');
   };
+
+  const handleIncrementStreak = async () => {
+    const nextStreak = (profile.streak || 0) + 1;
+    const todayIso = new Date().toISOString().split('T')[0];
+    const updatedProfile: StudentProfile = {
+      ...profile,
+      streak: nextStreak,
+      lastActiveDate: todayIso,
+    };
+    onProfileUpdate(updatedProfile);
+
+    try {
+      await fetch(`/api/students/${profile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ streak: nextStreak, lastActiveDate: todayIso }),
+      });
+    } catch {}
+
+    try {
+      if (db && profile.userId) {
+        await setDoc(
+          doc(db, 'profiles', profile.userId),
+          {
+            userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'en',
+            streak: nextStreak,
+            lastActiveDate: todayIso,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      }
+    } catch {}
+  };
+
+  const currentStreak = profile.streak || 1;
+  const nextStreakMilestone =
+    currentStreak < 3 ? 3 : currentStreak < 7 ? 7 : currentStreak < 14 ? 14 : 30;
 
   const checkpoints = [
     { pct: 25, label: '25% Warmup', mins: Math.round(targetMinutes * 0.25) },
@@ -223,7 +266,9 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
 
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-extrabold text-white">Daily Study Goal</h3>
+                  <h3 className="text-lg font-extrabold text-white">
+                    Daily Study Goal & Streak Ring
+                  </h3>
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
                       isGoalMet
@@ -232,6 +277,10 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
                     }`}
                   >
                     {isGoalMet ? '🎉 Goal Met (100%)' : `${progressPercent}% Completed`}
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center space-x-1">
+                    <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <span>{currentStreak}-Day Streak</span>
                   </span>
                   {bonusMinutes > 0 && (
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
@@ -245,7 +294,8 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
                   mins) • Logged Today:{' '}
                   <strong className={isGoalMet ? 'text-emerald-400' : 'text-indigo-300'}>
                     {completedHours} hrs ({studiedMinutes} mins)
-                  </strong>
+                  </strong>{' '}
+                  • Streak Target: <strong className="text-amber-300">{currentStreak}/{nextStreakMilestone} days</strong>
                 </p>
               </div>
             </div>
@@ -265,9 +315,19 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
               <div className="h-6 w-px bg-slate-800" />
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Streak
+                </div>
+                <div className="text-sm font-black text-amber-400 font-mono tabular-nums flex items-center space-x-1">
+                  <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                  <span>{currentStreak}d</span>
+                </div>
+              </div>
+              <div className="h-6 w-px bg-slate-800" />
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Remaining
                 </div>
-                <div className="text-sm font-black text-amber-400 font-mono tabular-nums">
+                <div className="text-sm font-black text-sky-400 font-mono tabular-nums">
                   {remainingMinutes > 0 ? `${remainingHours}h (${remainingMinutes}m)` : '0m left!'}
                 </div>
               </div>
@@ -285,82 +345,151 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
           </div>
         </div>
 
-        {/* Main Progress Bar Section */}
-        <div className="space-y-2.5 bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="font-bold text-slate-200 flex items-center space-x-1.5">
-              <Clock className="w-3.5 h-3.5 text-indigo-400" />
-              <span>
-                Daily Study Hours Progress ({studiedMinutes} / {targetMinutes} mins)
+        {/* Circular Progress Ring (Daily Study Hours + Streak) & Progress Bar Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center bg-slate-950/70 border border-slate-800/90 rounded-2xl p-5">
+          {/* Left: Circular Progress Ring for Daily Study Hours & Streak */}
+          <div className="lg:col-span-4 flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80">
+            <CircularStudyGoal
+              completedHours={completedHours}
+              completedMinutes={studiedMinutes}
+              targetHours={targetHours}
+              targetMinutes={targetMinutes}
+              remainingHours={remainingHours}
+              remainingMinutes={remainingMinutes}
+              progressPercent={progressPercent}
+              isGoalAchieved={isGoalMet}
+              streak={currentStreak}
+              streakTarget={nextStreakMilestone}
+              size={172}
+              strokeWidth={12}
+            />
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleIncrementStreak}
+                className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold flex items-center space-x-1 transition cursor-pointer"
+                title="Log today's study streak day"
+              >
+                <Flame className="w-3 h-3 text-amber-400 fill-amber-400" />
+                <span>+1 Streak Day ({currentStreak}d)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Right: Progress Bar, Checkpoints & 7-Day Streak Chain */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="font-bold text-slate-200 flex items-center space-x-1.5">
+                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                <span>
+                  Daily Study Hours Progress ({studiedMinutes} / {targetMinutes} mins)
+                </span>
               </span>
-            </span>
 
-            <span
-              className={`font-extrabold font-mono tabular-nums ${
-                isGoalMet ? 'text-emerald-400' : 'text-indigo-300'
-              }`}
+              <span
+                className={`font-extrabold font-mono tabular-nums ${
+                  isGoalMet ? 'text-emerald-400' : 'text-indigo-300'
+                }`}
+              >
+                {completedHours} hrs of {targetHours} hrs ({progressPercent}%)
+              </span>
+            </div>
+
+            {/* Animated Progress Bar Track */}
+            <div
+              role="progressbar"
+              aria-valuenow={progressPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Daily Study Goal Progress Bar"
+              className="w-full h-5 bg-slate-900 rounded-full p-1 border border-slate-800 overflow-hidden relative shadow-inner"
             >
-              {completedHours} hrs of {targetHours} hrs ({progressPercent}%)
-            </span>
-          </div>
-
-          {/* Animated Progress Bar Track */}
-          <div
-            role="progressbar"
-            aria-valuenow={progressPercent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Daily Study Goal Progress Bar"
-            className="w-full h-5 bg-slate-900 rounded-full p-1 border border-slate-800 overflow-hidden relative shadow-inner"
-          >
-            {/* Quarter Checkpoint Tick Marks */}
-            {[25, 50, 75].map((tick) => (
-              <div
-                key={tick}
-                style={{ left: `${tick}%` }}
-                className="absolute top-0 bottom-0 w-px bg-slate-700/60 z-10 pointer-events-none"
-              />
-            ))}
-
-            <motion.div
-              initial={false}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              className={`h-full rounded-full relative overflow-hidden ${
-                isGoalMet
-                  ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 shadow-lg shadow-emerald-500/30'
-                  : 'bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-400 shadow-md shadow-indigo-500/20'
-              }`}
-            >
-              <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
-            </motion.div>
-          </div>
-
-          {/* Checkpoint Pills Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-            {checkpoints.map((cp) => {
-              const reached = studiedMinutes >= cp.mins;
-              return (
+              {/* Quarter Checkpoint Tick Marks */}
+              {[25, 50, 75].map((tick) => (
                 <div
-                  key={cp.pct}
-                  className={`px-2.5 py-1.5 rounded-xl border text-[11px] flex items-center justify-between transition ${
-                    reached
-                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200 font-bold'
-                      : 'bg-slate-900/70 border-slate-800 text-slate-400'
-                  }`}
-                >
-                  <span className="flex items-center space-x-1">
-                    {reached ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    ) : (
-                      <Clock className="w-3 h-3 text-slate-500 shrink-0" />
-                    )}
-                    <span>{cp.label}</span>
-                  </span>
-                  <span className="font-mono text-[10px] opacity-80">{cp.mins}m</span>
+                  key={tick}
+                  style={{ left: `${tick}%` }}
+                  className="absolute top-0 bottom-0 w-px bg-slate-700/60 z-10 pointer-events-none"
+                />
+              ))}
+
+              <motion.div
+                initial={false}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                className={`h-full rounded-full relative overflow-hidden ${
+                  isGoalMet
+                    ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 shadow-lg shadow-emerald-500/30'
+                    : 'bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-400 shadow-md shadow-indigo-500/20'
+                }`}
+              >
+                <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
+              </motion.div>
+            </div>
+
+            {/* Checkpoint Pills Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              {checkpoints.map((cp) => {
+                const reached = studiedMinutes >= cp.mins;
+                return (
+                  <div
+                    key={cp.pct}
+                    className={`px-2.5 py-1.5 rounded-xl border text-[11px] flex items-center justify-between transition ${
+                      reached
+                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200 font-bold'
+                        : 'bg-slate-900/70 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <span className="flex items-center space-x-1">
+                      {reached ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      ) : (
+                        <Clock className="w-3 h-3 text-slate-500 shrink-0" />
+                      )}
+                      <span>{cp.label}</span>
+                    </span>
+                    <span className="font-mono text-[10px] opacity-80">{cp.mins}m</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 7-Day Study Streak Progress Strip */}
+            <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <Flame className="w-4 h-4 text-amber-400 fill-amber-400" />
+                <div>
+                  <div className="text-xs font-bold text-white">
+                    {currentStreak}-Day Continuous Study Streak
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    {Math.max(0, nextStreakMilestone - currentStreak) > 0
+                      ? `${nextStreakMilestone - currentStreak} more days to unlock ${nextStreakMilestone}-Day Streak Milestone`
+                      : `${nextStreakMilestone}-Day Streak Milestone Unlocked!`}
+                  </div>
                 </div>
-              );
-            })}
+              </div>
+
+              <div className="flex items-center space-x-1.5">
+                {Array.from({ length: 7 }, (_, idx) => {
+                  const dayNum = idx + 1;
+                  const active = dayNum <= Math.min(7, currentStreak);
+                  return (
+                    <div
+                      key={dayNum}
+                      className={`w-7 h-7 rounded-lg flex flex-col items-center justify-center text-[10px] font-extrabold border transition ${
+                        active
+                          ? 'bg-gradient-to-br from-amber-500 to-orange-500 border-amber-300 text-slate-950 shadow-sm shadow-amber-500/30'
+                          : 'bg-slate-900 border-slate-800 text-slate-500'
+                      }`}
+                      title={`Streak Day ${dayNum}`}
+                    >
+                      <span>{active ? '🔥' : `D${dayNum}`}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 

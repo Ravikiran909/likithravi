@@ -23,6 +23,102 @@ import {
   FirebaseUser,
 } from './firebase.ts';
 
+const normalizeStudentProfile = (
+  raw: Partial<StudentProfile> | null | undefined,
+  fallback?: StudentProfile | null
+): StudentProfile => {
+  const base = fallback || ({} as Partial<StudentProfile>);
+  const userId = raw?.userId || base.userId || 'usr_rahul';
+  return {
+    ...base,
+    ...(raw || {}),
+    id: raw?.id || base.id || `prof_${userId}`,
+    userId,
+    name: raw?.name || base.name || 'Student',
+    whatsappNumber: raw?.whatsappNumber || base.whatsappNumber || '+919876543210',
+    preferredLanguage: raw?.preferredLanguage || base.preferredLanguage || 'en',
+    educationLevel: raw?.educationLevel || base.educationLevel || 'college',
+    subjects:
+      Array.isArray(raw?.subjects) && raw.subjects.length > 0
+        ? raw.subjects
+        : Array.isArray(base.subjects) && base.subjects.length > 0
+        ? base.subjects
+        : ['Python', 'DSA', 'Calculus', 'Machine Learning'],
+    currentSkillLevel: raw?.currentSkillLevel || base.currentSkillLevel || 'intermediate',
+    learningGoals:
+      Array.isArray(raw?.learningGoals) && raw.learningGoals.length > 0
+        ? raw.learningGoals
+        : Array.isArray(base.learningGoals) && base.learningGoals.length > 0
+        ? base.learningGoals
+        : ['Master Programming & Algorithms', 'Ace Academic Exams with AI Tutor'],
+    weakTopics: Array.isArray(raw?.weakTopics)
+      ? raw.weakTopics
+      : Array.isArray(base.weakTopics)
+      ? base.weakTopics
+      : ['Calculus (Integration)', 'Recursion edge cases'],
+    strongTopics: Array.isArray(raw?.strongTopics)
+      ? raw.strongTopics
+      : Array.isArray(base.strongTopics)
+      ? base.strongTopics
+      : ['Python Basics', 'Control Flow'],
+    studyHoursPerDay:
+      typeof raw?.studyHoursPerDay === 'number' && raw.studyHoursPerDay > 0
+        ? raw.studyHoursPerDay
+        : typeof base.studyHoursPerDay === 'number' && base.studyHoursPerDay > 0
+        ? base.studyHoursPerDay
+        : 2,
+    preferredStudyTime: raw?.preferredStudyTime || base.preferredStudyTime || '7:00 PM',
+    dailyReminderEnabled:
+      raw?.dailyReminderEnabled !== undefined
+        ? Boolean(raw.dailyReminderEnabled)
+        : base.dailyReminderEnabled !== undefined
+        ? Boolean(base.dailyReminderEnabled)
+        : true,
+    examDates: Array.isArray(raw?.examDates)
+      ? raw.examDates
+      : Array.isArray(base.examDates)
+      ? base.examDates
+      : [],
+    learningHistory: Array.isArray(raw?.learningHistory)
+      ? raw.learningHistory
+      : Array.isArray(base.learningHistory)
+      ? base.learningHistory
+      : [],
+    streak:
+      typeof raw?.streak === 'number'
+        ? raw.streak
+        : typeof base.streak === 'number'
+        ? base.streak
+        : 1,
+    lastActiveDate:
+      raw?.lastActiveDate || base.lastActiveDate || new Date().toISOString().split('T')[0],
+    overallProgress:
+      typeof raw?.overallProgress === 'number'
+        ? raw.overallProgress
+        : typeof base.overallProgress === 'number'
+        ? base.overallProgress
+        : 65,
+    totalSessions:
+      typeof raw?.totalSessions === 'number'
+        ? raw.totalSessions
+        : typeof base.totalSessions === 'number'
+        ? base.totalSessions
+        : 1,
+    totalQuestionsAnswered:
+      typeof raw?.totalQuestionsAnswered === 'number'
+        ? raw.totalQuestionsAnswered
+        : typeof base.totalQuestionsAnswered === 'number'
+        ? base.totalQuestionsAnswered
+        : 10,
+    correctAnswers:
+      typeof raw?.correctAnswers === 'number'
+        ? raw.correctAnswers
+        : typeof base.correctAnswers === 'number'
+        ? base.correctAnswers
+        : 8,
+  };
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin'>('simulator');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
@@ -78,7 +174,7 @@ export default function App() {
           let userProfile: StudentProfile;
 
           if (snap.exists()) {
-            userProfile = snap.data() as StudentProfile;
+            userProfile = normalizeStudentProfile(snap.data() as Partial<StudentProfile>, selectedProfile);
           } else {
             // Create user account & profile in Firestore
             const initialUserData = {
@@ -93,7 +189,7 @@ export default function App() {
 
             await setDoc(userDocRef, initialUserData);
 
-            userProfile = {
+            userProfile = normalizeStudentProfile({
               id: 'prof_' + user.uid,
               userId: user.uid,
               name: user.displayName || 'Google Student',
@@ -116,9 +212,9 @@ export default function App() {
               totalSessions: 1,
               totalQuestionsAnswered: 10,
               correctAnswers: 8,
-            };
+            });
 
-            await setDoc(profileDocRef, userProfile);
+            await setDoc(profileDocRef, JSON.parse(JSON.stringify(userProfile)));
           }
 
           // Sync profile to backend in-memory DB so all AI agents have the active student profile
@@ -151,11 +247,16 @@ export default function App() {
       profileDocRef,
       (docSnap) => {
         if (docSnap.exists()) {
-          const remoteProfile = docSnap.data() as StudentProfile;
-          setSelectedProfile(remoteProfile);
-          setProfiles((prev) =>
-            prev.map((p) => (p.userId === remoteProfile.userId ? remoteProfile : p))
-          );
+          setSelectedProfile((prevSelected) => {
+            const remoteProfile = normalizeStudentProfile(
+              docSnap.data() as Partial<StudentProfile>,
+              prevSelected
+            );
+            setProfiles((prev) =>
+              prev.map((p) => (p.userId === remoteProfile.userId ? remoteProfile : p))
+            );
+            return remoteProfile;
+          });
         }
       },
       (error) => {
@@ -175,10 +276,13 @@ export default function App() {
 
       if (studentsRes.ok) {
         const data = await studentsRes.json();
-        setProfiles(data.profiles || []);
-        if (data.profiles?.length > 0 && !selectedProfile) {
-          setSelectedProfile(data.profiles[0]);
-          saveOfflineProfile(data.profiles[0]);
+        const normalizedProfiles = (data.profiles || []).map((p: Partial<StudentProfile>) =>
+          normalizeStudentProfile(p)
+        );
+        setProfiles(normalizedProfiles);
+        if (normalizedProfiles.length > 0 && !selectedProfile) {
+          setSelectedProfile(normalizedProfiles[0]);
+          saveOfflineProfile(normalizedProfiles[0]);
         }
       }
 
@@ -205,26 +309,28 @@ export default function App() {
   };
 
   const handleProfileUpdate = async (updated: StudentProfile) => {
+    const cleanProfile = normalizeStudentProfile(updated, selectedProfile);
     setProfiles((prev) =>
-      prev.map((p) => (p.userId === updated.userId ? updated : p))
+      prev.map((p) => (p.userId === cleanProfile.userId ? cleanProfile : p))
     );
-    if (selectedProfile?.userId === updated.userId) {
-      setSelectedProfile(updated);
+    if (selectedProfile?.userId === cleanProfile.userId) {
+      setSelectedProfile(cleanProfile);
     }
 
-    // Persist to Firestore database
-    if (db && updated.userId) {
+    // Persist to Firestore database cleanly without undefined properties
+    if (db && cleanProfile.userId) {
       try {
-        await setDoc(
-          doc(db, 'profiles', updated.userId),
-          {
-            ...updated,
-            userId: updated.userId,
-            name: updated.name || 'Student',
-            preferredLanguage: updated.preferredLanguage || 'en',
-          },
-          { merge: true }
+        const sanitizedPayload = JSON.parse(
+          JSON.stringify({
+            ...cleanProfile,
+            userId: cleanProfile.userId,
+            name: cleanProfile.name || 'Student',
+            preferredLanguage: cleanProfile.preferredLanguage || 'en',
+          })
         );
+        await setDoc(doc(db, 'profiles', cleanProfile.userId), sanitizedPayload, {
+          merge: true,
+        });
       } catch (err) {
         console.warn('Failed to sync updated profile to Firestore:', err);
       }

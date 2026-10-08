@@ -1272,8 +1272,8 @@ Type your answer below! 👇`,
   checkAndAwardAchievements(userId: string): { id: string; title: string; xpReward: number }[] {
     const prof = this.getProfileByUserId(userId);
     if (!prof) return [];
-    const existing = Array.isArray(prof.achievements) ? [...prof.achievements] : [];
-    const existingIds = new Set(existing.map((a) => a.id));
+    const existing: any[] = Array.isArray(prof.achievements) ? [...prof.achievements] : [];
+    const existingIds = new Set(existing.map((a: any) => (typeof a === 'string' ? a : a?.id)).filter(Boolean));
     const newlyAwarded: { id: string; title: string; xpReward: number }[] = [];
     const nowIso = new Date().toISOString();
 

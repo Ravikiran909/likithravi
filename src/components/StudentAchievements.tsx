@@ -378,8 +378,11 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
           doc(db, 'profiles', profile.userId),
           {
             userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'English',
             earnedBadges: updatedEarned,
             achievements: updatedAchievements,
+            updatedAt: new Date().toISOString(),
           },
           { merge: true }
         ).catch(() => {});
