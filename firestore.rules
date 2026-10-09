@@ -152,6 +152,16 @@ service cloud.firestore {
       allow delete: if true;
     }
 
+    // Mock Interviews Collection
+    match /mock_interviews/{sessionId} {
+      allow read, write: if true;
+    }
+
+    // Peer Study Rooms Collection
+    match /peer_study_rooms/{roomId} {
+      allow read, write: if true;
+    }
+
     // System Telemetry Collection
     match /system_telemetry/{docId} {
       allow read, write: if true;

@@ -40,9 +40,45 @@
         "correctAnswers": { "type": "number" },
         "lastActiveDate": { "type": "string", "maxLength": 30 },
         "earnedBadges": { "type": "array", "description": "Awarded learning achievement badges stored in the user profile document" },
-        "achievements": { "type": "array", "description": "List of unlocked achievement badge IDs" }
+        "achievements": { "type": "array", "description": "List of unlocked achievement badge IDs" },
+        "dailyMicroGoals": { "type": "array", "description": "Student daily micro-goals with progress counts and target counts" },
+        "placementPrep": { "type": "object", "description": "Campus and off-campus placement preparation tracker for Indian recruiters" },
+        "mockInterviewHistory": { "type": "array", "description": "Completed company-specific technical mock interview sessions and scores" },
+        "joinedPeerRoomIds": { "type": "array", "description": "IDs of virtual peer study rooms joined by the student" }
       },
       "required": ["userId", "name", "whatsappNumber", "preferredLanguage"]
+    },
+    "MockInterviewSession": {
+      "title": "MockInterviewSession",
+      "description": "Company-specific technical mock interview role-play session with per-response feedback",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "companyId": { "type": "string", "maxLength": 64 },
+        "companyName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "maxLength": 100 },
+        "roundType": { "type": "string", "maxLength": 80 },
+        "overallScore": { "type": "number" },
+        "completedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "userId", "companyId", "companyName", "overallScore"]
+    },
+    "PeerStudyRoom": {
+      "title": "PeerStudyRoom",
+      "description": "Virtual peer study group room matched by subject and skill level with shared docs and voice chat",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "skillLevel": { "type": "string", "enum": ["beginner", "intermediate", "advanced", "expert"] },
+        "topic": { "type": "string", "maxLength": 150 },
+        "sharedNoteContent": { "type": "string", "maxLength": 5000 },
+        "activeVoiceCount": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name", "subject", "skillLevel"]
     },
     "MessageRecord": {
       "title": "MessageRecord",
@@ -176,6 +212,14 @@
     "/learning_objectives/{objId}": {
       "schema": "LearningObjective",
       "description": "Curriculum learning objectives"
+    },
+    "/mock_interviews/{sessionId}": {
+      "schema": "MockInterviewSession",
+      "description": "Company-specific technical mock interview role-play sessions"
+    },
+    "/peer_study_rooms/{roomId}": {
+      "schema": "PeerStudyRoom",
+      "description": "Virtual peer study group rooms with shared documents and voice chat state"
     }
   }
 }

@@ -3520,6 +3520,769 @@ app.get('/api/admin/dashboard', (req, res) => {
 });
 
 // ----------------------------------------------------
+// 10b. Peer Study Group Rooms & Company Mock Interview Endpoints
+// ----------------------------------------------------
+interface PeerRoomResource {
+  id: string;
+  title: string;
+  subject: string;
+  type: 'rag_doc' | 'cheatsheet' | 'code_template';
+  summary: string;
+  pinnedBy: string;
+  pinnedAt: string;
+}
+
+interface PeerRoomParticipant {
+  userId: string;
+  name: string;
+  avatarInitials: string;
+  skillLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  inVoiceChannel: boolean;
+  isMuted: boolean;
+  isSpeaking: boolean;
+  role: 'host' | 'peer_mentor' | 'member';
+}
+
+interface PeerStudyRoomState {
+  id: string;
+  name: string;
+  subject: string;
+  skillLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  topic: string;
+  description: string;
+  whatsappRoomCode: string;
+  sharedDocumentTitle: string;
+  sharedDocumentContent: string;
+  lastEditedBy: string;
+  lastEditedAt: string;
+  pinnedResources: PeerRoomResource[];
+  participants: PeerRoomParticipant[];
+  voiceTranscriptNotes: {
+    id: string;
+    speakerName: string;
+    text: string;
+    timestamp: string;
+  }[];
+  chatMessages: {
+    id: string;
+    senderId: string;
+    senderName: string;
+    content: string;
+    timestamp: string;
+    type: 'chat' | 'doc_update' | 'voice_note';
+  }[];
+}
+
+const PEER_STUDY_ROOMS: Map<string, PeerStudyRoomState> = new Map([
+  [
+    'room_dsa_inter',
+    {
+      id: 'room_dsa_inter',
+      name: 'DSA & Graph Algorithms Sprint Room',
+      subject: 'DSA',
+      skillLevel: 'intermediate',
+      topic: 'Recursion, DP Memoization & Shortest Path',
+      description: 'Live collaborative problem solving on Recursion trees, Dijkstra, and 1D/2D Dynamic Programming.',
+      whatsappRoomCode: 'WA-ROOM-DSA1',
+      sharedDocumentTitle: 'Shared Study Doc: Recursion & DP State Transition Cheat-Sheet',
+      sharedDocumentContent: `# Recursion & Dynamic Programming Collaborative Notes\n\n## 1. Core State Transition Template\n- Identify base cases first: \`if (idx == n) return 0;\`\n- Check memo table before computing: \`if (dp[idx] != -1) return dp[idx];\`\n- Time Complexity reduces from O(2^N) -> O(N) with O(N) recursion stack.\n\n## 2. Key Problems Being Solved in Room\n1. Coin Change Minimum Coins (Unbounded Knapsack pattern)\n2. Longest Increasing Subsequence (Patience Sorting O(N log N))\n3. Detect Cycle in Directed Graph using DFS Visited + PathVisited arrays\n\n## 3. Peer Action Items\n- [x] Trace recursion tree for n=4\n- [ ] Convert top-down memoization to bottom-up tabulation with O(1) space`,
+      lastEditedBy: 'Aarav Sharma',
+      lastEditedAt: new Date(Date.now() - 8 * 60000).toISOString(),
+      pinnedResources: [
+        {
+          id: 'doc_dsa_1',
+          title: 'Master Theorem & Recurrence Relations Guide',
+          subject: 'DSA',
+          type: 'rag_doc',
+          summary: 'Complete reference on T(n) = aT(n/b) + f(n), amortized analysis, and recursion tree depth.',
+          pinnedBy: 'Aarav Sharma',
+          pinnedAt: '12 mins ago',
+        },
+        {
+          id: 'doc_dsa_2',
+          title: 'Top 15 Graph & DP Patterns for Placements',
+          subject: 'DSA',
+          type: 'cheatsheet',
+          summary: 'BFS/DFS templates, Topological Sort (Kahn algorithm), and Knapsack state transitions.',
+          pinnedBy: 'Diya Nair',
+          pinnedAt: '25 mins ago',
+        },
+      ],
+      participants: [
+        {
+          userId: 'peer_aarav',
+          name: 'Aarav Sharma',
+          avatarInitials: 'AS',
+          skillLevel: 'intermediate',
+          inVoiceChannel: true,
+          isMuted: false,
+          isSpeaking: true,
+          role: 'host',
+        },
+        {
+          userId: 'peer_diya',
+          name: 'Diya Nair',
+          avatarInitials: 'DN',
+          skillLevel: 'intermediate',
+          inVoiceChannel: true,
+          isMuted: false,
+          isSpeaking: false,
+          role: 'peer_mentor',
+        },
+        {
+          userId: 'peer_rohan',
+          name: 'Rohan Kulkarni',
+          avatarInitials: 'RK',
+          skillLevel: 'beginner',
+          inVoiceChannel: true,
+          isMuted: true,
+          isSpeaking: false,
+          role: 'member',
+        },
+      ],
+      voiceTranscriptNotes: [
+        {
+          id: 'vt_1',
+          speakerName: 'Aarav Sharma',
+          text: 'Remember that in 0/1 Knapsack we iterate weights backward from W down to wt[i] so we only use each item once.',
+          timestamp: '4m ago',
+        },
+        {
+          id: 'vt_2',
+          speakerName: 'Diya Nair',
+          text: 'I added the space-optimized 1D array snippet to section 2 of our shared document.',
+          timestamp: '2m ago',
+        },
+      ],
+      chatMessages: [
+        {
+          id: 'm_1',
+          senderId: 'peer_aarav',
+          senderName: 'Aarav Sharma',
+          content: 'Welcome! Check the shared document on the right—we are tracing the DP table for Coin Change.',
+          timestamp: '10m ago',
+          type: 'chat',
+        },
+        {
+          id: 'm_2',
+          senderId: 'peer_diya',
+          senderName: 'Diya Nair',
+          content: 'Pinned the Master Theorem RAG notes for quick complexity checks.',
+          timestamp: '6m ago',
+          type: 'doc_update',
+        },
+      ],
+    },
+  ],
+  [
+    'room_python_beg',
+    {
+      id: 'room_python_beg',
+      name: 'Python OOP, Generators & Clean Code Lab',
+      subject: 'Python',
+      skillLevel: 'beginner',
+      topic: 'Decorators, List Comprehensions & AsyncIO',
+      description: 'Beginner-to-Intermediate peer coding room covering Python data structures, memory management, and OOP.',
+      whatsappRoomCode: 'WA-ROOM-PY02',
+      sharedDocumentTitle: 'Shared Study Doc: Python Generators, Decorators & OOP Patterns',
+      sharedDocumentContent: `# Python Peer Study Notes\n\n## 1. Generators vs Lists (Memory Efficiency)\n- List comprehension \`[x*x for x in range(10**6)]\` allocates full list in RAM.\n- Generator expression \`(x*x for x in range(10**6))\` yields items lazily in O(1) memory using \`yield\`.\n\n## 2. Custom Timing Decorator Template\n\`\`\`python\nimport time\nfrom functools import wraps\n\ndef trace_runtime(fn):\n    @wraps(fn)\n    def wrapper(*args, **kwargs):\n        t0 = time.perf_counter()\n        res = fn(*args, **kwargs)\n        print(f"{fn.__name__} took {time.perf_counter() - t0:.4f}s")\n        return res\n    return wrapper\n\`\`\``,
+      lastEditedBy: 'Sneha Patel',
+      lastEditedAt: new Date(Date.now() - 15 * 60000).toISOString(),
+      pinnedResources: [
+        {
+          id: 'doc_py_1',
+          title: 'Python Memory Model, GIL & Mutability',
+          subject: 'Python',
+          type: 'rag_doc',
+          summary: 'Deep dive into reference counting, mutable default arguments trap, and deep vs shallow copy.',
+          pinnedBy: 'Sneha Patel',
+          pinnedAt: '18 mins ago',
+        },
+      ],
+      participants: [
+        {
+          userId: 'peer_sneha',
+          name: 'Sneha Patel',
+          avatarInitials: 'SP',
+          skillLevel: 'beginner',
+          inVoiceChannel: true,
+          isMuted: false,
+          isSpeaking: true,
+          role: 'host',
+        },
+        {
+          userId: 'peer_vikram',
+          name: 'Vikram Reddy',
+          avatarInitials: 'VR',
+          skillLevel: 'intermediate',
+          inVoiceChannel: true,
+          isMuted: false,
+          isSpeaking: false,
+          role: 'peer_mentor',
+        },
+      ],
+      voiceTranscriptNotes: [
+        {
+          id: 'vt_py_1',
+          speakerName: 'Sneha Patel',
+          text: 'Never use a mutable list def add_item(x, items=[]) as default arg in Python because it persists across calls!',
+          timestamp: '5m ago',
+        },
+      ],
+      chatMessages: [
+        {
+          id: 'm_py_1',
+          senderId: 'peer_sneha',
+          senderName: 'Sneha Patel',
+          content: 'We are testing generator pipelines on the shared pad. Hop on voice chat if you have questions!',
+          timestamp: '14m ago',
+          type: 'chat',
+        },
+      ],
+    },
+  ],
+  [
+    'room_calc_adv',
+    {
+      id: 'room_calc_adv',
+      name: 'Calculus, Linear Algebra & GATE / JEE Math Circle',
+      subject: 'Calculus',
+      skillLevel: 'advanced',
+      topic: 'Integration by Parts, Eigenvalues & Multivariable Optimization',
+      description: 'Advanced mathematical problem-solving room with step-by-step LaTeX/proof derivations and voice discussion.',
+      whatsappRoomCode: 'WA-ROOM-MATH',
+      sharedDocumentTitle: 'Shared Study Doc: Integration by Parts (LIATE) & Jacobian Matrix',
+      sharedDocumentContent: `# Calculus & Linear Algebra Collaborative Proof Pad\n\n## 1. Integration by Parts (LIATE Rule)\n- Formula: ∫ u dv = u·v - ∫ v du\n- Priority for choosing u: **L**ogarithmic > **I**nverse Trig > **A**lgebraic > **T**rigonometric > **E**xponential.\n\n## 2. Worked Example: ∫ x · e^x dx\n- Let u = x => du = dx\n- Let dv = e^x dx => v = e^x\n- Result: x·e^x - ∫ e^x dx = e^x(x - 1) + C\n\n## 3. Eigenvalue Quick Check\n- Trace(A) = sum of eigenvalues (λ₁ + λ₂ + ... + λₙ)\n- Det(A) = product of eigenvalues (λ₁ · λ₂ · ... · λₙ)`,
+      lastEditedBy: 'Karthik Iyer',
+      lastEditedAt: new Date(Date.now() - 22 * 60000).toISOString(),
+      pinnedResources: [
+        {
+          id: 'doc_calc_1',
+          title: 'Calculus Fundamental Theorem & Series Convergence',
+          subject: 'Calculus',
+          type: 'rag_doc',
+          summary: 'Taylor expansions, L’Hôpital’s rule indeterminate forms, and partial derivatives.',
+          pinnedBy: 'Karthik Iyer',
+          pinnedAt: '30 mins ago',
+        },
+      ],
+      participants: [
+        {
+          userId: 'peer_karthik',
+          name: 'Karthik Iyer',
+          avatarInitials: 'KI',
+          skillLevel: 'advanced',
+          inVoiceChannel: true,
+          isMuted: false,
+          isSpeaking: false,
+          role: 'host',
+        },
+        {
+          userId: 'peer_meera',
+          name: 'Meera Joshi',
+          avatarInitials: 'MJ',
+          skillLevel: 'advanced',
+          inVoiceChannel: true,
+          isMuted: false,
+          isSpeaking: true,
+          role: 'peer_mentor',
+        },
+      ],
+      voiceTranscriptNotes: [
+        {
+          id: 'vt_calc_1',
+          speakerName: 'Meera Joshi',
+          text: 'Using Trace and Determinant saves 3 minutes on 3x3 matrix eigenvalue MCQs in GATE!',
+          timestamp: '3m ago',
+        },
+      ],
+      chatMessages: [
+        {
+          id: 'm_calc_1',
+          senderId: 'peer_karthik',
+          senderName: 'Karthik Iyer',
+          content: 'Added the Eigenvalue Trace/Det shortcut to the shared doc.',
+          timestamp: '9m ago',
+          type: 'doc_update',
+        },
+      ],
+    },
+  ],
+  [
+    'room_sysdesign_inter',
+    {
+      id: 'room_sysdesign_inter',
+      name: 'System Design, DBMS & OS Placement Study Pod',
+      subject: 'Java',
+      skillLevel: 'intermediate',
+      topic: 'ACID Transactions, Indexing, Deadlocks & Microservices',
+      description: 'Collaborative study pod for campus placement interviews covering B+ Trees, Normalization, and Concurrency.',
+      whatsappRoomCode: 'WA-ROOM-SYS4',
+      sharedDocumentTitle: 'Shared Study Doc: DBMS Indexing, Isolation Levels & OS Deadlocks',
+      sharedDocumentContent: `# DBMS & OS Core Interview Synthesis\n\n## 1. B+ Tree Indexing vs Hash Index\n- **B+ Tree**: Leaf nodes form a sorted doubly-linked list -> O(log N) point lookup AND fast range queries (\`BETWEEN\`, \`>\`, \`<\`).\n- **Hash Index**: O(1) exact equality lookup, but cannot support range scans.\n\n## 2. Coffman's 4 Deadlock Conditions\n1. Mutual Exclusion\n2. Hold and Wait\n3. No Preemption\n4. Circular Wait (Prevented in production by enforcing a strict global lock acquisition order)`,
+      lastEditedBy: 'Ananya Verma',
+      lastEditedAt: new Date(Date.now() - 11 * 60000).toISOString(),
+      pinnedResources: [
+        {
+          id: 'doc_sys_1',
+          title: 'DBMS Normalization (1NF to BCNF) & ACID Properties',
+          subject: 'Java',
+          type: 'cheatsheet',
+          summary: 'Transaction isolation anomalies (Dirty Read, Phantom Read) and JVM concurrency primitives.',
+          pinnedBy: 'Ananya Verma',
+          pinnedAt: '19 mins ago',
+        },
+      ],
+      participants: [
+        {
+          userId: 'peer_ananya',
+          name: 'Ananya Verma',
+          avatarInitials: 'AV',
+          skillLevel: 'intermediate',
+          inVoiceChannel: true,
+          isMuted: false,
+          isSpeaking: true,
+          role: 'host',
+        },
+      ],
+      voiceTranscriptNotes: [
+        {
+          id: 'vt_sys_1',
+          speakerName: 'Ananya Verma',
+          text: 'Interviewers always ask why B+ Tree is preferred over B-Tree in MySQL InnoDB—it is because non-leaf nodes only store keys, maximizing fan-out!',
+          timestamp: '6m ago',
+        },
+      ],
+      chatMessages: [
+        {
+          id: 'm_sys_1',
+          senderId: 'peer_ananya',
+          senderName: 'Ananya Verma',
+          content: 'Reviewing DBMS indexing and OS deadlocks together before mock interviews.',
+          timestamp: '12m ago',
+          type: 'chat',
+        },
+      ],
+    },
+  ],
+]);
+
+app.get('/api/peer-study-rooms', (req, res) => {
+  const rooms = Array.from(PEER_STUDY_ROOMS.values());
+  const ragDocs = Array.from(db.documents.values()).map((d) => ({
+    id: d.id,
+    title: d.title,
+    subject: d.subject,
+    summary: d.summary,
+  }));
+  res.json({ success: true, rooms, ragDocs });
+});
+
+app.post('/api/peer-study-rooms', (req, res) => {
+  try {
+    const { name, subject, skillLevel, topic, description, userId, userName } = req.body || {};
+    if (!name || !subject) {
+      return res.status(400).json({ error: 'Room name and subject are required' });
+    }
+    const id = `room_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const initials = String(userName || 'ST')
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+
+    const newRoom: PeerStudyRoomState = {
+      id,
+      name: String(name).trim(),
+      subject: String(subject).trim(),
+      skillLevel: (skillLevel || 'intermediate') as any,
+      topic: String(topic || 'Core Concepts & Collaborative Problem Solving').trim(),
+      description: String(description || 'Peer study room with shared document editor and live voice channel.').trim(),
+      whatsappRoomCode: `WA-ROOM-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      sharedDocumentTitle: `Shared Study Doc: ${String(topic || name).trim()}`,
+      sharedDocumentContent: `# ${String(name).trim()} — Shared Collaborative Notes\n\n## Topic: ${String(topic || subject).trim()}\n- Skill Level: ${skillLevel || 'intermediate'}\n- Created by: ${userName || 'Student'}\n\n## Key Formulas & Takeaways\n1. Add your core intuition and definitions here.\n2. Paste code snippets or step-by-step proofs for peer review.\n`,
+      lastEditedBy: userName || 'Student',
+      lastEditedAt: new Date().toISOString(),
+      pinnedResources: [],
+      participants: [
+        {
+          userId: userId || 'student_host',
+          name: userName || 'Student',
+          avatarInitials: initials || 'ST',
+          skillLevel: (skillLevel || 'intermediate') as any,
+          inVoiceChannel: true,
+          isMuted: false,
+          isSpeaking: false,
+          role: 'host',
+        },
+      ],
+      voiceTranscriptNotes: [],
+      chatMessages: [
+        {
+          id: `msg_${Date.now()}`,
+          senderId: userId || 'student_host',
+          senderName: userName || 'Student',
+          content: `Created virtual study room "${name}". Shared document and voice channel are open!`,
+          timestamp: 'Just now',
+          type: 'chat',
+        },
+      ],
+    };
+
+    PEER_STUDY_ROOMS.set(id, newRoom);
+    res.json({
+      success: true,
+      room: newRoom,
+      rooms: Array.from(PEER_STUDY_ROOMS.values()),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to create peer study room' });
+  }
+});
+
+app.post('/api/peer-study-rooms/:id/join', (req, res) => {
+  const room = PEER_STUDY_ROOMS.get(req.params.id);
+  if (!room) return res.status(404).json({ error: 'Study room not found' });
+
+  const { userId, userName, skillLevel, joinVoice = true } = req.body || {};
+  const existingIdx = room.participants.findIndex((p) => p.userId === userId);
+  const initials = String(userName || 'ST')
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  if (existingIdx >= 0) {
+    room.participants[existingIdx].inVoiceChannel = Boolean(joinVoice);
+  } else {
+    room.participants.push({
+      userId: userId || `user_${Date.now()}`,
+      name: userName || 'Student',
+      avatarInitials: initials || 'ST',
+      skillLevel: (skillLevel || 'intermediate') as any,
+      inVoiceChannel: Boolean(joinVoice),
+      isMuted: false,
+      isSpeaking: false,
+      role: 'member',
+    });
+    room.chatMessages.push({
+      id: `msg_${Date.now()}`,
+      senderId: userId || 'student',
+      senderName: userName || 'Student',
+      content: `${userName || 'Student'} joined the study room${joinVoice ? ' & connected to Voice Chat' : ''}.`,
+      timestamp: 'Just now',
+      type: 'chat',
+    });
+  }
+
+  res.json({
+    success: true,
+    room,
+    rooms: Array.from(PEER_STUDY_ROOMS.values()),
+  });
+});
+
+app.put('/api/peer-study-rooms/:id/document', (req, res) => {
+  const room = PEER_STUDY_ROOMS.get(req.params.id);
+  if (!room) return res.status(404).json({ error: 'Study room not found' });
+
+  const { content, title, userName, pinResource } = req.body || {};
+  if (typeof content === 'string') {
+    room.sharedDocumentContent = content;
+    room.lastEditedBy = userName || 'Student';
+    room.lastEditedAt = new Date().toISOString();
+  }
+  if (typeof title === 'string' && title.trim()) {
+    room.sharedDocumentTitle = title.trim();
+  }
+  if (pinResource && pinResource.title) {
+    const exists = room.pinnedResources.some((r) => r.title === pinResource.title);
+    if (!exists) {
+      room.pinnedResources.unshift({
+        id: pinResource.id || `res_${Date.now()}`,
+        title: pinResource.title,
+        subject: pinResource.subject || room.subject,
+        type: pinResource.type || 'rag_doc',
+        summary: pinResource.summary || 'Shared reference document pinned by study group member.',
+        pinnedBy: userName || 'Student',
+        pinnedAt: 'Just now',
+      });
+    }
+  }
+
+  res.json({
+    success: true,
+    room,
+    rooms: Array.from(PEER_STUDY_ROOMS.values()),
+  });
+});
+
+app.post('/api/peer-study-rooms/:id/voice-note', async (req, res) => {
+  const room = PEER_STUDY_ROOMS.get(req.params.id);
+  if (!room) return res.status(404).json({ error: 'Study room not found' });
+
+  const { userId, userName, transcript, appendToDoc = true, askAiPeerFacilitator = true } = req.body || {};
+  if (!transcript || !String(transcript).trim()) {
+    return res.status(400).json({ error: 'Voice transcript or message is required' });
+  }
+
+  const cleanText = String(transcript).trim();
+  room.voiceTranscriptNotes.unshift({
+    id: `vt_${Date.now()}`,
+    speakerName: userName || 'Student',
+    text: cleanText,
+    timestamp: 'Just now',
+  });
+
+  if (appendToDoc) {
+    room.sharedDocumentContent += `\n\n### 🎙️ Voice Note (${userName || 'Student'}):\n- ${cleanText}`;
+    room.lastEditedBy = `${userName || 'Student'} (Voice Sync)`;
+    room.lastEditedAt = new Date().toISOString();
+  }
+
+  room.chatMessages.push({
+    id: `msg_${Date.now()}`,
+    senderId: userId || 'student',
+    senderName: userName || 'Student',
+    content: `🎙️ [Voice Summary]: "${cleanText}"`,
+    timestamp: 'Just now',
+    type: 'voice_note',
+  });
+
+  let facilitatorReply = '';
+  if (askAiPeerFacilitator) {
+    const ai = getGeminiAI();
+    if (ai) {
+      try {
+        const prompt = `You are a concise Peer Study Group Voice Facilitator in room "${room.name}" (Subject: ${room.subject}, Skill Level: ${room.skillLevel}, Topic: ${room.topic}).
+A student (${userName || 'Student'}) just said on voice chat: "${cleanText}".
+Respond in 2 crisp sentences confirming the key technical insight or answering their question so the study group can keep moving forward.`;
+        const genRes = await generateContentWithRetry({
+          preferredModel: 'gemini-3.8-flash',
+          contents: prompt,
+          timeoutMs: 6000,
+        });
+        if (genRes?.text) {
+          facilitatorReply = genRes.text.trim();
+        }
+      } catch {
+        facilitatorReply = '';
+      }
+    }
+    if (!facilitatorReply) {
+      facilitatorReply = `Great point on ${room.topic}! I've synced your voice note to the shared study document so everyone in "${room.name}" can reference the key invariant and edge cases.`;
+    }
+
+    room.voiceTranscriptNotes.unshift({
+      id: `vt_ai_${Date.now()}`,
+      speakerName: 'AI Study Room Co-Pilot',
+      text: facilitatorReply,
+      timestamp: 'Just now',
+    });
+  }
+
+  res.json({
+    success: true,
+    room,
+    facilitatorReply,
+    rooms: Array.from(PEER_STUDY_ROOMS.values()),
+  });
+});
+
+// Company-Specific Technical Mock Interview Evaluation Endpoint
+app.post('/api/mock-interview/evaluate', async (req, res) => {
+  try {
+    const {
+      companyName = 'Google India',
+      role = 'Software Development Engineer (SDE-1)',
+      roundType = 'DSA & Problem Solving',
+      questionPrompt = '',
+      expectedKeyConcepts = [],
+      candidateAnswer = '',
+      codeSubmission = '',
+      currentStageIndex = 0,
+      attemptNumber = 1,
+      stageTitle = 'Stage 1: Scratch Foundation',
+      starterCode = '',
+    } = req.body || {};
+
+    const cleanAnswer = String(candidateAnswer || '').trim();
+    const cleanCode = String(codeSubmission || '').trim();
+    const cleanStarter = String(starterCode || '').trim();
+
+    // Detect if the student has not genuinely answered yet or only left starter code / very short response
+    const codeUnchanged = !cleanCode || cleanCode === cleanStarter || cleanCode.length < 25;
+    const isUnansweredOrMinimal =
+      cleanAnswer.length < 20 && codeUnchanged;
+
+    const combinedResponse = [
+      cleanAnswer ? `Spoken/Written Explanation:\n${cleanAnswer}` : '',
+      cleanCode && cleanCode !== cleanStarter ? `Code / Pseudocode:\n${cleanCode}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    let evaluation: any = null;
+    const ai = getGeminiAI();
+
+    if (ai && !isUnansweredOrMinimal) {
+      try {
+        const prompt = `You are a Senior Bar-Raiser Face-to-Face Technical Interviewer at ${companyName} conducting a ${roundType} interview for the ${role} role.
+Current Learning Progression Stage: ${stageTitle} (Stage ${Number(currentStageIndex) + 1} of 3: Scratch -> Intermediate Optimization -> Advanced Production Scale).
+Attempt Number on this question: ${attemptNumber}
+Interview Question: "${questionPrompt}"
+Expected Key Concepts: ${(expectedKeyConcepts || []).join(', ')}
+
+Candidate's Response:
+${combinedResponse}
+
+CRITICAL PEDAGOGICAL & SOCRATIC INTERVIEW RULES:
+1. DO NOT give away the full direct solution or final code early if the student's answer is incomplete, weak, or missing key concepts (score < 70) and attemptNumber < 2. Instead, provide a Socratic guiding question and a progressive hint so the student learns from scratch to advanced.
+2. Only unlock the full reference solution ("canRevealFullSolution": true) if the candidate's response demonstrates solid effort/understanding (overallScore >= 68) OR if attemptNumber >= 2.
+3. Include a "nextComplicatedChallenge" that escalates the problem from Scratch -> Intermediate -> Advanced Bar-Raiser complexity.
+
+Return valid JSON with this exact schema:
+{
+  "overallScore": 85,
+  "technicalAccuracyScore": 88,
+  "problemSolvingScore": 84,
+  "communicationClarityScore": 83,
+  "verdict": "Strong Hire" | "Hire" | "Leaning Hire" | "Needs Practice",
+  "canRevealFullSolution": true,
+  "socraticGuidance": "Constructive Socratic nudge guiding the student without spoiling the answer early",
+  "progressiveHints": [
+    "Level 1 Intuition Nudge (Conceptual clue without giving away the algorithm)",
+    "Level 2 Structural Invariant (Which data structure or state transition to track)",
+    "Level 3 Edge-Case & Complexity Check (How to hit optimal Time/Space bounds)"
+  ],
+  "strengths": ["Specific strength 1", "Specific strength 2"],
+  "improvements": ["Specific missing edge case or optimization 1", "Specific improvement 2"],
+  "complexityCritique": "Critique of time and space complexity (e.g. O(N) time, O(1) auxiliary space) and edge cases",
+  "modelExemplarAnswer": "A concise, gold-standard interviewer-approved answer and optimal code/architectural pattern (only shown when unlocked)",
+  "interviewerFollowUpQuestion": "A sharp follow-up probe a ${companyName} interviewer would ask next based on their answer",
+  "nextComplicatedChallenge": "An advanced stress-test escalation of this question (e.g. 100x scale, distributed concurrency, or O(1) space constraint)"
+}`;
+
+        const response = await generateContentWithRetry({
+          preferredModel: 'gemini-3.8-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+          },
+          timeoutMs: 9000,
+        });
+
+        const rawText = (response.text || '').trim();
+        const cleanedJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        evaluation = JSON.parse(cleanedJson);
+      } catch {
+        evaluation = null;
+      }
+    }
+
+    if (!evaluation || typeof evaluation.overallScore !== 'number') {
+      const lowerAns = combinedResponse.toLowerCase();
+      const matchedConcepts = (Array.isArray(expectedKeyConcepts) ? expectedKeyConcepts : []).filter(
+        (c: string) => lowerAns.includes(String(c).toLowerCase().split(' ')[0])
+      );
+      const wordCount = combinedResponse.trim() ? combinedResponse.trim().split(/\s+/).length : 0;
+      const hasComplexity =
+        lowerAns.includes('o(') ||
+        lowerAns.includes('time') ||
+        lowerAns.includes('space') ||
+        lowerAns.includes('complexity');
+      const hasCode =
+        Boolean(cleanCode && cleanCode !== cleanStarter && cleanCode.length > 25) ||
+        lowerAns.includes('def ') ||
+        lowerAns.includes('function') ||
+        lowerAns.includes('select ') ||
+        lowerAns.includes('return');
+
+      const baseScore = isUnansweredOrMinimal
+        ? 38
+        : Math.min(
+            96,
+            Math.max(
+              52,
+              56 +
+                matchedConcepts.length * 8 +
+                (wordCount > 30 ? 10 : wordCount > 12 ? 5 : 0) +
+                (hasComplexity ? 8 : 0) +
+                (hasCode ? 8 : 0)
+            )
+          );
+
+      const canReveal = !isUnansweredOrMinimal && (baseScore >= 68 || Number(attemptNumber) >= 2);
+      const conceptList = Array.isArray(expectedKeyConcepts) ? expectedKeyConcepts : [];
+
+      evaluation = {
+        overallScore: baseScore,
+        technicalAccuracyScore: isUnansweredOrMinimal ? 35 : Math.min(98, baseScore + 3),
+        problemSolvingScore: baseScore,
+        communicationClarityScore: isUnansweredOrMinimal ? 40 : Math.min(95, baseScore + (wordCount > 25 ? 4 : -2)),
+        verdict:
+          baseScore >= 85
+            ? 'Strong Hire'
+            : baseScore >= 75
+            ? 'Hire'
+            : baseScore >= 65
+            ? 'Leaning Hire'
+            : 'Needs Practice',
+        canRevealFullSolution: canReveal,
+        socraticGuidance: isUnansweredOrMinimal
+          ? `Let's not jump to the final answer yet! In a face-to-face interview at ${companyName}, start from scratch: First, tell me what a simple brute-force approach would look like and what its bottleneck is. Think about how ${conceptList[0] || 'a core data structure'} can help.`
+          : !canReveal
+          ? `Good initial attempt! Before I reveal the full blueprint, try refining your answer: how can you incorporate ${conceptList.slice(0, 2).join(' and ') || 'an optimal invariant'} to improve the time/space complexity?`
+          : `Strong progression from scratch to advanced! You unlocked the full ${companyName} Bar-Raiser solution blueprint and the next complicated challenge.`,
+        progressiveHints: [
+          `Step 1 (Scratch Intuition): Start with a small 3-element dry run by hand. What repeated work makes the naive brute-force approach slow?`,
+          `Step 2 (Core Data Structure / Invariant): Consider maintaining ${conceptList.slice(0, 2).join(' + ') || 'a state invariant'} so each state transition runs in O(1) or O(log N).`,
+          `Step 3 (Advanced Bar-Raiser Polish): Explicitly bound both worst-case Time and Auxiliary Space complexity, and handle boundary conditions (empty input, duplicates, or concurrency).`,
+        ],
+        strengths: isUnansweredOrMinimal
+          ? ['Joined the live face-to-face interview session—ready to begin the Scratch-to-Advanced walkthrough.']
+          : [
+              matchedConcepts.length > 0
+                ? `Addressed core concepts expected by ${companyName}: ${matchedConcepts.join(', ')}.`
+                : `Structured an initial approach to the ${companyName} ${roundType} scenario.`,
+              hasComplexity
+                ? 'Explicitly analyzed asymptotic Time/Space complexity trade-offs.'
+                : 'Communicated step-by-step reasoning under interview constraints.',
+            ],
+        improvements: [
+          isUnansweredOrMinimal
+            ? 'Do not leave the explanation blank—first articulate the naive baseline from scratch before optimizing.'
+            : !hasComplexity
+            ? 'Always state explicit Big-O Time and Auxiliary Space complexity before concluding.'
+            : 'Consider extreme boundary conditions (empty input, integer overflow, or high concurrency spikes).',
+          `Connect your trade-offs directly to ${companyName}'s production scale and reliability bar.`,
+        ],
+        complexityCritique: hasComplexity
+          ? 'Your complexity analysis aligns well; ensure you also contrast worst-case vs. amortized cost.'
+          : `For ${companyName} ${role}, always state both Time Complexity and Auxiliary Space Complexity explicitly.`,
+        modelExemplarAnswer: `Optimal ${companyName} approach: Start by clarifying constraints and edge cases from scratch, state the brute-force baseline, then optimize using ${
+          conceptList.slice(0, 3).join(', ') || 'hash-based / two-pointer / indexing invariants'
+        } to achieve optimal time and space bounds.`,
+        interviewerFollowUpQuestion: `If the input dataset scaled by 100x or had to run under strict memory/latency SLAs at ${companyName}, which part of your solution would bottleneck first and how would you redesign it?`,
+        nextComplicatedChallenge: `Advanced Bar-Raiser Escalation: Now assume this ${roundType} problem runs across distributed nodes at ${companyName} with 100,000+ concurrent requests per second and strict memory caps. How do you modify your algorithm/architecture to stay lock-free and resilient?`,
+      };
+    }
+
+    res.json({
+      success: true,
+      companyName,
+      role,
+      roundType,
+      evaluation,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to evaluate mock interview response' });
+  }
+});
+
+// ----------------------------------------------------
 // 11. Vite Middleware or Static Assets
 // ----------------------------------------------------
 async function startServer() {

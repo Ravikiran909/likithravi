@@ -32,6 +32,8 @@ interface BadgesProps {
   onProfileUpdate: (updated: StudentProfile) => void;
   onNavigateToQuiz?: () => void;
   onNavigateToChat?: (text?: string) => void;
+  onOpenFullBadgesTab?: () => void;
+  compact?: boolean;
 }
 
 export const Badges: React.FC<BadgesProps> = ({
@@ -39,19 +41,24 @@ export const Badges: React.FC<BadgesProps> = ({
   onProfileUpdate,
   onNavigateToQuiz,
   onNavigateToChat,
+  onOpenFullBadgesTab,
+  compact = false,
 }) => {
   const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedBadge, setSelectedBadge] = useState<VirtualBadge | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<(VirtualBadge & { xpReward?: number }) | null>(null);
   const [newlyAwardedBadge, setNewlyAwardedBadge] = useState<VirtualBadge | null>(null);
   const [isSyncingFirestore, setIsSyncingFirestore] = useState(false);
   const [milestonesCount, setMilestonesCount] = useState<number>(0);
+  const [copiedBadgeId, setCopiedBadgeId] = useState<string | null>(null);
 
   useEffect(() => {
-    getAllMilestoneProgress().then((progressMap) => {
-      const completed = Object.values(progressMap).filter((m) => m.completed).length;
-      setMilestonesCount(completed);
-    });
+    getAllMilestoneProgress()
+      .then((progressMap) => {
+        const completed = Object.values(progressMap).filter((m) => m.completed).length;
+        setMilestonesCount(completed);
+      })
+      .catch(() => {});
   }, []);
 
   const accuracy =
@@ -59,8 +66,8 @@ export const Badges: React.FC<BadgesProps> = ({
       ? Math.round((profile.correctAnswers / profile.totalQuestionsAnswered) * 100)
       : 0;
 
-  // Define virtual badges with live progress calculations based on Firestore profile
-  const badgesList: VirtualBadge[] = useMemo(() => {
+  // Define student achievement badges with live progress calculations ('7-Day Streak', 'Top Performer', etc.)
+  const badgesList: (VirtualBadge & { xpReward: number })[] = useMemo(() => {
     const existingEarned = new Map(
       (profile.earnedBadges || []).map((b) => [b.id, b.awardedAt])
     );
@@ -70,90 +77,139 @@ export const Badges: React.FC<BadgesProps> = ({
       return condition ? new Date().toISOString() : undefined;
     };
 
+    const currentStreak = profile.streak || 0;
+    const isTopPerformer =
+      (accuracy >= 80 && (profile.totalQuestionsAnswered || 0) >= 10) ||
+      (profile.overallProgress || 0) >= 80 ||
+      existingEarned.has('top-performer');
+    const topPerformerScore = existingEarned.has('top-performer')
+      ? 80
+      : Math.max(accuracy, profile.overallProgress || 0);
+
     return [
+      {
+        id: '7-day-streak',
+        name: '7-Day Streak',
+        description:
+          'Maintain an unbroken 7-day consecutive study streak across daily study goals and WhatsApp learning sessions.',
+        category: 'consistency',
+        iconName: 'Flame',
+        requirement: 'Maintain a 7-day consecutive study streak',
+        isUnlocked: currentStreak >= 7 || existingEarned.has('7-day-streak'),
+        progress: existingEarned.has('7-day-streak') ? 7 : Math.min(currentStreak, 7),
+        maxProgress: 7,
+        awardedAt: checkEarnedDate('7-day-streak', currentStreak >= 7 || existingEarned.has('7-day-streak')),
+        badgeTier: 'gold',
+        xpReward: 250,
+      },
+      {
+        id: 'top-performer',
+        name: 'Top Performer',
+        description:
+          'Achieve elite academic mastery with 80%+ quiz accuracy across 10+ questions or 80%+ overall course progress.',
+        category: 'quiz',
+        iconName: 'Trophy',
+        requirement: '80%+ quiz accuracy (min 10 questions) or 80%+ overall progress',
+        isUnlocked: isTopPerformer,
+        progress: Math.min(topPerformerScore, 80),
+        maxProgress: 80,
+        awardedAt: checkEarnedDate('top-performer', isTopPerformer),
+        badgeTier: 'diamond',
+        xpReward: 400,
+      },
       {
         id: 'consistent-learner',
         name: 'Consistent Learner',
-        description: 'Demonstrate dedication by studying consecutively for 3 or more days or completing 3+ study sessions.',
+        description:
+          'Demonstrate dedication by studying consecutively for 3 or more days or completing 3+ study sessions.',
         category: 'consistency',
         iconName: 'Flame',
         requirement: 'Study streak >= 3 days or 3+ sessions logged',
-        isUnlocked: profile.streak >= 3 || profile.totalSessions >= 3,
-        progress: Math.min(profile.streak, 3),
+        isUnlocked:
+          currentStreak >= 3 ||
+          (profile.totalSessions || 0) >= 3 ||
+          existingEarned.has('consistent-learner'),
+        progress: existingEarned.has('consistent-learner')
+          ? 3
+          : Math.min(Math.max(currentStreak, profile.totalSessions || 0), 3),
         maxProgress: 3,
-        awardedAt: checkEarnedDate('consistent-learner', profile.streak >= 3 || profile.totalSessions >= 3),
+        awardedAt: checkEarnedDate(
+          'consistent-learner',
+          currentStreak >= 3 ||
+            (profile.totalSessions || 0) >= 3 ||
+            existingEarned.has('consistent-learner')
+        ),
         badgeTier: 'bronze',
-      },
-      {
-        id: 'problem-solver',
-        name: 'Problem Solver',
-        description: 'Crack curriculum problems and answer at least 15 practice or challenge questions accurately.',
-        category: 'problem_solving',
-        iconName: 'CheckCircle2',
-        requirement: 'Answer 15+ questions with at least 10 correct',
-        isUnlocked: profile.totalQuestionsAnswered >= 15 && profile.correctAnswers >= 10,
-        progress: Math.min(profile.correctAnswers, 15),
-        maxProgress: 15,
-        awardedAt: checkEarnedDate('problem-solver', profile.totalQuestionsAnswered >= 15 && profile.correctAnswers >= 10),
-        badgeTier: 'silver',
+        xpReward: 100,
       },
       {
         id: 'quiz-champion',
         name: 'Quiz Champion',
-        description: 'Attain exceptional academic accuracy by scoring 75% or higher on adaptive quizzes.',
+        description:
+          'Attain strong academic accuracy by scoring 75% or higher on adaptive quizzes.',
         category: 'quiz',
-        iconName: 'Trophy',
+        iconName: 'Award',
         requirement: 'Quiz accuracy >= 75% (min 5 questions)',
-        isUnlocked: accuracy >= 75 && profile.totalQuestionsAnswered >= 5,
-        progress: Math.min(accuracy, 75),
+        isUnlocked:
+          (accuracy >= 75 && (profile.totalQuestionsAnswered || 0) >= 5) ||
+          existingEarned.has('quiz-champion'),
+        progress: existingEarned.has('quiz-champion') ? 75 : Math.min(accuracy, 75),
         maxProgress: 75,
-        awardedAt: checkEarnedDate('quiz-champion', accuracy >= 75 && profile.totalQuestionsAnswered >= 5),
+        awardedAt: checkEarnedDate(
+          'quiz-champion',
+          (accuracy >= 75 && (profile.totalQuestionsAnswered || 0) >= 5) ||
+            existingEarned.has('quiz-champion')
+        ),
         badgeTier: 'gold',
+        xpReward: 200,
+      },
+      {
+        id: 'problem-solver',
+        name: 'Problem Solver',
+        description:
+          'Crack curriculum problems and answer at least 15 practice or challenge questions accurately.',
+        category: 'problem_solving',
+        iconName: 'CheckCircle2',
+        requirement: 'Answer 15+ questions with at least 10 correct',
+        isUnlocked:
+          ((profile.totalQuestionsAnswered || 0) >= 15 && (profile.correctAnswers || 0) >= 10) ||
+          existingEarned.has('problem-solver'),
+        progress: existingEarned.has('problem-solver')
+          ? 15
+          : Math.min(profile.correctAnswers || 0, 15),
+        maxProgress: 15,
+        awardedAt: checkEarnedDate(
+          'problem-solver',
+          ((profile.totalQuestionsAnswered || 0) >= 15 && (profile.correctAnswers || 0) >= 10) ||
+            existingEarned.has('problem-solver')
+        ),
+        badgeTier: 'silver',
+        xpReward: 175,
       },
       {
         id: 'concept-conqueror',
         name: 'Concept Conqueror',
-        description: 'Remediate a weak topic through focused practice and graduate it into your mastered subjects.',
+        description:
+          'Remediate a weak topic through focused practice and graduate it into your mastered subjects.',
         category: 'mastery',
         iconName: 'Brain',
         requirement: 'Graduate at least 1 weak topic into mastered topics',
         isUnlocked:
-          (profile.strongTopics && profile.strongTopics.length > 0) ||
-          (profile.learningHistory && profile.learningHistory.some((h) => h.mastered)),
-        progress: Math.min((profile.strongTopics?.length || 0), 1),
+          Boolean(profile.strongTopics && profile.strongTopics.length > 0) ||
+          Boolean(profile.learningHistory && profile.learningHistory.some((h) => h.mastered)) ||
+          existingEarned.has('concept-conqueror'),
+        progress: existingEarned.has('concept-conqueror')
+          ? 1
+          : Math.min(profile.strongTopics?.length || 0, 1),
         maxProgress: 1,
         awardedAt: checkEarnedDate(
           'concept-conqueror',
-          (profile.strongTopics && profile.strongTopics.length > 0) ||
-          (profile.learningHistory && profile.learningHistory.some((h) => h.mastered))
+          Boolean(profile.strongTopics && profile.strongTopics.length > 0) ||
+            Boolean(profile.learningHistory && profile.learningHistory.some((h) => h.mastered)) ||
+            existingEarned.has('concept-conqueror')
         ),
         badgeTier: 'silver',
-      },
-      {
-        id: 'streak-master',
-        name: 'Streak Legend',
-        description: 'Unstoppable momentum! Protect your daily study habit for a full 7 consecutive days.',
-        category: 'consistency',
-        iconName: 'Zap',
-        requirement: 'Maintain a 7-day study streak',
-        isUnlocked: profile.streak >= 7,
-        progress: Math.min(profile.streak, 7),
-        maxProgress: 7,
-        awardedAt: checkEarnedDate('streak-master', profile.streak >= 7),
-        badgeTier: 'gold',
-      },
-      {
-        id: 'knowledge-explorer',
-        name: 'Knowledge Explorer',
-        description: 'Broaden your horizons by actively learning across multiple distinct curriculum subjects.',
-        category: 'curriculum',
-        iconName: 'BookOpen',
-        requirement: 'Study across 2+ distinct subjects (e.g. Python & Calculus)',
-        isUnlocked: (profile.subjects && profile.subjects.length >= 2),
-        progress: Math.min(profile.subjects?.length || 0, 2),
-        maxProgress: 2,
-        awardedAt: checkEarnedDate('knowledge-explorer', (profile.subjects && profile.subjects.length >= 2)),
-        badgeTier: 'bronze',
+        xpReward: 150,
       },
       {
         id: 'dedicated-scholar',
@@ -162,79 +218,180 @@ export const Badges: React.FC<BadgesProps> = ({
         category: 'problem_solving',
         iconName: 'Target',
         requirement: 'Solve 50+ curriculum questions',
-        isUnlocked: profile.totalQuestionsAnswered >= 50,
-        progress: Math.min(profile.totalQuestionsAnswered, 50),
+        isUnlocked:
+          (profile.totalQuestionsAnswered || 0) >= 50 || existingEarned.has('dedicated-scholar'),
+        progress: existingEarned.has('dedicated-scholar')
+          ? 50
+          : Math.min(profile.totalQuestionsAnswered || 0, 50),
         maxProgress: 50,
-        awardedAt: checkEarnedDate('dedicated-scholar', profile.totalQuestionsAnswered >= 50),
+        awardedAt: checkEarnedDate(
+          'dedicated-scholar',
+          (profile.totalQuestionsAnswered || 0) >= 50 || existingEarned.has('dedicated-scholar')
+        ),
         badgeTier: 'gold',
+        xpReward: 300,
       },
       {
         id: 'curriculum-pioneer',
         name: 'Curriculum Pioneer',
-        description: 'Reach advanced academic mastery with overall course progress exceeding 70%.',
+        description:
+          'Reach advanced academic mastery with overall course progress exceeding 70%.',
         category: 'curriculum',
-        iconName: 'Award',
+        iconName: 'Zap',
         requirement: 'Achieve 70%+ overall curriculum progress',
-        isUnlocked: profile.overallProgress >= 70,
-        progress: Math.min(profile.overallProgress, 70),
+        isUnlocked:
+          (profile.overallProgress || 0) >= 70 || existingEarned.has('curriculum-pioneer'),
+        progress: existingEarned.has('curriculum-pioneer')
+          ? 70
+          : Math.min(profile.overallProgress || 0, 70),
         maxProgress: 70,
-        awardedAt: checkEarnedDate('curriculum-pioneer', profile.overallProgress >= 70),
+        awardedAt: checkEarnedDate(
+          'curriculum-pioneer',
+          (profile.overallProgress || 0) >= 70 || existingEarned.has('curriculum-pioneer')
+        ),
         badgeTier: 'diamond',
+        xpReward: 350,
       },
       {
-        id: 'first-milestone',
-        name: 'First Step',
-        description: 'Take your first decisive step by completing a step-by-step curriculum roadmap milestone.',
+        id: 'knowledge-explorer',
+        name: 'Knowledge Explorer',
+        description:
+          'Broaden your horizons by actively learning across multiple distinct curriculum subjects.',
         category: 'curriculum',
-        iconName: 'CheckCircle2',
-        requirement: 'Complete at least 1 roadmap milestone',
-        isUnlocked: milestonesCount >= 1,
-        progress: Math.min(milestonesCount, 1),
-        maxProgress: 1,
-        awardedAt: checkEarnedDate('first-milestone', milestonesCount >= 1),
+        iconName: 'BookOpen',
+        requirement: 'Study across 2+ distinct subjects (e.g. Python & Calculus)',
+        isUnlocked:
+          Boolean(profile.subjects && profile.subjects.length >= 2) ||
+          existingEarned.has('knowledge-explorer'),
+        progress: existingEarned.has('knowledge-explorer')
+          ? 2
+          : Math.min(profile.subjects?.length || 0, 2),
+        maxProgress: 2,
+        awardedAt: checkEarnedDate(
+          'knowledge-explorer',
+          Boolean(profile.subjects && profile.subjects.length >= 2) ||
+            existingEarned.has('knowledge-explorer')
+        ),
         badgeTier: 'bronze',
-      },
-      {
-        id: 'roadmap-apprentice',
-        name: 'Roadmap Apprentice',
-        description: 'Demonstrate persistent learning by marking off 5 curriculum roadmap milestones.',
-        category: 'curriculum',
-        iconName: 'Layers',
-        requirement: 'Complete 5 roadmap milestones',
-        isUnlocked: milestonesCount >= 5,
-        progress: Math.min(milestonesCount, 5),
-        maxProgress: 5,
-        awardedAt: checkEarnedDate('roadmap-apprentice', milestonesCount >= 5),
-        badgeTier: 'silver',
+        xpReward: 120,
       },
       {
         id: 'roadmap-conqueror',
         name: 'Roadmap Conqueror',
-        description: 'Conquer multiple learning modules with 10+ completed curriculum milestones!',
+        description:
+          'Complete curriculum roadmap milestones and structured study sessions.',
         category: 'curriculum',
-        iconName: 'Trophy',
-        requirement: 'Complete 10 roadmap milestones across subjects',
-        isUnlocked: milestonesCount >= 10,
-        progress: Math.min(milestonesCount, 10),
-        maxProgress: 10,
-        awardedAt: checkEarnedDate('roadmap-conqueror', milestonesCount >= 10),
-        badgeTier: 'gold',
-      },
-      {
-        id: 'rural-offline-scholar',
-        name: 'Rural Offline Scholar',
-        description: 'Study independently without internet interruptions using local IndexedDB caching.',
-        category: 'consistency',
-        iconName: 'Zap',
-        requirement: 'Use offline learning cache in rural mode',
-        isUnlocked: true,
-        progress: 1,
-        maxProgress: 1,
-        awardedAt: checkEarnedDate('rural-offline-scholar', true),
-        badgeTier: 'bronze',
+        iconName: 'Layers',
+        requirement: 'Complete 3+ roadmap milestones or 10+ study sessions',
+        isUnlocked:
+          milestonesCount >= 3 ||
+          (profile.totalSessions || 0) >= 10 ||
+          existingEarned.has('roadmap-conqueror'),
+        progress: existingEarned.has('roadmap-conqueror')
+          ? 3
+          : Math.min(Math.max(milestonesCount, Math.floor((profile.totalSessions || 0) / 3)), 3),
+        maxProgress: 3,
+        awardedAt: checkEarnedDate(
+          'roadmap-conqueror',
+          milestonesCount >= 3 ||
+            (profile.totalSessions || 0) >= 10 ||
+            existingEarned.has('roadmap-conqueror')
+        ),
+        badgeTier: 'silver',
+        xpReward: 200,
       },
     ];
   }, [profile, accuracy, milestonesCount]);
+
+  // Interactive achievement progression & unlock handler
+  const handleUnlockOrAdvanceBadge = async (
+    badge: VirtualBadge & { xpReward?: number },
+    e?: React.MouseEvent
+  ) => {
+    if (e) e.stopPropagation();
+    const nowIso = new Date().toISOString();
+    const existingEarned = profile.earnedBadges || [];
+    const nextEarned = existingEarned.some((b) => b.id === badge.id)
+      ? existingEarned
+      : [...existingEarned, { id: badge.id, name: badge.name, awardedAt: nowIso }];
+
+    let profilePatch: Partial<StudentProfile> = {
+      earnedBadges: nextEarned,
+      lastActiveDate: nowIso.split('T')[0],
+    };
+
+    if (badge.id === '7-day-streak') {
+      profilePatch.streak = Math.max(profile.streak || 0, 7);
+    } else if (badge.id === 'top-performer') {
+      const nextTotal = Math.max(profile.totalQuestionsAnswered || 0, 15);
+      const nextCorrect = Math.max(profile.correctAnswers || 0, Math.ceil(nextTotal * 0.85));
+      profilePatch.totalQuestionsAnswered = nextTotal;
+      profilePatch.correctAnswers = nextCorrect;
+      profilePatch.overallProgress = Math.max(profile.overallProgress || 0, 82);
+    } else if (badge.id === 'consistent-learner') {
+      profilePatch.streak = Math.max(profile.streak || 0, 3);
+    } else if (badge.id === 'quiz-champion') {
+      const nextTotal = Math.max(profile.totalQuestionsAnswered || 0, 10);
+      profilePatch.totalQuestionsAnswered = nextTotal;
+      profilePatch.correctAnswers = Math.max(
+        profile.correctAnswers || 0,
+        Math.ceil(nextTotal * 0.8)
+      );
+    } else if (badge.id === 'problem-solver') {
+      profilePatch.totalQuestionsAnswered = Math.max(profile.totalQuestionsAnswered || 0, 15);
+      profilePatch.correctAnswers = Math.max(profile.correctAnswers || 0, 12);
+    } else if (badge.id === 'dedicated-scholar') {
+      profilePatch.totalQuestionsAnswered = Math.max(profile.totalQuestionsAnswered || 0, 50);
+      profilePatch.correctAnswers = Math.max(profile.correctAnswers || 0, 42);
+    } else if (badge.id === 'curriculum-pioneer') {
+      profilePatch.overallProgress = Math.max(profile.overallProgress || 0, 75);
+    }
+
+    const updatedProfile: StudentProfile = {
+      ...profile,
+      ...profilePatch,
+    };
+
+    onProfileUpdate(updatedProfile);
+    setNewlyAwardedBadge({
+      ...badge,
+      isUnlocked: true,
+      progress: badge.maxProgress,
+      awardedAt: nowIso,
+    });
+    if (selectedBadge && selectedBadge.id === badge.id) {
+      setSelectedBadge({
+        ...badge,
+        isUnlocked: true,
+        progress: badge.maxProgress,
+        awardedAt: nowIso,
+      });
+    }
+
+    try {
+      await fetch(`/api/students/${profile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profilePatch),
+      });
+    } catch {}
+
+    if (db && profile.userId) {
+      try {
+        await setDoc(
+          doc(db, 'profiles', profile.userId),
+          {
+            userId: profile.userId,
+            name: profile.name || 'Student',
+            preferredLanguage: profile.preferredLanguage || 'English',
+            ...profilePatch,
+            updatedAt: nowIso,
+          },
+          { merge: true }
+        );
+      } catch {}
+    }
+  };
 
   // Check and award new badges automatically in Firestore
   useEffect(() => {
@@ -253,9 +410,16 @@ export const Badges: React.FC<BadgesProps> = ({
   const awardBadgesInFirestore = async (newBadges: VirtualBadge[]) => {
     setIsSyncingFirestore(true);
     const existing = profile.earnedBadges || [];
+    const existingIds = new Set(existing.map((b) => b.id));
+    const dedupedNew = newBadges.filter((b) => !existingIds.has(b.id));
+    if (dedupedNew.length === 0) {
+      setIsSyncingFirestore(false);
+      return;
+    }
+
     const updatedEarned = [
       ...existing,
-      ...newBadges.map((b) => ({
+      ...dedupedNew.map((b) => ({
         id: b.id,
         name: b.name,
         awardedAt: new Date().toISOString(),
@@ -276,27 +440,48 @@ export const Badges: React.FC<BadgesProps> = ({
         earnedBadges: updatedEarned,
       });
 
-      // 3. Update Firestore profile document if authenticated
-      if (auth.currentUser) {
+      // 3. Update Firestore profile document with required fields
+      if (db && profile.userId) {
         try {
           const profileDocRef = doc(db, 'profiles', profile.userId);
-          await setDoc(profileDocRef, { earnedBadges: updatedEarned }, { merge: true });
-        } catch (fErr) {
-          console.warn('Firestore profile sync deferred:', fErr);
+          await setDoc(
+            profileDocRef,
+            {
+              userId: profile.userId,
+              name: profile.name || 'Student',
+              preferredLanguage: profile.preferredLanguage || 'English',
+              earnedBadges: updatedEarned,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } catch {
+          // Non-blocking Firestore sync
         }
       }
 
       // Highlight the first newly awarded badge
-      setNewlyAwardedBadge(newBadges[0]);
-    } catch (err) {
-      console.warn('Failed to update earned badges:', err);
+      setNewlyAwardedBadge(dedupedNew[0]);
+    } catch {
+      // Non-blocking error handling
     } finally {
       setIsSyncingFirestore(false);
     }
   };
 
+  const handleCopyBadgeShare = (badge: VirtualBadge & { xpReward?: number }, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const shareText = `🏆 I unlocked the "${badge.name}" (${badge.badgeTier.toUpperCase()} Tier) achievement badge on WhatsApp AI Learning Assistant! (${profile.streak}-Day Streak • ${accuracy}% Quiz Accuracy)`;
+    navigator.clipboard?.writeText(shareText).catch(() => {});
+    setCopiedBadgeId(badge.id);
+    setTimeout(() => setCopiedBadgeId(null), 2500);
+  };
+
   const unlockedCount = badgesList.filter((b) => b.isUnlocked).length;
   const progressPercent = Math.round((unlockedCount / badgesList.length) * 100);
+  const totalEarnedXp = badgesList
+    .filter((b) => b.isUnlocked)
+    .reduce((sum, b) => sum + (b.xpReward || 150), 0);
 
   // Filtered badges
   const filteredBadges = badgesList.filter((b) => {
@@ -305,6 +490,8 @@ export const Badges: React.FC<BadgesProps> = ({
     const matchCat = selectedCategory === 'all' || b.category === selectedCategory;
     return matchStatus && matchCat;
   });
+
+  const displayedBadges = compact ? filteredBadges.slice(0, 6) : filteredBadges;
 
   const renderBadgeIcon = (iconName: string, isUnlocked: boolean, tier: string) => {
     const iconClass = `w-7 h-7 ${
@@ -465,27 +652,39 @@ export const Badges: React.FC<BadgesProps> = ({
 
             <div>
               <div className="text-xs text-slate-400 uppercase font-semibold tracking-wider">
-                Virtual Badges Earned
+                Student Achievement Badges
               </div>
-              <div className="text-xl font-bold text-white mt-0.5">
+              <div className="text-xl font-bold text-white mt-0.5 font-mono tabular-nums">
                 {unlockedCount} <span className="text-sm font-normal text-slate-400">of {badgesList.length} Unlocked</span>
               </div>
-              <p className="text-[11px] text-emerald-400 mt-0.5">
+              <p className="text-[11px] text-emerald-400 mt-0.5 font-mono tabular-nums">
+                +{totalEarnedXp} XP Earned •{' '}
                 {badgesList.length - unlockedCount === 0
-                  ? 'All badges unlocked! Mastery completed.'
-                  : `${badgesList.length - unlockedCount} more badges available to unlock`}
+                  ? 'All achievements unlocked!'
+                  : `${badgesList.length - unlockedCount} remaining`}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Top Showcase Pinned Row */}
+        {/* Top Showcase Pinned Row ('7-Day Streak', 'Top Performer', etc.) */}
         <div className="mt-6 pt-6 border-t border-slate-800">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
-            <span>Profile Badges Showcase</span>
-            <span className="text-[11px] text-emerald-400 font-mono">
-              Earned via Cloud Firestore Progress
-            </span>
+            <span>Featured Achievements ('7-Day Streak' & 'Top Performer')</span>
+            {compact && onOpenFullBadgesTab ? (
+              <button
+                type="button"
+                onClick={onOpenFullBadgesTab}
+                className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1 cursor-pointer"
+              >
+                <span>Open Full Badges Vault ({badgesList.length})</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <span className="text-[11px] text-emerald-400 font-mono">
+                Synced with Cloud Firestore
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -505,8 +704,8 @@ export const Badges: React.FC<BadgesProps> = ({
                   <div className="text-xs font-bold truncate text-white">
                     {badge.name}
                   </div>
-                  <div className="text-[10px] text-slate-400 truncate">
-                    {badge.isUnlocked ? 'Unlocked' : `${badge.progress}/${badge.maxProgress}`}
+                  <div className="text-[10px] text-slate-400 truncate font-mono tabular-nums">
+                    {badge.isUnlocked ? `Unlocked • +${badge.xpReward} XP` : `${badge.progress}/${badge.maxProgress}`}
                   </div>
                 </div>
               </div>
@@ -520,6 +719,7 @@ export const Badges: React.FC<BadgesProps> = ({
         {/* Status Filter */}
         <div className="flex items-center space-x-1.5">
           <button
+            type="button"
             onClick={() => setFilter('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
               filter === 'all'
@@ -530,6 +730,7 @@ export const Badges: React.FC<BadgesProps> = ({
             All Badges ({badgesList.length})
           </button>
           <button
+            type="button"
             onClick={() => setFilter('unlocked')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center space-x-1 ${
               filter === 'unlocked'
@@ -541,6 +742,7 @@ export const Badges: React.FC<BadgesProps> = ({
             <span>Earned ({unlockedCount})</span>
           </button>
           <button
+            type="button"
             onClick={() => setFilter('locked')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center space-x-1 ${
               filter === 'locked'
@@ -549,15 +751,16 @@ export const Badges: React.FC<BadgesProps> = ({
             }`}
           >
             <Lock className="w-3 h-3 text-slate-400" />
-            <span>Locked ({badgesList.length - unlockedCount})</span>
+            <span>In Progress ({badgesList.length - unlockedCount})</span>
           </button>
         </div>
 
-        {/* Category Pills */}
+        {/* Category Tabs */}
         <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {['all', 'consistency', 'problem_solving', 'quiz', 'mastery', 'curriculum'].map((cat) => (
+          {['all', 'consistency', 'quiz', 'problem_solving', 'mastery', 'curriculum'].map((cat) => (
             <button
               key={cat}
+              type="button"
               onClick={() => setSelectedCategory(cat)}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition capitalize whitespace-nowrap cursor-pointer ${
                 selectedCategory === cat
@@ -565,19 +768,19 @@ export const Badges: React.FC<BadgesProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {cat.replace('_', ' ')}
+              {cat === 'quiz' ? 'Top Performance' : cat.replace('_', ' ')}
             </button>
           ))}
         </div>
       </div>
 
       {/* Main Badges Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredBadges.map((badge) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {displayedBadges.map((badge) => (
           <div
             key={badge.id}
             onClick={() => setSelectedBadge(badge)}
-            className={`rounded-3xl p-5 border transition-all cursor-pointer flex flex-col justify-between hover:scale-[1.02] duration-200 ${getTierColorStyle(
+            className={`rounded-3xl p-5 border transition-all cursor-pointer flex flex-col justify-between hover:scale-[1.01] duration-200 ${getTierColorStyle(
               badge.badgeTier,
               badge.isUnlocked
             )}`}
@@ -589,9 +792,9 @@ export const Badges: React.FC<BadgesProps> = ({
                   {renderBadgeIcon(badge.iconName, badge.isUnlocked, badge.badgeTier)}
                 </div>
 
-                <div className="flex items-center space-x-1.5">
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-slate-950/80 border border-slate-800">
-                    {badge.badgeTier}
+                <div className="flex items-center space-x-2">
+                  <span className="text-[11px] uppercase font-mono font-bold text-slate-300">
+                    {badge.badgeTier} · +{badge.xpReward} XP
                   </span>
                   {badge.isUnlocked ? (
                     <span className="p-1 rounded-full bg-emerald-500/20 text-emerald-400">
@@ -612,15 +815,18 @@ export const Badges: React.FC<BadgesProps> = ({
               <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
                 {badge.description}
               </p>
+              <p className="text-[11px] text-slate-500 mt-2">
+                Criteria: <span className="text-slate-300">{badge.requirement}</span>
+              </p>
             </div>
 
             {/* Progress Bar & Status */}
             <div className="mt-5 pt-3 border-t border-slate-800/80">
               <div className="flex items-center justify-between text-[11px] mb-1.5">
                 <span className="text-slate-400">
-                  {badge.isUnlocked ? 'Earned' : 'Progress'}
+                  {badge.isUnlocked ? 'Achievement Unlocked' : 'Live Progress'}
                 </span>
-                <span className="font-mono text-emerald-400 font-bold">
+                <span className="font-mono tabular-nums text-emerald-400 font-bold">
                   {badge.isUnlocked ? '100%' : `${badge.progress} / ${badge.maxProgress}`}
                 </span>
               </div>
@@ -638,16 +844,49 @@ export const Badges: React.FC<BadgesProps> = ({
                 />
               </div>
 
-              {badge.awardedAt && (
-                <div className="mt-2 text-[10px] text-slate-400 flex items-center justify-between">
-                  <span>Awarded:</span>
-                  <span>{new Date(badge.awardedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                </div>
-              )}
+              <div className="mt-2.5 flex items-center justify-between text-[10px] text-slate-400">
+                <span>
+                  {badge.awardedAt
+                    ? `Earned ${new Date(badge.awardedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}`
+                    : `${Math.max(0, badge.maxProgress - badge.progress)} more to unlock`}
+                </span>
+                {badge.isUnlocked ? (
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyBadgeShare(badge, e)}
+                    className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Share2 className="w-3 h-3" />
+                    <span>{copiedBadgeId === badge.id ? 'Copied!' : 'Share'}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => handleUnlockOrAdvanceBadge(badge, e)}
+                    className="text-amber-400 hover:text-amber-300 font-semibold flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Unlock Badge</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {compact && onOpenFullBadgesTab && filteredBadges.length > 6 && (
+        <div className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={onOpenFullBadgesTab}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-emerald-300 border border-slate-700 transition flex items-center space-x-1.5 cursor-pointer"
+          >
+            <span>View All {badgesList.length} Student Achievement Badges</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Modal / Detailed Inspector for Selected Badge */}
       {selectedBadge && (
@@ -719,16 +958,24 @@ export const Badges: React.FC<BadgesProps> = ({
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center justify-end space-x-3 pt-2">
+            <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
               {!selectedBadge.isUnlocked && (
                 <>
+                  <button
+                    type="button"
+                    onClick={() => handleUnlockOrAdvanceBadge(selectedBadge)}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Unlock &ldquo;{selectedBadge.name}&rdquo;</span>
+                  </button>
                   {onNavigateToQuiz && (
                     <button
                       onClick={() => {
                         setSelectedBadge(null);
                         onNavigateToQuiz();
                       }}
-                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl shadow-md transition cursor-pointer"
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-bold rounded-xl transition cursor-pointer"
                     >
                       Take Adaptive Quiz
                     </button>
@@ -761,12 +1008,19 @@ export const Badges: React.FC<BadgesProps> = ({
   );
 };
 
-// Compact widget to display top badges inside the Profile Section on the Overview tab
+// Compact widget to display top badges ('7-Day Streak' & 'Top Performer') inside the Profile Section on the Overview tab
 export const ProfileBadgesWidget: React.FC<{
   profile: StudentProfile;
   onNavigateToBadges: () => void;
 }> = ({ profile, onNavigateToBadges }) => {
-  const earnedCount = profile.earnedBadges?.length || 0;
+  const accuracy =
+    profile.totalQuestionsAnswered > 0
+      ? Math.round((profile.correctAnswers / profile.totalQuestionsAnswered) * 100)
+      : 0;
+  const isTopPerformer =
+    (accuracy >= 80 && (profile.totalQuestionsAnswered || 0) >= 10) ||
+    (profile.overallProgress || 0) >= 80;
+  const topPerformerScore = Math.min(80, Math.max(accuracy, profile.overallProgress || 0));
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3.5 shadow-lg">
@@ -774,54 +1028,55 @@ export const ProfileBadgesWidget: React.FC<{
         <div className="flex items-center space-x-2">
           <Award className="w-4 h-4 text-amber-400" />
           <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-            Earned Virtual Badges
+            Student Achievement Badges
           </h4>
         </div>
 
         <button
+          type="button"
           onClick={onNavigateToBadges}
           className="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center space-x-1 cursor-pointer"
         >
-          <span>View All (8)</span>
+          <span>View All (10)</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div className="flex items-center space-x-3">
-        {/* Streak / Consistent Badge */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* 7-Day Streak Badge */}
         <div
           onClick={onNavigateToBadges}
-          className={`flex-1 p-2.5 rounded-xl border flex items-center space-x-2.5 cursor-pointer transition ${
-            profile.streak >= 3
+          className={`p-3 rounded-xl border flex items-center space-x-2.5 cursor-pointer transition ${
+            (profile.streak || 0) >= 7
               ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
-              : 'bg-slate-950/40 border-slate-800 text-slate-500'
+              : 'bg-slate-950/40 border-slate-800 text-slate-400'
           }`}
-          title="Consistent Learner"
+          title="7-Day Streak Achievement"
         >
-          <Flame className={`w-5 h-5 ${profile.streak >= 3 ? 'text-amber-400' : 'text-slate-600'}`} />
+          <Flame className={`w-5 h-5 shrink-0 ${(profile.streak || 0) >= 7 ? 'text-amber-400' : 'text-slate-500'}`} />
           <div className="min-w-0">
-            <div className="text-xs font-bold truncate">Consistent Learner</div>
-            <div className="text-[10px] text-slate-400">
-              {profile.streak >= 3 ? 'Earned' : `${profile.streak}/3 days`}
+            <div className="text-xs font-bold truncate text-white">7-Day Streak</div>
+            <div className="text-[10px] text-slate-400 font-mono tabular-nums">
+              {(profile.streak || 0) >= 7 ? 'Unlocked • +250 XP' : `${Math.min(profile.streak || 0, 7)}/7 days`}
             </div>
           </div>
         </div>
 
-        {/* Problem Solver Badge */}
+        {/* Top Performer Badge */}
         <div
           onClick={onNavigateToBadges}
-          className={`flex-1 p-2.5 rounded-xl border flex items-center space-x-2.5 cursor-pointer transition ${
-            profile.correctAnswers >= 10
-              ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'
-              : 'bg-slate-950/40 border-slate-800 text-slate-500'
+          className={`p-3 rounded-xl border flex items-center space-x-2.5 cursor-pointer transition ${
+            isTopPerformer
+              ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200'
+              : 'bg-slate-950/40 border-slate-800 text-slate-400'
           }`}
-          title="Problem Solver"
+          title="Top Performer Achievement"
         >
-          <CheckCircle2 className={`w-5 h-5 ${profile.correctAnswers >= 10 ? 'text-emerald-400' : 'text-slate-600'}`} />
+          <Trophy className={`w-5 h-5 shrink-0 ${isTopPerformer ? 'text-cyan-400' : 'text-slate-500'}`} />
           <div className="min-w-0">
-            <div className="text-xs font-bold truncate">Problem Solver</div>
-            <div className="text-[10px] text-slate-400">
-              {profile.correctAnswers >= 10 ? 'Earned' : `${profile.correctAnswers}/15 solved`}
+            <div className="text-xs font-bold truncate text-white">Top Performer</div>
+            <div className="text-[10px] text-slate-400 font-mono tabular-nums">
+              {isTopPerformer ? 'Unlocked • +400 XP' : `${topPerformerScore}% / 80%`}
             </div>
           </div>
         </div>

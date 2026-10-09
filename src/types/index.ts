@@ -47,6 +47,7 @@ export interface StudentProfile {
   achievements?: any[];
   dailyQuestionsGoal?: number;
   questionsAnsweredToday?: number;
+  dailyMicroGoals?: DailyMicroGoal[];
   focusStats?: {
     totalFocusMinutes: number;
     completedSessions: number;
@@ -88,6 +89,47 @@ export interface StudentProfile {
     digilockerId: string;
     faceVerified?: boolean;
   }[];
+  placementPrep?: {
+    targetCompanyIds: string[];
+    completedQuestionIds: string[];
+    completedRoundKeys: string[];
+    mockTestScores: {
+      companyId: string;
+      companyName: string;
+      score: number;
+      total: number;
+      completedAt: string;
+    }[];
+    preferredRoleTrack?: string;
+    expectedGraduationYear?: string;
+    cgpa?: number;
+  };
+  mockInterviewHistory?: {
+    id: string;
+    companyId: string;
+    companyName: string;
+    role: string;
+    roundType: string;
+    overallScore: number;
+    questionsCount: number;
+    completedAt: string;
+  }[];
+  joinedPeerRoomIds?: string[];
+}
+
+export interface DailyMicroGoal {
+  id: string;
+  title: string;
+  category: 'math' | 'flashcards' | 'quiz' | 'coding' | 'reading' | 'custom';
+  subject: string;
+  currentCount: number;
+  targetCount: number;
+  unit: string;
+  minutesReward: number;
+  xpReward: number;
+  completed: boolean;
+  dateStr: string;
+  completedAt?: string;
 }
 
 export interface FocusSession {

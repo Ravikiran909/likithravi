@@ -82,18 +82,31 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
   );
   const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState<boolean>(true);
+  const [notifyOnBreakTime, setNotifyOnBreakTime] = useState<boolean>(true);
+  const [notifyOnResumeStudy, setNotifyOnResumeStudy] = useState<boolean>(true);
+  const [whatsappNudgeEnabled, setWhatsappNudgeEnabled] = useState<boolean>(true);
   const [activeCompletionBanner, setActiveCompletionBanner] = useState<NotificationLogItem | null>(
     null
   );
   const [notificationLogs, setNotificationLogs] = useState<NotificationLogItem[]>([
     {
       id: 'init_pomo_log_1',
-      title: 'Focus Block Complete: DSA (25m)',
-      body: 'Logged +25 mins to your daily study goal and weekly streak. Time for a 5m recharge break!',
+      title: 'Time to Take a Break! (25m DSA Focus Complete)',
+      body: 'Logged +25 mins to your daily study goal and weekly streak. Step away for a 5m recharge break!',
       timestamp: 'Earlier Today',
       mode: 'focus',
       subject: 'DSA',
       minutesLogged: 25,
+      browserDelivered: true,
+    },
+    {
+      id: 'init_pomo_log_2',
+      title: 'Time to Resume Study Session! (5m Break Complete)',
+      body: 'Your recharge break is over. Ready to resume your next 25m focus session on DSA?',
+      timestamp: 'Earlier Today',
+      mode: 'short_break',
+      subject: 'DSA',
+      minutesLogged: 0,
       browserDelivered: true,
     },
   ]);
@@ -173,7 +186,15 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
   ) => {
     let deliveredNative = false;
 
-    if (browserNotificationsEnabled && typeof window !== 'undefined' && 'Notification' in window) {
+    const shouldSendForPhase =
+      completedMode === 'focus' ? notifyOnBreakTime : notifyOnResumeStudy;
+
+    if (
+      shouldSendForPhase &&
+      browserNotificationsEnabled &&
+      typeof window !== 'undefined' &&
+      'Notification' in window
+    ) {
       let perm = Notification.permission;
       if (perm === 'default') {
         perm = await handleRequestNotificationPermission();
@@ -211,6 +232,19 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
       }
     }
 
+    if (shouldSendForPhase && whatsappNudgeEnabled && profile.userId) {
+      fetch('/api/reminders/send-instant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: profile.userId,
+          whatsappNumber: profile.whatsappNumber,
+          subject: selectedSubject,
+          customMessage: `${title} — ${body}`,
+        }),
+      }).catch(() => {});
+    }
+
     const logEntry: NotificationLogItem = {
       id: `pomo_notif_${Date.now()}`,
       title,
@@ -222,7 +256,9 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
       browserDelivered: deliveredNative,
     };
 
-    setActiveCompletionBanner(logEntry);
+    if (shouldSendForPhase) {
+      setActiveCompletionBanner(logEntry);
+    }
     setNotificationLogs((prev) => [logEntry, ...prev.slice(0, 5)]);
   };
 
@@ -272,10 +308,10 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
 
       // Fire Browser Notification
       const nextIsLongBreak = newCompletedSessions % 4 === 0;
-      const notifTitle = `🍅 Focus Block Complete! (+${minutesEarned}m ${selectedSubject})`;
+      const notifTitle = `☕ Time to Take a Break! (+${minutesEarned}m ${selectedSubject} Logged)`;
       const notifBody = `Great focus on "${
         focusTopicGoal.trim() || selectedSubject
-      }"! Your study progress (${newTodayFocusMinutes}m today, ${newCompletedSessions} Pomodoros) is synced. Time for a ${
+      }"! Your study progress (${newTodayFocusMinutes}m today, ${newCompletedSessions} Pomodoros) is synced. Step away for a ${
         nextIsLongBreak ? `${longBreakMins}m Long Break` : `${shortBreakMins}m Short Break`
       }.`;
 
@@ -300,6 +336,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
             {
               userId: profile.userId,
               name: profile.name || 'Student',
+              whatsappNumber: profile.whatsappNumber || '+919876543210',
               preferredLanguage: profile.preferredLanguage || 'en',
               dailyStudyMinutesCompleted: newDailyMinutes,
               weeklyHoursCompleted: newWeeklyHours,
@@ -330,15 +367,18 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
         setIsRunning(true);
       }
     } else {
-      // Break ended -> notify student to start next focus block
+      // Break ended -> notify student to resume study session
       const breakMins = completedMode === 'short_break' ? shortBreakMins : longBreakMins;
-      const notifTitle = `⏰ Break Finished! Ready for ${selectedSubject}?`;
-      const notifBody = `Your ${breakMins}-minute recharge break has ended. Start your next ${focusDurationMins}-minute focus block on ${selectedSubject}!`;
+      const notifTitle = `⏰ Time to Resume Study Session! (${selectedSubject})`;
+      const notifBody = `Your ${breakMins}-minute recharge break has ended. Resume your next ${focusDurationMins}-minute study session on "${focusTopicGoal.trim() || selectedSubject}"!`;
 
       await dispatchBrowserNotification(notifTitle, notifBody, completedMode, 0);
 
       setMode('focus');
       setSecondsLeft(focusDurationMins * 60);
+      if (autoStartBreaks) {
+        setIsRunning(true);
+      }
     }
   };
 
@@ -457,16 +497,34 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
             type="button"
             onClick={() =>
               dispatchBrowserNotification(
-                `🔔 Test Focus Alert: ${selectedSubject} (${focusDurationMins}m)`,
-                `Browser notifications are active! You will be alerted as soon as your ${focusDurationMins}-minute ${selectedSubject} focus block ends.`,
-                mode,
+                `☕ Time to Take a Break! (${selectedSubject} • ${focusDurationMins}m)`,
+                `Great focus session! Step away for a ${shortBreakMins}-minute recharge break before resuming ${selectedSubject}.`,
+                'focus',
+                0
+              )
+            }
+            className="px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+            title="Trigger 'Time to Take a Break' notification"
+          >
+            <Coffee className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Trigger Break Alert</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              dispatchBrowserNotification(
+                `⏰ Time to Resume Study Session! (${selectedSubject})`,
+                `Your ${shortBreakMins}-minute break is complete. Resume your ${focusDurationMins}-minute study session on "${focusTopicGoal}".`,
+                'short_break',
                 0
               )
             }
             className="px-3 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+            title="Trigger 'Time to Resume Study Session' notification"
           >
-            <Bell className="w-3.5 h-3.5" />
-            <span>Test End-of-Block Alert</span>
+            <Bell className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Trigger Resume Alert</span>
           </button>
 
           <button
@@ -489,6 +547,110 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
             title="Customize Pomodoro Durations"
           >
             <SlidersHorizontal className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Interactive Notification Toggles Strip: Break Time Alert & Resume Study Session Alert */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-950/75 border border-slate-800/90 rounded-xl p-3.5">
+        {/* Toggle 1: Break Time Alert */}
+        <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <Coffee className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-white truncate">Break Time Notification</div>
+              <div className="text-[11px] text-slate-400 truncate">
+                Alert when focus ends &amp; break starts
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={notifyOnBreakTime}
+            aria-label="Toggle notification when it is time to take a break"
+            onClick={() => setNotifyOnBreakTime((prev) => !prev)}
+            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
+              notifyOnBreakTime ? 'bg-emerald-500' : 'bg-slate-700'
+            }`}
+          >
+            <span
+              className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform ${
+                notifyOnBreakTime ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Toggle 2: Resume Study Session Alert */}
+        <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <Flame className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-white truncate">
+                Resume Study Notification
+              </div>
+              <div className="text-[11px] text-slate-400 truncate">
+                Alert when break ends &amp; study resumes
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={notifyOnResumeStudy}
+            aria-label="Toggle notification when it is time to resume study sessions"
+            onClick={() => setNotifyOnResumeStudy((prev) => !prev)}
+            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
+              notifyOnResumeStudy ? 'bg-amber-500' : 'bg-slate-700'
+            }`}
+          >
+            <span
+              className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform ${
+                notifyOnResumeStudy ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Toggle 3: Auto-Transition + WhatsApp Nudge */}
+        <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-slate-900/90 border border-slate-800">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+              <BellRing className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-white truncate">
+                Auto-Cycle &amp; WhatsApp Nudge
+              </div>
+              <div className="text-[11px] text-slate-400 truncate">
+                Auto-switch &amp; message +{profile.whatsappNumber}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={whatsappNudgeEnabled}
+            aria-label="Toggle WhatsApp break and resume study notifications"
+            onClick={() => {
+              const nextState = !whatsappNudgeEnabled;
+              setWhatsappNudgeEnabled(nextState);
+              setAutoStartBreaks(nextState);
+            }}
+            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
+              whatsappNudgeEnabled ? 'bg-indigo-500' : 'bg-slate-700'
+            }`}
+          >
+            <span
+              className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform ${
+                whatsappNudgeEnabled ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
           </button>
         </div>
       </div>
