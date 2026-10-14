@@ -103,6 +103,55 @@ export const Badges: React.FC<BadgesProps> = ({
         xpReward: 250,
       },
       {
+        id: 'early-bird',
+        name: 'Early Bird',
+        description:
+          'Kick off your day with an early morning study session or quiz before 9:00 AM.',
+        category: 'consistency',
+        iconName: 'Flame',
+        requirement: 'Study or complete a quiz before 9:00 AM (or morning study preference)',
+        isUnlocked:
+          Boolean(profile.preferredStudyTime?.toLowerCase().includes('am')) ||
+          Boolean(profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0) ||
+          existingEarned.has('early-bird'),
+        progress:
+          existingEarned.has('early-bird') ||
+          profile.preferredStudyTime?.toLowerCase().includes('am') ||
+          (profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0)
+            ? 1
+            : 0,
+        maxProgress: 1,
+        awardedAt: checkEarnedDate(
+          'early-bird',
+          Boolean(profile.preferredStudyTime?.toLowerCase().includes('am')) ||
+            Boolean(profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0) ||
+            existingEarned.has('early-bird')
+        ),
+        badgeTier: 'silver',
+        xpReward: 150,
+      },
+      {
+        id: 'quiz-master',
+        name: 'Quiz Master',
+        description:
+          'Demonstrate high accuracy on adaptive quizzes with 85%+ score across at least 10 answered questions.',
+        category: 'quiz',
+        iconName: 'Trophy',
+        requirement: '85%+ quiz accuracy (min 10 questions answered)',
+        isUnlocked:
+          (accuracy >= 85 && (profile.totalQuestionsAnswered || 0) >= 10) ||
+          existingEarned.has('quiz-master'),
+        progress: existingEarned.has('quiz-master') ? 85 : Math.min(accuracy, 85),
+        maxProgress: 85,
+        awardedAt: checkEarnedDate(
+          'quiz-master',
+          (accuracy >= 85 && (profile.totalQuestionsAnswered || 0) >= 10) ||
+            existingEarned.has('quiz-master')
+        ),
+        badgeTier: 'gold',
+        xpReward: 300,
+      },
+      {
         id: 'top-performer',
         name: 'Top Performer',
         description:

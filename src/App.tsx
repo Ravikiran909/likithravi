@@ -7,6 +7,7 @@ import { VoiceAIAgent } from './components/VoiceAIAgent.tsx';
 import { StudyDocuments } from './components/StudyDocuments.tsx';
 import { OfflineIndicator } from './components/OfflineIndicator.tsx';
 import { FaceAuthLoginModal } from './components/FaceAuthLoginModal.tsx';
+import { MongoDbAtlasModal } from './components/MongoDbAtlasModal.tsx';
 import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
 import {
@@ -130,6 +131,12 @@ export default function App() {
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(true);
   const [focusMode, setFocusMode] = useState<boolean>(false);
   const [isFaceAuthModalOpen, setIsFaceAuthModalOpen] = useState<boolean>(false);
+  const [isMongoDbModalOpen, setIsMongoDbModalOpen] = useState<boolean>(false);
+  const [mongoDbStatus, setMongoDbStatus] = useState<{
+    connected: boolean;
+    configured: boolean;
+    pingLatencyMs: number | null;
+  } | null>(null);
 
   useEffect(() => {
     if (selectedProfile?.deepFocusEnabled !== undefined) {
@@ -269,10 +276,16 @@ export default function App() {
 
   const fetchInitialData = async () => {
     try {
-      const [studentsRes, waRes] = await Promise.all([
+      const [studentsRes, waRes, mongoRes] = await Promise.all([
         fetch('/api/students'),
         fetch('/api/whatsapp/config'),
+        fetch('/api/mongodb/status').catch(() => null),
       ]);
+
+      if (mongoRes && mongoRes.ok) {
+        const mongoData = await mongoRes.json();
+        setMongoDbStatus(mongoData);
+      }
 
       if (studentsRes.ok) {
         const data = await studentsRes.json();
@@ -388,6 +401,8 @@ export default function App() {
         focusMode={focusMode}
         onToggleFocusMode={handleToggleFocusMode}
         onOpenFaceAuth={() => setIsFaceAuthModalOpen(true)}
+        onOpenMongoDbModal={() => setIsMongoDbModalOpen(true)}
+        mongoDbStatus={mongoDbStatus}
       />
 
       <FaceAuthLoginModal

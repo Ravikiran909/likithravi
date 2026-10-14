@@ -24,14 +24,49 @@ import {
   recordFcmPushDelivery,
   getFcmPushHistory,
 } from './server/services/automatedReminders.ts';
+import {
+  connectToMongoDB,
+  getMongoStatus,
+  saveQuizResultMongo,
+  getChatMessagesMongo,
+  getQuizResultsMongo,
+  getRecentVerifiedRecordsMongo,
+  createVerificationRecordMongo,
+  getLearningProgressMongo,
+} from './server/database/mongodb.ts';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Parse CLI arguments if provided (e.g., tsx server.ts --port 3000 --host 0.0.0.0)
+const cliArgs = process.argv.slice(2);
+let cliPort: number | undefined;
+let cliHost: string | undefined;
+
+for (let i = 0; i < cliArgs.length; i++) {
+  if (cliArgs[i] === '--port' && cliArgs[i + 1]) {
+    cliPort = parseInt(cliArgs[i + 1], 10);
+  }
+  if (cliArgs[i] === '--host' && cliArgs[i + 1]) {
+    cliHost = cliArgs[i + 1];
+  }
+}
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || cliPort || 3000;
+const HOST = process.env.HOST || cliHost || '0.0.0.0';
+
+// Health Check Endpoints for cloud platform pre-warming and uptime checks
+app.get(['/api/health', '/health'], (_req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    service: 'whatsapp-ai-learning-agent',
+  });
+});
 
 // Body parsers with ample limit for question screenshots
 app.use(express.json({ limit: '10mb' }));
@@ -253,6 +288,113 @@ app.put('/api/students/:id', (req, res) => {
   const updated = db.updateProfile(req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: 'Student not found' });
   res.json(updated);
+});
+
+// ----------------------------------------------------
+// 3a. Secure MongoDB Atlas Connection & Verification Endpoints
+// ----------------------------------------------------
+app.get('/api/mongodb/status', async (req, res) => {
+  try {
+    const status = await getMongoStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to get MongoDB status' });
+  }
+});
+
+app.post('/api/mongodb/test-connection', async (req, res) => {
+  try {
+    const result = await connectToMongoDB();
+    const status = await getMongoStatus();
+    if (result.success) {
+      res.json({
+        success: true,
+        message: `Successfully connected to MongoDB Atlas (${status.databaseName}) with ${status.pingLatencyMs}ms ping.`,
+        status,
+      });
+    } else {
+      res.status(result.error?.includes('MONGODB_URI secret is not set') ? 400 : 500).json({
+        success: false,
+        error: result.error,
+        status,
+      });
+    }
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'MongoDB connection test failed',
+    });
+  }
+});
+
+app.get('/api/mongodb/records', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit) || 10;
+    const records = await getRecentVerifiedRecordsMongo(limit);
+    const status = await getMongoStatus();
+    res.json({
+      success: true,
+      status,
+      records,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to fetch MongoDB records' });
+  }
+});
+
+app.post('/api/mongodb/verify-write', async (req, res) => {
+  try {
+    const { triggeredBy, purpose, testNote } = req.body || {};
+    const created = await createVerificationRecordMongo({
+      triggeredBy: triggeredBy || 'AI Studio Test Verification',
+      purpose: purpose || 'Live MongoDB Atlas Connectivity Verification',
+      testNote: testNote || 'Verified real database record written to MongoDB Atlas',
+    });
+    const status = await getMongoStatus();
+    res.json({
+      success: true,
+      record: created,
+      status,
+      message: `Verified write successful! Document created in collection "verification_records" with _id: ${created._id}`,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'Failed to write verification record to MongoDB Atlas',
+    });
+  }
+});
+
+app.get('/api/mongodb/chat-history', async (req, res) => {
+  try {
+    const userId = req.query.userId ? String(req.query.userId) : undefined;
+    const limit = Number(req.query.limit) || 50;
+    const messages = await getChatMessagesMongo(userId, limit);
+    res.json({ success: true, messages });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to fetch chat history from MongoDB' });
+  }
+});
+
+app.get('/api/mongodb/quiz-history', async (req, res) => {
+  try {
+    const userId = req.query.userId ? String(req.query.userId) : undefined;
+    const limit = Number(req.query.limit) || 50;
+    const quizResults = await getQuizResultsMongo(userId, limit);
+    res.json({ success: true, quizResults });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to fetch quiz history from MongoDB' });
+  }
+});
+
+app.get('/api/mongodb/learning-progress', async (req, res) => {
+  try {
+    const userId = String(req.query.userId || 'usr_rahul');
+    const progress = await getLearningProgressMongo(userId);
+    res.json({ success: true, progress });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Failed to fetch learning progress from MongoDB' });
+  }
 });
 
 // ----------------------------------------------------
@@ -1392,6 +1534,20 @@ app.post('/api/quiz/record-result', async (req, res) => {
         },
       ],
     });
+
+    // Asynchronously persist quiz result to MongoDB Atlas
+    saveQuizResultMongo({
+      userId,
+      topic,
+      subject: subject || 'General',
+      score,
+      totalQuestions,
+      percentage,
+      isMastered,
+      quizMinutesEarned,
+      date: todayStr,
+      timestamp: new Date().toISOString(),
+    }).catch(() => {});
 
     res.json({
       success: true,
@@ -4291,7 +4447,10 @@ async function startServer() {
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -4303,11 +4462,49 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, () => {
-    console.log(`🚀 WhatsApp AI Learning Agent full-stack server running on http://localhost:${PORT}`);
-    console.log(`📱 WhatsApp Webhook URL: http://localhost:${PORT}/webhook/whatsapp`);
+  const server = app.listen(PORT, HOST, () => {
+    const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+    console.log(`🚀 WhatsApp AI Learning Agent server running on http://${displayHost}:${PORT} (bound to ${HOST}:${PORT})`);
+    console.log(`📱 WhatsApp Webhook URL: http://${displayHost}:${PORT}/webhook/whatsapp`);
     startAutomatedReminderScheduler();
+
+    // Securely connect to MongoDB Atlas if MONGODB_URI secret is present
+    if (process.env.MONGODB_URI) {
+      connectToMongoDB().then((res) => {
+        if (res.success) {
+          console.log(`🍃 [MongoDB Atlas] Connected successfully with ${res.latencyMs}ms ping.`);
+        } else {
+          console.warn(`⚠️ [MongoDB Atlas] Initial connection note: ${res.error}`);
+        }
+      });
+    } else {
+      console.log(`🍃 [MongoDB Atlas] Server running. MONGODB_URI secret not configured (using in-memory verified mock database).`);
+    }
   });
+
+  // Catch server port binding errors (e.g., EADDRINUSE when port 3000 is still releasing)
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`⚠️ [Port Conflict] Port ${PORT} is temporarily in use (EADDRINUSE). Cleaning up to allow supervisor restart...`);
+      server.close();
+      process.exit(1);
+    } else {
+      console.error('❌ Server startup error:', err);
+      process.exit(1);
+    }
+  });
+
+  // Graceful shutdown handling for Cloud Run / container lifecycle restarts
+  const handleShutdown = (signal: string) => {
+    console.log(`Received ${signal}. Gracefully stopping HTTP server...`);
+    server.close(() => {
+      console.log('HTTP server closed cleanly.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
 }
 
 startServer();

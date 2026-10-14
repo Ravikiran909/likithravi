@@ -59,7 +59,7 @@ export class ProgressAgent {
         : 'Recursion & Graph Traversal';
 
     return (
-      `📊 *LEARNING ANALYTICS & PROGRESS REPORT*\n` +
+      `📊 *YOUR LEARNING PROGRESS & ANALYTICS REPORT*\n` +
       `👤 *Student:* ${profile.name} (${(profile.currentSkillLevel || 'intermediate').toUpperCase()})\n\n` +
       `🔥 *Active Study Streak:* *${profile.streak || 1} Days*\n` +
       `🎯 *Quiz Accuracy:* *${accuracy}%* (${correctQ}/${totalQ} correct)\n` +

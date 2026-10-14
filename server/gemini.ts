@@ -264,6 +264,32 @@ export function extractHeuristicIntent(message: string): IntentResult {
     return { intent: 'HELP', language };
   }
 
+  // Progressive Socratic Hint requests
+  if (
+    lower.startsWith('/hint') ||
+    lower === 'hint' ||
+    lower.startsWith('hint ') ||
+    lower.includes('give me a hint') ||
+    lower.includes('need a hint') ||
+    lower.includes('hint please') ||
+    lower.includes("i'm stuck") ||
+    lower.includes('im stuck') ||
+    lower.includes('stuck on this') ||
+    lower.includes('give me a clue') ||
+    lower.includes('clue please')
+  ) {
+    const levelMatch = clean.match(/(?:level\s*|hint\s*)?([1-3])/i);
+    const forcedLevel = levelMatch ? parseInt(levelMatch[1], 10) : undefined;
+    return {
+      intent: 'REQUEST_HINT',
+      subject,
+      topic,
+      difficulty,
+      language,
+      extractedDetails: forcedLevel ? String(forcedLevel) : undefined,
+    };
+  }
+
   if (
     lower.startsWith('/smart-quiz') ||
     lower.includes('smart study session') ||

@@ -15,6 +15,11 @@ import {
   Recommendation,
   MaterialReview,
 } from '../../src/types/index.ts';
+import {
+  saveChatMessageMongo,
+  saveStudentProfileMongo,
+  saveLearningProgressMongo,
+} from './mongodb.ts';
 
 class DatabaseStore {
   users: Map<string, User> = new Map();
@@ -1143,6 +1148,8 @@ Type your answer below! 👇`,
       userId: prof.userId,
     };
     this.profiles.set(prof.userId, updated);
+    // Persist to MongoDB Atlas asynchronously
+    saveStudentProfileMongo(updated).catch(() => {});
     return updated;
   }
 
@@ -1157,6 +1164,8 @@ Type your answer below! 👇`,
     if (this.messages.length > 500) {
       this.messages.shift();
     }
+    // Persist to MongoDB Atlas asynchronously
+    saveChatMessageMongo(record).catch(() => {});
     return record;
   }
 
@@ -1267,6 +1276,13 @@ Type your answer below! 👇`,
       history.push(entry);
     }
     this.updateProfile(userId, { learningHistory: history });
+    saveLearningProgressMongo({
+      userId,
+      subject,
+      topic,
+      masteryLevel,
+      date: todayStr,
+    }).catch(() => {});
   }
 
   checkAndAwardAchievements(userId: string): { id: string; title: string; xpReward: number }[] {

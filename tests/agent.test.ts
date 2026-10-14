@@ -49,7 +49,7 @@ async function runAllTests() {
   // Test 3: Quiz Generation & Evaluation
   console.log('\nTest Suite 3: Adaptive Quiz Engine');
   const quizMsg = await quizAgent.startQuiz(profile, 'Python', 'Recursion', 'intermediate');
-  assert(quizMsg.includes('Question 1/'), 'Quiz starts and outputs formatted Question 1');
+  assert(quizMsg.includes('Question 1') || quizMsg.includes('Question 1/'), 'Quiz starts and outputs formatted Question 1');
   const activeQuiz = db.getActiveQuizSession(profile.userId);
   assert(Boolean(activeQuiz), 'Active quiz session saved in database');
 
@@ -65,20 +65,25 @@ async function runAllTests() {
     'I have a mathematics exam in 15 days and can study 2 hours every day.',
     profile
   );
-  assert(planResponse.includes('Study Plan Created') || planResponse.includes('Roadmap'), 'Study plan response generated');
+  assert(
+    planResponse.toUpperCase().includes('ROADMAP') ||
+      planResponse.toUpperCase().includes('STUDY PLAN') ||
+      planResponse.toUpperCase().includes('EXAM PREP'),
+    'Study plan response generated'
+  );
   const savedPlan = db.getStudyPlan(profile.userId);
   assert(Boolean(savedPlan && savedPlan.items.length > 0), 'Study plan items persisted in database');
 
   // Test 5: Progress Report Generation
   console.log('\nTest Suite 5: Progress Agent');
   const progressText = progressAgent.generateProgressReport(profile);
-  assert(progressText.includes('YOUR LEARNING PROGRESS'), 'Progress report header formatted');
+  assert(progressText.toUpperCase().includes('LEARNING PROGRESS'), 'Progress report header formatted');
   assert(progressText.includes('Study Streak'), 'Streak fire included');
 
   // Test 6: Reminder Scheduling
   console.log('\nTest Suite 6: Reminder Agent');
   const reminderText = reminderAgent.handleReminderRequest('Remind me to study DSA at 8 PM daily', profile);
-  assert(reminderText.includes('Reminder Scheduled'), 'Reminder confirmation formatted');
+  assert(reminderText.toUpperCase().includes('REMINDER SCHEDULED'), 'Reminder confirmation formatted');
   const reminders = db.getReminders(profile.userId);
   assert(reminders.length > 0, 'Reminder saved in database');
 

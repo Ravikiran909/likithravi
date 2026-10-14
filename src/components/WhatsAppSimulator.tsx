@@ -25,6 +25,8 @@ import {
   Clock,
   Terminal,
   Pin,
+  Lightbulb,
+  HelpCircle,
 } from 'lucide-react';
 import { StudentProfile, MessageRecord, DocumentRecord, SUPPORTED_LANGUAGES } from '../types/index.ts';
 
@@ -48,6 +50,7 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
   const [autoSpeechEnabled, setAutoSpeechEnabled] = useState(false);
   const [liveVoiceTranscript, setLiveVoiceTranscript] = useState('');
+  const [hintMenuOpen, setHintMenuOpen] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
 
@@ -499,11 +502,22 @@ function createSampleVoiceWav(frequency = 440): string {
 
   // Extract contextual interactive quick-reply buttons based on the agent response
   const extractQuickChoices = (content: string) => {
+    // Socratic Hint progression buttons
+    if (content.includes('HINT LEVEL 1') || content.includes('Level 1: Intuition Nudge')) {
+      return ['💡 /hint 2 (Strategy)', 'A', 'B', 'C', 'D'];
+    }
+    if (content.includes('HINT LEVEL 2') || content.includes('Level 2: Structural Anchor')) {
+      return ['🛠️ /hint 3 (Scaffold)', 'A', 'B', 'C', 'D'];
+    }
+    if (content.includes('HINT LEVEL 3') || content.includes('Level 3: Stepping Stone')) {
+      return ['A', 'B', 'C', 'D', 'Explain Solution'];
+    }
+
     if (
       content.includes('Reply with A, B, C, or D') ||
       (content.includes('Question ') && content.includes('A)') && content.includes('B)'))
     ) {
-      return ['A', 'B', 'C', 'D'];
+      return ['A', 'B', 'C', 'D', '💡 /hint'];
     }
     if (content.includes("TODAY'S STUDY PLAN")) {
       return ['Done 1', '/smart-quiz', 'Exam in 14 days'];
@@ -548,6 +562,14 @@ function createSampleVoiceWav(frequency = 440): string {
             className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
             👨‍🏫 Tutor: Recursion
+          </button>
+          <button
+            onClick={() => sendMessage('/hint')}
+            className="px-2.5 py-1 text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg border border-amber-500/40 transition cursor-pointer font-bold flex items-center space-x-1"
+            title="Request progressive Socratic hint without spoiling the answer"
+          >
+            <Lightbulb className="w-3 h-3 text-amber-400" />
+            <span>💡 /hint (Socratic Hint)</span>
           </button>
           <button
             onClick={() => sendMessage('/quiz Python')}
@@ -682,12 +704,17 @@ function createSampleVoiceWav(frequency = 440): string {
                       }`}
                     >
                       {/* Agent Badge for bot replies */}
-                      {!isStudent && m.agentName && (
+                      {!isStudent && (m.agentName === 'Socratic Hint Agent' || m.intent === 'REQUEST_HINT' || m.content.includes('HINT LEVEL')) ? (
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1 flex items-center space-x-1">
+                          <Lightbulb className="w-3 h-3 fill-amber-400/40 text-amber-500" />
+                          <span>Socratic Hint Agent • Step-by-Step Guidance</span>
+                        </div>
+                      ) : !isStudent && m.agentName ? (
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1 flex items-center space-x-1">
                           <Sparkles className="w-3 h-3" />
                           <span>{m.agentName}</span>
                         </div>
-                      )}
+                      ) : null}
 
                       {/* Audio Voice Note Visualizer */}
                       {m.messageType === 'audio' && (
@@ -905,6 +932,108 @@ function createSampleVoiceWav(frequency = 440): string {
                   <FileAudio className="w-5 h-5" />
                 </button>
 
+                {/* Socratic Hint Quick Action Menu */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setHintMenuOpen(!hintMenuOpen)}
+                    className={`p-2 rounded-full transition cursor-pointer flex items-center justify-center ${
+                      hintMenuOpen
+                        ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/30'
+                        : 'text-amber-400 hover:text-amber-300 hover:bg-slate-800'
+                    }`}
+                    title="💡 Socratic Hint: Request structured progressive hints without spoiling the answer"
+                  >
+                    <Lightbulb className="w-5 h-5 fill-amber-400/20" />
+                  </button>
+
+                  {/* Socratic Hint Dropdown Menu */}
+                  {hintMenuOpen && (
+                    <div className="absolute bottom-12 left-[-60px] sm:left-0 w-72 bg-slate-900 border border-amber-500/40 rounded-2xl shadow-2xl p-3 z-50 text-xs space-y-2 text-slate-200 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span className="font-bold text-amber-300 flex items-center space-x-1.5 text-xs">
+                          <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Progressive Socratic Hints</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setHintMenuOpen(false)}
+                          className="text-slate-400 hover:text-white text-xs px-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        Stuck on a tricky problem or quiz? Get progressive Socratic nudges to solve it yourself!
+                      </p>
+
+                      <div className="space-y-1 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHintMenuOpen(false);
+                            sendMessage('/hint 1');
+                          }}
+                          className="w-full text-left p-2 rounded-xl bg-slate-800/80 hover:bg-amber-950/40 hover:border-amber-500/50 border border-slate-700/60 transition group cursor-pointer"
+                        >
+                          <div className="font-bold text-amber-300 text-[11px] group-hover:text-amber-200 flex items-center justify-between">
+                            <span>💡 Level 1: Intuition Nudge</span>
+                            <span className="text-[10px] text-amber-400/80">Step 1</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            Mental model, core objective & base invariant
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHintMenuOpen(false);
+                            sendMessage('/hint 2');
+                          }}
+                          className="w-full text-left p-2 rounded-xl bg-slate-800/80 hover:bg-amber-950/40 hover:border-amber-500/50 border border-slate-700/60 transition group cursor-pointer"
+                        >
+                          <div className="font-bold text-amber-300 text-[11px] group-hover:text-amber-200 flex items-center justify-between">
+                            <span>🔍 Level 2: Strategy & Invariant</span>
+                            <span className="text-[10px] text-amber-400/80">Step 2</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            Algorithmic pattern, math rule & relation
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHintMenuOpen(false);
+                            sendMessage('/hint 3');
+                          }}
+                          className="w-full text-left p-2 rounded-xl bg-slate-800/80 hover:bg-amber-950/40 hover:border-amber-500/50 border border-slate-700/60 transition group cursor-pointer"
+                        >
+                          <div className="font-bold text-amber-300 text-[11px] group-hover:text-amber-200 flex items-center justify-between">
+                            <span>🛠️ Level 3: Guided Scaffold</span>
+                            <span className="text-[10px] text-amber-400/80">Step 3</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            First micro-step & common trap elimination
+                          </div>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHintMenuOpen(false);
+                          sendMessage('/hint');
+                        }}
+                        className="w-full py-1.5 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-bold rounded-lg text-center transition cursor-pointer text-[11px]"
+                      >
+                        ⚡ Auto-Progress Next Hint →
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Recording indicator vs Text input */}
                 {isRecording ? (
                   <div className="flex-1 flex items-center justify-between bg-rose-950/40 border border-rose-800/60 rounded-full px-4 py-2 text-rose-300 text-xs">
@@ -1058,6 +1187,7 @@ function createSampleVoiceWav(frequency = 440): string {
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       { label: 'Tutor Agent', prompt: `Teach me ${selectedProfile.weakTopics?.[0] || 'Python Recursion'} with an analogy` },
+                      { label: 'Socratic Hint Agent', prompt: `/hint` },
                       { label: 'Quiz Agent', prompt: `/quiz ${selectedProfile.subjects?.[0] || 'Python'}` },
                       { label: 'Smart 5m Quiz', prompt: `/smart-quiz ${selectedProfile.weakTopics?.[0] || 'DSA'}` },
                       { label: 'Planner Agent', prompt: `Today's study plan` },

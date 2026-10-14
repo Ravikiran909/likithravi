@@ -203,6 +203,73 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         iconName: 'graduation',
       },
 
+      // 4. SIGNATURE DIGITAL BADGE: 'Early Bird'
+      {
+        id: 'milestone_early_bird',
+        title: 'Early Bird',
+        badgeCode: 'BDG-EARLY-BIRD',
+        milestoneLabel: 'Morning Mastery',
+        category: 'streak',
+        tier: 'Silver',
+        xpPoints: 250,
+        description:
+          'Awarded for starting your daily study session or completing an active quiz before 9:00 AM.',
+        requirementSummary: 'Study or complete a quiz before 9:00 AM',
+        currentValue:
+          Boolean(profile.preferredStudyTime?.toLowerCase().includes('am')) ||
+          Boolean(profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0)
+            ? 1
+            : 0,
+        targetValue: 1,
+        unit: 'session',
+        unlocked: isUnlocked(
+          'milestone_early_bird',
+          Boolean(profile.preferredStudyTime?.toLowerCase().includes('am')) ||
+            Boolean(profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0)
+        ),
+        awardedAt: getAwardDate(
+          'milestone_early_bird',
+          isUnlocked(
+            'milestone_early_bird',
+            Boolean(profile.preferredStudyTime?.toLowerCase().includes('am')) ||
+              Boolean(profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0)
+          )
+        ),
+        accent: 'amber',
+        iconName: 'zap',
+      },
+
+      // 5. SIGNATURE DIGITAL BADGE: 'Quiz Master'
+      {
+        id: 'milestone_quiz_master',
+        title: 'Quiz Master',
+        badgeCode: 'BDG-QUIZ-MSTR',
+        milestoneLabel: 'High Accuracy Mastery',
+        category: 'questions',
+        tier: 'Gold',
+        xpPoints: 350,
+        description:
+          'Awarded for scoring 85%+ accuracy across at least 10 answered questions.',
+        requirementSummary: 'Score 85%+ quiz accuracy (min 10 questions)',
+        currentValue:
+          totalQuestions > 0 ? Math.round((correctQuestions / totalQuestions) * 100) : 0,
+        targetValue: 85,
+        unit: '% accuracy',
+        unlocked: isUnlocked(
+          'milestone_quiz_master',
+          totalQuestions >= 10 && (correctQuestions / totalQuestions) >= 0.85
+        ),
+        awardedAt: getAwardDate(
+          'milestone_quiz_master',
+          isUnlocked(
+            'milestone_quiz_master',
+            totalQuestions >= 10 && (correctQuestions / totalQuestions) >= 0.85
+          )
+        ),
+        accent: 'emerald',
+        iconName: 'award',
+      },
+
       // Additional Streak Digital Badges
       {
         id: 'milestone_3_day_streak',

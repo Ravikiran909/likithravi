@@ -141,10 +141,64 @@ export function calculateLearningAchievements(
       rarity: 'Legendary',
       glowColor: 'from-purple-500/20 to-pink-500/20 border-purple-500/50 text-purple-300',
     },
+    {
+      id: 'badge_early_bird',
+      title: 'Early Bird',
+      category: 'streak',
+      tier: 'Bronze',
+      icon: '🌅',
+      description: 'Start your study session or conquer a quiz before 9:00 AM to kickstart your day.',
+      requirementDescription: 'Study or take a quiz before 9:00 AM',
+      currentValue:
+        profile.preferredStudyTime?.toLowerCase().includes('am') ||
+        (profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0)
+          ? 1
+          : 0,
+      targetValue: 1,
+      unlocked: isStoredOrUnlocked(
+        'badge_early_bird',
+        Boolean(profile.preferredStudyTime?.toLowerCase().includes('am')) ||
+          Boolean(profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0)
+      ),
+      progressPercent: isStoredOrUnlocked(
+        'badge_early_bird',
+        Boolean(profile.preferredStudyTime?.toLowerCase().includes('am')) ||
+          Boolean(profile.focusStats?.completedSessions && profile.focusStats.completedSessions > 0)
+      )
+        ? 100
+        : 0,
+      unlockedAt: earnedMap.get('badge_early_bird'),
+      rarity: 'Common',
+      glowColor: 'from-amber-400/20 to-orange-400/20 border-amber-400/40 text-amber-300',
+    },
   ];
 
-  // 2. Questions Answered Milestone Badges (including '100 Questions Answered')
+  // 2. Questions Answered Milestone Badges (including 'Quiz Master' and '100 Questions Answered')
   const questionBadges: AchievementBadge[] = [
+    {
+      id: 'badge_quiz_master',
+      title: 'Quiz Master',
+      category: 'questions_milestone',
+      tier: 'Gold',
+      icon: '🧠',
+      description: 'Achieve 85%+ quiz accuracy with at least 10 answered questions.',
+      requirementDescription: 'Score 85%+ accuracy across at least 10 questions',
+      currentValue: Math.min(accuracy, 85),
+      targetValue: 85,
+      unlocked: isStoredOrUnlocked(
+        'badge_quiz_master',
+        accuracy >= 85 && totalQuestions >= 10
+      ),
+      progressPercent: isStoredOrUnlocked(
+        'badge_quiz_master',
+        accuracy >= 85 && totalQuestions >= 10
+      )
+        ? 100
+        : Math.min(100, Math.round((accuracy / 85) * 100)),
+      unlockedAt: earnedMap.get('badge_quiz_master'),
+      rarity: 'Epic',
+      glowColor: 'from-emerald-400/20 to-teal-500/20 border-emerald-400/50 text-emerald-300',
+    },
     {
       id: 'badge_questions_50',
       title: '50 Questions Answered',

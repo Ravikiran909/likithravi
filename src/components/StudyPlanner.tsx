@@ -1826,6 +1826,19 @@ export const StudyPlanner: React.FC<StudyPlannerProps> = ({
       )}
 
       {/* ==================================================== */}
+      {/* TAB: WEEKLY CALENDAR & DRAG-AND-DROP STUDY SESSIONS */}
+      {/* ==================================================== */}
+      {activeTab === 'weekly_calendar' && (
+        <WeeklyStudyCalendar
+          profile={profile}
+          studyPlan={studyPlan}
+          onPlanUpdate={(updated) => setStudyPlan(updated)}
+          onProfileUpdate={onProfileUpdate}
+          onNavigateToChat={onNavigateToChat}
+        />
+      )}
+
+      {/* ==================================================== */}
       {/* TAB: UPCOMING EXAMS & EXAM REMINDERS */}
       {/* ==================================================== */}
       {activeTab === 'upcoming_exams' && (

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { StudentProfile, StudyPlan, Recommendation } from '../types/index.ts';
 import { StudentProgressChart } from './StudentProgressChart.tsx';
+import { LearningProgressChart } from './LearningProgressChart.tsx';
 import { LearningMilestones } from './LearningMilestones.tsx';
 import { StudyPlanner } from './StudyPlanner.tsx';
 import { AdaptiveQuiz } from './AdaptiveQuiz.tsx';
@@ -48,6 +49,7 @@ import { WeeklyLearningActivityChart } from './WeeklyLearningActivityChart.tsx';
 import { WeeklyActivityChart } from './WeeklyActivityChart.tsx';
 import { DeepFocusOverlay } from './DeepFocusOverlay.tsx';
 import { GlobalPeerLeaderboard } from './GlobalPeerLeaderboard.tsx';
+import { CommunityLeaderboard } from './CommunityLeaderboard.tsx';
 import { DailyAffirmationsCard } from './DailyAffirmationsCard.tsx';
 import { SpacedRepetitionEngine } from './SpacedRepetitionEngine.tsx';
 import { StudyCircles } from './StudyCircles.tsx';
@@ -1385,6 +1387,34 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           {/* Non-Essential Reminders, Badges & Analytics (Hidden when Focus Mode is enabled) */}
           {!deepFocusActive && (
             <>
+              {/* Daily Study Goal Component with Circular Progress Ring & Session Logger */}
+              <DailyStudyGoal
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                completedMinutesToday={totalStudiedMinutesToday}
+                onLogStudyMinutes={handleAddStudyMinutes}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onNavigateToChat={onNavigateToChat}
+              />
+
+              {/* Weekly Activity Bar Chart (Recharts 7-Day Activity to Complement Streak Badge) */}
+              <WeeklyActivityChart
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                completedMinutesToday={totalStudiedMinutesToday}
+                onLogStudyMinutes={handleAddStudyMinutes}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onNavigateToChat={onNavigateToChat}
+              />
+
+              {/* Learning Achievements System: Digital Badges ('Early Bird', 'Quiz Master', '7-Day Streak') */}
+              <LearningAchievementsCard
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToCourses={() => setActiveTab('courses')}
+                onNavigateToChat={onNavigateToChat}
+              />
+
               {/* Knowledge Gaps Visualization (Radar Chart & Heat Map across Study Subjects) */}
               <KnowledgeGapsHeatmap
                 profile={profile}
@@ -1503,15 +1533,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onNavigateToChat={onNavigateToChat}
               />
 
-              {/* Weekly Activity Chart (Recharts: Questions Answered & Study Sessions Completed per Day of Week) */}
-              <WeeklyActivityChart
-                profile={profile}
-                onProfileUpdate={onProfileUpdate}
-                completedMinutesToday={totalStudiedMinutesToday}
-                onLogStudyMinutes={handleAddStudyMinutes}
-                onNavigateToQuiz={() => setActiveTab('quiz')}
-                onNavigateToChat={onNavigateToChat}
-              />
 
               {/* Weekly Learning Activity Line Chart (Recharts: Daily Study Hours & Quiz Performance Trends) */}
               <WeeklyLearningActivityChart
@@ -1551,6 +1572,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             <>
               {/* 30-Day Streak & Learning Progress Visualization (Recharts) */}
               <StudentProgressChart profile={profile} />
+
+              {/* Learning Progress Chart (Study Hours, Quiz Accuracy, and Moving Average Trend over Time) */}
+              <LearningProgressChart
+                profile={profile}
+                extraMinutesToday={totalStudiedMinutesToday}
+                onLogStudyMinutes={handleAddStudyMinutes}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onNavigateToChat={onNavigateToChat}
+              />
 
               {/* Subject Mastery Breakdown */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1677,11 +1707,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onNavigateToChat={onNavigateToChat}
               />
 
-              {/* Global Peer Leaderboard Section (Rank Based on Total Learning Points / XP) */}
-              <GlobalPeerLeaderboard
+              {/* Community Leaderboard: Ranked List of Top Students by Learning Sessions and Points */}
+              <CommunityLeaderboard
                 profile={profile}
                 onProfileUpdate={onProfileUpdate}
                 onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onLogStudyMinutes={handleAddStudyMinutes}
               />
 
               {/* Peer-to-Peer Study Circles (WhatsApp-Bridged Topic Chat Groups) */}
@@ -2044,6 +2076,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             onNavigateToChat={onNavigateToChat}
             onLogStudyMinutes={handleAddStudyMinutes}
           />
+          <CommunityLeaderboard
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
         </div>
       )}
 
@@ -2238,6 +2277,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             profile={profile}
             onProfileUpdate={onProfileUpdate}
             onNavigateToQuiz={() => setActiveTab('quiz')}
+            onNavigateToChat={onNavigateToChat}
+          />
+          <LearningAchievementsCard
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToCourses={() => setActiveTab('courses')}
             onNavigateToChat={onNavigateToChat}
           />
           <StudentAchievements

@@ -32,6 +32,8 @@ interface NavbarProps {
   focusMode?: boolean;
   onToggleFocusMode?: (next?: boolean) => void;
   onOpenFaceAuth?: () => void;
+  onOpenMongoDbModal?: () => void;
+  mongoDbStatus?: { connected: boolean; configured: boolean; pingLatencyMs: number | null } | null;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -47,6 +49,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   focusMode = false,
   onToggleFocusMode,
   onOpenFaceAuth,
+  onOpenMongoDbModal,
+  mongoDbStatus,
 }) => {
   return (
     <header
@@ -288,6 +292,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </button>
             )}
+
 
             {/* Google Authentication & Firestore Sync (Dimmed in Focus Mode) */}
             <div className={focusMode ? 'opacity-50 hover:opacity-100 transition-opacity' : ''}>

@@ -18,6 +18,11 @@ import {
   Bar,
   CartesianGrid,
   Treemap,
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
+  ReferenceLine,
 } from 'recharts';
 import {
   Grid,
@@ -33,6 +38,12 @@ import {
   Layers,
   History,
   TrendingUp,
+  Bot,
+  ListOrdered,
+  Calendar,
+  AlertCircle,
+  ArrowUpRight,
+  Flame,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
 import { db, doc, setDoc } from '../firebase.ts';
@@ -587,7 +598,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
   onLogStudyMinutes,
 }) => {
   const [viewMode, setViewMode] = useState<
-    'recharts_matrix' | 'struggle_ranking' | 'radar' | 'treemap' | 'both'
+    'recharts_matrix' | 'struggle_ranking' | 'history_timeline' | 'ai_tutor_priority' | 'radar' | 'treemap' | 'both'
   >('both');
   const [metricMode, setMetricMode] = useState<'struggle' | 'mastery'>('struggle');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('all');
@@ -606,6 +617,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
   } | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isUpdatingMastery, setIsUpdatingMastery] = useState(false);
+  const [isPrioritizingTutor, setIsPrioritizingTutor] = useState(false);
   const [localScoreBoosts, setLocalScoreBoosts] = useState<Record<string, number>>({});
   const [scheduledToast, setScheduledToast] = useState<string | null>(null);
 
@@ -733,6 +745,44 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
           commonPitfall: tpl.pitfall,
         });
       });
+    });
+
+    // Dynamically ingest custom unmapped items from profile.learningHistory
+    historyItems.forEach((h, hIdx) => {
+      const alreadyCovered = cells.some(
+        (c) =>
+          c.topic.toLowerCase().includes(h.topic.toLowerCase()) ||
+          h.topic.toLowerCase().includes(c.subCategory.toLowerCase())
+      );
+      if (!alreadyCovered && h.topic && h.topic.trim().length > 2) {
+        const cellId = `heatmap_history_custom_${hIdx}`;
+        const score = typeof h.score === 'number' ? h.score : h.mastered ? 84 : 40;
+        const gapIntensity = Math.max(0, 100 - score);
+        const struggleScore = Math.min(100, Math.round(gapIntensity + (!h.mastered ? 14 : -6)));
+        const status: TopicHeatmapCell['status'] =
+          score < 48 ? 'critical' : score < 60 ? 'high_need' : score < 78 ? 'developing' : 'mastered';
+        cells.push({
+          id: cellId,
+          subject: h.subject || 'Custom Curriculum',
+          subjectIdx: 0,
+          slotIdx: 0,
+          subCategory: h.topic.slice(0, 24),
+          topic: h.topic,
+          masteryScore: score,
+          gapIntensity,
+          struggleScore,
+          recommendedStudyMinutes: computeRecommendedMinutes(score),
+          quizHistoryScores: [score],
+          attempts: 1,
+          historyMatchesCount: 1,
+          unmasteredSessionsCount: h.mastered ? 0 : 1,
+          lastTested: h.date || 'Recent Session',
+          status,
+          isWeakTopic: !h.mastered || score < 60,
+          keyConcepts: [`Core mechanics of ${h.topic}`],
+          commonPitfall: `Conceptual gaps during past quiz attempt in ${h.topic}`,
+        });
+      }
     });
 
     return cells;
@@ -938,6 +988,120 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
     }
   };
 
+  // Set topic as #1 Priority for the AI Tutor in WhatsApp & adaptive quizzes
+  const handlePrioritizeForTutor = async (cell: TopicHeatmapCell) => {
+    setIsPrioritizingTutor(true);
+    const targetLabel = `${cell.subject} (${cell.subCategory})`;
+    const currentWeak = profile.weakTopics || [];
+    const newWeak = [
+      targetLabel,
+      ...currentWeak.filter(
+        (t) =>
+          !t.toLowerCase().includes(cell.subCategory.toLowerCase()) &&
+          !t.toLowerCase().includes(cell.topic.toLowerCase())
+      ),
+    ].slice(0, 5);
+
+    const updatedProfile: StudentProfile = {
+      ...profile,
+      weakTopics: newWeak,
+    };
+    onProfileUpdate(updatedProfile);
+
+    try {
+      if (db && profile.userId) {
+        await setDoc(
+          doc(db, 'profiles', profile.userId),
+          {
+            weakTopics: newWeak,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      }
+      await fetch(`/api/students/${profile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weakTopics: newWeak }),
+      }).catch(() => {});
+    } catch {
+      // Non-blocking
+    } finally {
+      setIsPrioritizingTutor(false);
+      setScheduledToast(
+        `🎯 Prioritized "${cell.subCategory}" (#1 for AI Tutor). Next tutoring sessions and quizzes will actively guide you to close this gap!`
+      );
+      setTimeout(() => setScheduledToast(null), 5000);
+    }
+  };
+
+  // Sync all top knowledge gaps directly into AI Tutor queue
+  const handleSyncAllTopGapsToTutor = async () => {
+    setIsPrioritizingTutor(true);
+    const topGaps = topStruggledTopics.slice(0, 4).map((c) => `${c.subject} (${c.subCategory})`);
+    const updatedProfile: StudentProfile = {
+      ...profile,
+      weakTopics: topGaps,
+    };
+    onProfileUpdate(updatedProfile);
+
+    try {
+      if (db && profile.userId) {
+        await setDoc(
+          doc(db, 'profiles', profile.userId),
+          {
+            weakTopics: topGaps,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      }
+      await fetch(`/api/students/${profile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weakTopics: topGaps }),
+      }).catch(() => {});
+    } catch {
+      // Non-blocking
+    } finally {
+      setIsPrioritizingTutor(false);
+      setScheduledToast(
+        `🤖 Successfully synced ${topGaps.length} prioritized study areas to your AI Tutor's curriculum!`
+      );
+      setTimeout(() => setScheduledToast(null), 5000);
+    }
+  };
+
+  // Chronological learning history mapped for Recharts AreaChart & Gap Emergence
+  const learningHistoryTimelineData = useMemo(() => {
+    const history = profile.learningHistory || [];
+    if (history.length === 0) {
+      return [
+        { date: 'S1 (Sep 18)', fullDate: '2026-09-18', topic: 'Python Functions', score: 85, gap: 15, mastered: true, subject: 'Python', benchmark: 70 },
+        { date: 'S2 (Sep 20)', fullDate: '2026-09-20', topic: 'Binary Search', score: 78, gap: 22, mastered: true, subject: 'DSA', benchmark: 70 },
+        { date: 'S3 (Sep 22)', fullDate: '2026-09-22', topic: 'Calculus Limits', score: 48, gap: 52, mastered: false, subject: 'Calculus', benchmark: 70 },
+        { date: 'S4 (Sep 24)', fullDate: '2026-09-24', topic: 'Definite Integrals', score: 38, gap: 62, mastered: false, subject: 'Calculus', benchmark: 70 },
+        { date: 'S5 (Recent)', fullDate: '2026-09-28', topic: 'Graph Shortest Paths', score: 42, gap: 58, mastered: false, subject: 'DSA', benchmark: 70 },
+      ];
+    }
+    return history.map((item, idx) => {
+      const score = typeof item.score === 'number' ? item.score : item.mastered ? 84 : 40;
+      const gap = Math.max(0, 100 - score);
+      const shortDate = item.date ? item.date.slice(5) : `S${idx + 1}`;
+      return {
+        date: shortDate,
+        fullDate: item.date || `Session ${idx + 1}`,
+        topic: item.topic,
+        subject: item.subject,
+        score,
+        gap,
+        mastered: Boolean(item.mastered),
+        benchmark: 70,
+        status: score < 48 ? 'critical' : score < 60 ? 'high_need' : score < 78 ? 'developing' : 'mastered',
+      };
+    });
+  }, [profile.learningHistory]);
+
   const getCellIntensityStyles = (status: TopicHeatmapCell['status']) => {
     switch (status) {
       case 'critical':
@@ -1027,6 +1191,30 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
             </button>
             <button
               type="button"
+              onClick={() => setViewMode('ai_tutor_priority')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'ai_tutor_priority'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span>AI Tutor Priority</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('history_timeline')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'history_timeline'
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>History Timeline</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setViewMode('recharts_matrix')}
               className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'recharts_matrix'
@@ -1074,6 +1262,62 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
               <span>Subject Radar</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* AI Tutor Prioritization Command Banner */}
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/60 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
+            <Bot className="w-5 h-5 text-indigo-300" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-bold text-indigo-300 uppercase tracking-wider text-[11px]">
+                AI Tutor Priority Engine
+              </span>
+              <span aria-hidden="true" className="text-slate-600">·</span>
+              <span className="text-rose-400 font-semibold flex items-center gap-1">
+                <Flame className="w-3.5 h-3.5 fill-rose-400 text-rose-500" />
+                <span>#1 Priority: {profile.weakTopics?.[0] || (topStruggledTopics[0] ? `${topStruggledTopics[0].subject} (${topStruggledTopics[0].subCategory})` : 'Calculus Limits')}</span>
+              </span>
+              <span aria-hidden="true" className="text-slate-600">·</span>
+              <span className="text-slate-400 font-mono tabular-nums">
+                {(profile.learningHistory || []).length} History Sessions Analyzed
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              The AI Tutor uses these mapped knowledge gaps to structure your daily WhatsApp tutoring sessions, generate progressive Socratic hints, and adapt quiz difficulty.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleSyncAllTopGapsToTutor}
+            disabled={isPrioritizingTutor}
+            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/20 transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+            title="Automatically prioritize all critical knowledge gaps for the AI Tutor in WhatsApp"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{isPrioritizingTutor ? 'Prioritizing...' : 'Sync Top Gaps to AI Tutor'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const topTarget = topStruggledTopics[0];
+              const topicName = topTarget ? `${topTarget.subject} - ${topTarget.subCategory}` : profile.weakTopics?.[0] || 'Calculus Limits';
+              onNavigateToChat(
+                `Tutor, based on my Knowledge Gaps analysis, my #1 struggle is ${topicName}. Please prioritize this topic and guide me step-by-step with Socratic questions to master the core invariants.`
+              );
+            }}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition cursor-pointer flex items-center gap-1.5"
+            title="Launch WhatsApp simulator with AI tutor focused on #1 gap"
+          >
+            <Play className="w-3.5 h-3.5 fill-white" />
+            <span>Open AI Tutor on WhatsApp</span>
+          </button>
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import { progressAgent } from './progress_agent.ts';
 import { recommendationAgent } from './recommendation_agent.ts';
 import { reminderAgent } from './reminder_agent.ts';
 import { profileAgent } from './profile_agent.ts';
+import { socraticHintAgent } from './hint_agent.ts';
 import { StudentProfile } from '../../src/types/index.ts';
 
 export interface ProcessMessageInput {
@@ -158,8 +159,22 @@ export async function orchestrateMessage(
           /^(?:option\s+|answer\s+is\s+|ans\s*[:=-]?\s*)?[a-d1-4](?:[).:\s]|$)/i.test(cleanLower) &&
           cleanLower.length <= 24;
 
+        const isHintCandidate =
+          cleanLower.startsWith('/hint') ||
+          cleanLower === 'hint' ||
+          cleanLower.startsWith('hint ') ||
+          cleanLower.includes('give me a hint') ||
+          cleanLower.includes('need a hint') ||
+          cleanLower.includes('hint please') ||
+          cleanLower.includes("i'm stuck") ||
+          cleanLower.includes('im stuck') ||
+          cleanLower.includes('stuck on this') ||
+          cleanLower.includes('give me a clue') ||
+          cleanLower.includes('clue please');
+
         const isQuizAnswerCandidate =
           Boolean(activeQuiz) &&
+          !isHintCandidate &&
           (isExplicitAnswer || Boolean(matchesCurrentOptionText)) &&
           !cleanLower.startsWith('/') &&
           !cleanLower.includes('?') &&
@@ -169,7 +184,14 @@ export async function orchestrateMessage(
           !cleanLower.startsWith('show') &&
           !cleanLower.startsWith('set ');
 
-        if (activeQuiz && isQuizAnswerCandidate) {
+        if (isHintCandidate) {
+          intent = 'REQUEST_HINT';
+          agentName = 'Socratic Hint Agent';
+          const levelMatch = cleanLower.match(/(?:level\s*|hint\s*)?([1-3])/i);
+          const forcedLevel = levelMatch ? parseInt(levelMatch[1], 10) : undefined;
+          const hintRes = await socraticHintAgent.generateHint(profile, effectiveText, forcedLevel);
+          responseText = hintRes.messageText;
+        } else if (activeQuiz && isQuizAnswerCandidate) {
           intent = 'CHECK_ANSWER';
           agentName = activeQuiz.id.startsWith('smart_quiz_')
             ? 'Adaptive Smart Quiz Agent'
@@ -247,6 +269,14 @@ export async function orchestrateMessage(
               const res = profileAgent.handleGetProfile(profile);
               profile = res.updatedProfile;
               responseText = res.responseText;
+              break;
+            }
+
+            case 'REQUEST_HINT': {
+              agentName = 'Socratic Hint Agent';
+              const forcedLevel = detected.extractedDetails ? parseInt(detected.extractedDetails, 10) : undefined;
+              const hintRes = await socraticHintAgent.generateHint(profile, effectiveText, forcedLevel);
+              responseText = hintRes.messageText;
               break;
             }
 

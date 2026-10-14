@@ -264,6 +264,7 @@ export const AdminDashboard: React.FC = () => {
       {/* TAB 1: SYSTEM HEALTH & TELEMETRY */}
       {activeTab === 'kpis' && (
         <div className="space-y-6">
+
           {/* Top KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">

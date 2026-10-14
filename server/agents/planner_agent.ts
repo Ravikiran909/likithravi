@@ -147,7 +147,7 @@ export class PlannerAgent {
         .join('\n\n');
 
       return (
-        `📅 *${existingPlan.targetExam.toUpperCase()}*\n` +
+        `📅 *${existingPlan.targetExam.toUpperCase()} (ROADMAP)*\n` +
         `👤 *Student:* ${profile.name} | ⏱️ *Daily Target:* ${profile.studyHoursPerDay || 2} hrs/day\n` +
         `🎯 *Priority Weak Topics:* ${(profile.weakTopics || []).join(', ') || 'Core Foundations'}\n\n` +
         `${roadmapLines}\n\n` +
