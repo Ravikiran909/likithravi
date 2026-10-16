@@ -42,6 +42,7 @@ try {
     app,
     {
       experimentalForceLongPolling: true,
+      experimentalAutoDetectLongPolling: true,
     },
     firestoreDatabaseId
   );
@@ -190,7 +191,11 @@ export function handleFirestoreError(
  */
 export async function testConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    const checkPromise = getDocFromServer(doc(db, 'test', 'connection'));
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Connection check timeout')), 2500)
+    );
+    await Promise.race([checkPromise, timeoutPromise]);
     return true;
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {

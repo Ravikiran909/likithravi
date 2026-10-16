@@ -77,6 +77,11 @@ service cloud.firestore {
         && data.reminderText is string && data.reminderText.size() <= 500;
     }
 
+    // Test Connection Verification
+    match /test/{docId} {
+      allow get: if true;
+    }
+
     // Users Collection
     match /users/{userId} {
       allow get: if true;

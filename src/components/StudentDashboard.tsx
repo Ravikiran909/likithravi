@@ -21,6 +21,7 @@ import {
   FileText,
   Target,
   Brain,
+  Zap,
 } from 'lucide-react';
 import { StudentProfile, StudyPlan, Recommendation } from '../types/index.ts';
 import { StudentProgressChart } from './StudentProgressChart.tsx';
@@ -58,6 +59,8 @@ import { VoiceToKnowledgeCard } from './VoiceToKnowledgeCard.tsx';
 import { BadgesAndAchievements } from './BadgesAndAchievements.tsx';
 import { SmartNotificationScheduler } from './SmartNotificationScheduler.tsx';
 import { ThirtyDayProgressLineChart } from './ThirtyDayProgressLineChart.tsx';
+import { LearningVelocityChart } from './LearningVelocityChart.tsx';
+import { CalendarKnowledgeGapHeatmap } from './CalendarKnowledgeGapHeatmap.tsx';
 import { DailyFlashcards } from './DailyFlashcards.tsx';
 import { AcademicPdfExportCard } from './AcademicPdfExportCard.tsx';
 import { HighLevelThinkingModels } from './HighLevelThinkingModels.tsx';
@@ -105,7 +108,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'knowledge_gaps' | 'placements' | 'mock_interview' | 'peer_groups' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'velocity' | 'knowledge_gaps' | 'placements' | 'mock_interview' | 'peer_groups' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
   const [enrollModalCourse, setEnrollModalCourse] = useState<EnrollableCourseTarget | null>(null);
   const [localFaceAuthOpen, setLocalFaceAuthOpen] = useState<boolean>(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
@@ -672,6 +675,20 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </button>
             {!deepFocusActive && (
               <>
+                <button
+                  onClick={() => setActiveTab('velocity')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                    activeTab === 'velocity' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>Learning Velocity</span>
+                  {profile.weakTopics && profile.weakTopics.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] font-bold">
+                      {profile.weakTopics.length}
+                    </span>
+                  )}
+                </button>
                 <button
                   onClick={() => setActiveTab('knowledge_gaps')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
@@ -1533,6 +1550,24 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onNavigateToChat={onNavigateToChat}
               />
 
+              {/* Recharts Learning Velocity Line Chart: 30-Day Weak Topics Improvement */}
+              <LearningVelocityChart
+                profile={profile}
+                onProfileUpdate={onProfileUpdate}
+                onNavigateToQuiz={() => setActiveTab('quiz')}
+                onNavigateToChat={onNavigateToChat}
+              />
+
+              {/* 30-Day Activity Calendar Heatmap & AI Tutor Identified Knowledge Gaps */}
+              <CalendarKnowledgeGapHeatmap
+                profile={profile}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToQuiz={(topic) => {
+                  setActiveTab('quiz');
+                }}
+                onLogStudyMinutes={handleAddStudyMinutes}
+              />
+
 
               {/* Weekly Learning Activity Line Chart (Recharts: Daily Study Hours & Quiz Performance Trends) */}
               <WeeklyLearningActivityChart
@@ -1971,9 +2006,39 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
+      {/* Dedicated Learning Velocity Tab (Recharts 30-Day Multi-Line Weak Topics Trajectory) */}
+      {activeTab === 'velocity' && (
+        <div className="space-y-6">
+          <LearningVelocityChart
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onNavigateToChat={onNavigateToChat}
+          />
+          <SubTopicMasteryHeatmapChart
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+          />
+        </div>
+      )}
+
       {/* Visual Knowledge Gaps Heatmap Tab (Recharts 2D Matrix, Struggle Ranking, Gap Treemap & Radar) */}
       {activeTab === 'knowledge_gaps' && (
         <div className="space-y-6">
+          <CalendarKnowledgeGapHeatmap
+            profile={profile}
+            onNavigateToChat={onNavigateToChat}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onLogStudyMinutes={handleAddStudyMinutes}
+          />
+          <LearningVelocityChart
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToQuiz={() => setActiveTab('quiz')}
+            onNavigateToChat={onNavigateToChat}
+          />
           <KnowledgeGapsHeatmap
             profile={profile}
             onProfileUpdate={onProfileUpdate}
