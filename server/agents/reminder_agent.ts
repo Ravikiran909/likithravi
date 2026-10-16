@@ -1,5 +1,5 @@
 import { db } from '../database/db.ts';
-import { StudentProfile, Reminder } from '../../src/types/index.ts';
+import type { StudentProfile, Reminder } from '../../src/types/index.ts';
 
 function parseTimeTo24Hr(text: string): { displayTime: string; time24: string } {
   // Match patterns like "7:30 PM", "7 PM", "19:30", "08:00 AM"

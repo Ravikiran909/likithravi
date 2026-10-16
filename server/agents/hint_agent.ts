@@ -1,7 +1,7 @@
 import { db } from '../database/db.ts';
 import { getGeminiAI, generateContentWithRetry } from '../gemini.ts';
 import { ragService } from '../rag/rag_service.ts';
-import { StudentProfile, QuizSession } from '../../src/types/index.ts';
+import type { StudentProfile, QuizSession } from '../../src/types/index.ts';
 
 // Track student hint progression per question / problem
 interface HintSessionState {

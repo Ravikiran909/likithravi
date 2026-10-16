@@ -1,5 +1,5 @@
 import { db } from '../database/db.ts';
-import { DocumentRecord, DocumentChunk, LearningResource } from '../../src/types/index.ts';
+import type { DocumentRecord, DocumentChunk, LearningResource } from '../../src/types/index.ts';
 import { getGeminiAI, isModelInCooldown, markModelCooldown } from '../gemini.ts';
 import { CURATED_LEARNING_RESOURCES } from '../database/learningResources.ts';
 

@@ -1,5 +1,5 @@
 import { generateTutorResponse } from '../gemini.ts';
-import { StudentProfile } from '../../src/types/index.ts';
+import type { StudentProfile } from '../../src/types/index.ts';
 import { ragService } from '../rag/rag_service.ts';
 import { db } from '../database/db.ts';
 

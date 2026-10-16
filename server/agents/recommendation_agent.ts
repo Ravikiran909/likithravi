@@ -1,6 +1,6 @@
 import { db } from '../database/db.ts';
 import { ragService } from '../rag/rag_service.ts';
-import { StudentProfile } from '../../src/types/index.ts';
+import type { StudentProfile } from '../../src/types/index.ts';
 
 export class RecommendationAgent {
   getRecommendations(profile: StudentProfile): string {

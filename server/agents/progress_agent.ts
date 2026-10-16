@@ -1,5 +1,5 @@
 import { db } from '../database/db.ts';
-import { StudentProfile } from '../../src/types/index.ts';
+import type { StudentProfile } from '../../src/types/index.ts';
 
 export class ProgressAgent {
   generateProgressReport(profile: StudentProfile): string {

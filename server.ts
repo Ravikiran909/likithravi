@@ -4507,7 +4507,12 @@ async function startServer() {
   process.on('SIGINT', () => handleShutdown('SIGINT'));
 }
 
-if (process.env.VERCEL !== '1') {
+const isDirectRun = Boolean(
+  process.argv[1] &&
+    (process.argv[1].endsWith('server.ts') || process.argv[1].endsWith('server.js'))
+);
+
+if (isDirectRun && process.env.VERCEL !== '1') {
   startServer();
 }
 

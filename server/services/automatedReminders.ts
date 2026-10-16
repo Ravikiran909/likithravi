@@ -1,6 +1,6 @@
 import { db } from '../database/db.ts';
 import { whatsapp } from '../whatsapp/whatsapp_service.ts';
-import { StudentProfile } from '../../src/types/index.ts';
+import type { StudentProfile } from '../../src/types/index.ts';
 
 // Track sent date per student (e.g. 'usr_123' -> '2026-10-01') to prevent duplicate daily messages
 const lastReminderSentDateByUserId = new Map<string, string>();

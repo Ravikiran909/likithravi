@@ -1,4 +1,4 @@
-import { LearningResource } from '../../src/types/index.ts';
+import type { LearningResource } from '../../src/types/index.ts';
 
 export const CURATED_LEARNING_RESOURCES: LearningResource[] = [
   // --- PYTHON ---

@@ -1,4 +1,4 @@
-import { WhatsAppLogEntry } from '../../src/types/index.ts';
+import type { WhatsAppLogEntry } from '../../src/types/index.ts';
 
 /**
  * Remediation advice dictionary for common Meta WhatsApp Cloud API errors

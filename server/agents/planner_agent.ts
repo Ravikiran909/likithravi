@@ -1,5 +1,5 @@
 import { db } from '../database/db.ts';
-import { StudentProfile, StudyPlan, StudyPlanItem } from '../../src/types/index.ts';
+import type { StudentProfile, StudyPlan, StudyPlanItem } from '../../src/types/index.ts';
 
 export class PlannerAgent {
   private buildDefaultStudyPlan(

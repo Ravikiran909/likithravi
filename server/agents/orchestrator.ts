@@ -9,7 +9,7 @@ import { recommendationAgent } from './recommendation_agent.ts';
 import { reminderAgent } from './reminder_agent.ts';
 import { profileAgent } from './profile_agent.ts';
 import { socraticHintAgent } from './hint_agent.ts';
-import { StudentProfile } from '../../src/types/index.ts';
+import type { StudentProfile } from '../../src/types/index.ts';
 
 export interface ProcessMessageInput {
   fromPhone?: string;

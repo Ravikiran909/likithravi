@@ -1,6 +1,6 @@
 import { db } from '../database/db.ts';
 import { generateDynamicQuiz } from '../gemini.ts';
-import { QuizSession, StudentProfile, QuizQuestion } from '../../src/types/index.ts';
+import type { QuizSession, StudentProfile, QuizQuestion } from '../../src/types/index.ts';
 
 function normalizeOptionLetter(input: string, options: string[] = []): string {
   const clean = (input || '').trim();
