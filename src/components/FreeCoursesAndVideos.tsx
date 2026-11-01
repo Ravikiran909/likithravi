@@ -21,10 +21,7 @@ import {
 } from 'lucide-react';
 import { LearningResource, StudentProfile } from '../types/index.ts';
 import { MaterialReviewModal } from './MaterialReviewModal.tsx';
-import {
-  CourseEnrollmentVerificationModal,
-  EnrollableCourseTarget,
-} from './CourseEnrollmentVerificationModal.tsx';
+
 
 interface FreeCoursesAndVideosProps {
   profile: StudentProfile;
@@ -77,8 +74,39 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
 
   // Review Modal state
   const [reviewModalTarget, setReviewModalTarget] = useState<LearningResource | null>(null);
-  const [enrollmentCourseTarget, setEnrollmentCourseTarget] =
-    useState<EnrollableCourseTarget | null>(null);
+
+  const handleDirectEnrollCourse = async (course: { id: string; title: string; subject: string; provider?: string }) => {
+    const existing = profile.enrolledCourseIds || [];
+    const isEnrolled = existing.includes(course.id);
+    const nextList = isEnrolled
+      ? existing.filter((id) => id !== course.id)
+      : [...existing, course.id];
+
+    const updatedProfile: StudentProfile = {
+      ...profile,
+      enrolledCourseIds: nextList,
+    };
+
+    if (onProfileUpdate) {
+      onProfileUpdate(updatedProfile);
+    }
+
+    try {
+      await fetch('/api/courses/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: profile.userId,
+          courseId: course.id,
+          courseTitle: course.title,
+          subject: course.subject,
+          provider: course.provider || 'Free Academy',
+        }),
+      });
+    } catch (e) {
+      console.warn('API course enrollment sync warning:', e);
+    }
+  };
 
   // Fetch learning resources and reviews from API
   const fetchResourcesAndRatings = async () => {
@@ -384,29 +412,28 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
 
                 {/* Action Buttons */}
                 <div className="pt-3 border-t border-slate-800/80 space-y-2">
-                  {/* Aadhaar + DigiLocker Course Enrollment Button */}
+                  {/* Direct 1-Click Course Enrollment Button (No Aadhaar/DigiLocker required) */}
                   <button
                     type="button"
                     onClick={() =>
-                      setEnrollmentCourseTarget({
+                      handleDirectEnrollCourse({
                         id: item.id,
                         title: item.title,
                         subject: item.subject,
                         provider: item.provider,
-                        duration: item.duration,
                       })
                     }
-                    className={`w-full py-2 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center space-x-1.5 border transition cursor-pointer ${
+                    className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 border transition cursor-pointer ${
                       (profile.enrolledCourseIds || []).includes(item.id)
-                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30'
                         : 'bg-indigo-600/25 hover:bg-indigo-600/40 border-indigo-500/40 text-indigo-200'
                     }`}
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
                     <span>
                       {(profile.enrolledCourseIds || []).includes(item.id)
-                        ? 'Enrolled (Aadhaar + DigiLocker Verified ✓)'
-                        : 'Enroll Course (Aadhaar & DigiLocker)'}
+                        ? 'Enrolled in Course ✓'
+                        : 'Enroll Free Course'}
                     </span>
                   </button>
 
@@ -610,17 +637,6 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
           }}
         />
       )}
-
-      {/* Aadhaar e-KYC & DigiLocker Course Enrollment Modal */}
-      <CourseEnrollmentVerificationModal
-        isOpen={!!enrollmentCourseTarget}
-        onClose={() => setEnrollmentCourseTarget(null)}
-        course={enrollmentCourseTarget}
-        profile={profile}
-        onProfileUpdate={(updated) => {
-          if (onProfileUpdate) onProfileUpdate(updated);
-        }}
-      />
     </div>
   );
 };

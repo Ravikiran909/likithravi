@@ -43,7 +43,7 @@ export async function orchestrateMessage(
   } = input || {};
 
   // 1. Resolve student profile by userId first, then phone, preserving requested userId
-  const cleanPhone = (rawPhone || '').trim() || '+919876543210';
+  const cleanPhone = (rawPhone || '').trim() || '+91 98450 11223';
   const existingProfile = userId ? db.getProfileByUserId(userId) : undefined;
   let profile: StudentProfile =
     existingProfile || db.getOrCreateProfile(cleanPhone, senderName, userId).profile;
@@ -52,7 +52,7 @@ export async function orchestrateMessage(
   profile.subjects =
     Array.isArray(profile.subjects) && profile.subjects.length > 0
       ? profile.subjects
-      : ['Python', 'DSA', 'Calculus'];
+      : ['Indian Polity', 'UPSC & SSC CGL', 'Modern Indian History', 'Indian Economy', 'Quantitative Aptitude'];
   profile.weakTopics = Array.isArray(profile.weakTopics) ? profile.weakTopics : [];
   profile.strongTopics = Array.isArray(profile.strongTopics) ? profile.strongTopics : [];
   profile.learningGoals = Array.isArray(profile.learningGoals) ? profile.learningGoals : [];

@@ -336,7 +336,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
             {
               userId: profile.userId,
               name: profile.name || 'Student',
-              whatsappNumber: profile.whatsappNumber || '+919876543210',
+              whatsappNumber: profile.whatsappNumber || '+91 98450 11223',
               preferredLanguage: profile.preferredLanguage || 'en',
               dailyStudyMinutesCompleted: newDailyMinutes,
               weeklyHoursCompleted: newWeeklyHours,

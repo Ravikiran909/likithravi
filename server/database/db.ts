@@ -15,11 +15,6 @@ import type {
   Recommendation,
   MaterialReview,
 } from '../../src/types/index.ts';
-import {
-  saveChatMessageMongo,
-  saveStudentProfileMongo,
-  saveLearningProgressMongo,
-} from './mongodb.ts';
 
 class DatabaseStore {
   users: Map<string, User> = new Map();
@@ -44,23 +39,13 @@ class DatabaseStore {
   seedInitialData() {
     // 1. Users
     const user1: User = {
-      id: 'usr_rahul',
-      name: 'Rahul Sharma',
-      email: 'rahul.sharma@example.edu',
-      phone: '+919876543210',
+      id: 'usr_aspirant',
+      name: 'Government Exam Aspirant',
+      email: 'aspirant@whatsapp.ai',
+      phone: '+91 98450 11223',
       role: 'student',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const user2: User = {
-      id: 'usr_ananya',
-      name: 'Ananya Rao',
-      email: 'ananya.rao@example.edu',
-      phone: '+919876543211',
-      role: 'student',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-      createdAt: new Date(Date.now() - 45 * 86400000).toISOString(),
       updatedAt: new Date().toISOString(),
     };
     const adminUser: User = {
@@ -73,76 +58,44 @@ class DatabaseStore {
       updatedAt: new Date().toISOString(),
     };
     this.users.set(user1.id, user1);
-    this.users.set(user2.id, user2);
     this.users.set(adminUser.id, adminUser);
 
     // 2. Student Profiles
     const profile1: StudentProfile = {
-      id: 'prof_rahul',
+      id: 'prof_aspirant',
       userId: user1.id,
       name: user1.name,
       whatsappNumber: user1.phone,
       preferredLanguage: 'en',
-      educationLevel: 'college',
-      subjects: ['Python', 'DSA', 'Calculus', 'Machine Learning'],
+      educationLevel: 'competitive_exam',
+      subjects: ['Indian Polity', 'UPSC & SSC CGL', 'Modern Indian History', 'Indian Economy', 'Quantitative Aptitude', 'Current Affairs'],
       currentSkillLevel: 'intermediate',
-      learningGoals: ['Crack Coding Interviews in 3 Months', 'Master Recursion & Dynamic Programming', 'Score A in Calculus'],
-      weakTopics: ['Calculus (Integration & Limits)', 'DSA (Graph Algorithms)', 'Recursion edge cases'],
-      strongTopics: ['Python Functions', 'Object-Oriented Programming', 'Binary Trees'],
-      studyHoursPerDay: 2,
+      learningGoals: ['Crack UPSC Civil Services & SSC CGL', 'Master Indian Polity (Articles & Schedules)', 'Score 90%+ in Daily Current Affairs Mocks'],
+      weakTopics: ['Indian Polity (Constitutional Amendments)', 'Indian Economy (Monetary Policy & Inflation)', 'CSAT & Quantitative Aptitude'],
+      strongTopics: ['Modern Indian History', 'General Science', 'Logical Reasoning'],
+      studyHoursPerDay: 3,
       preferredStudyTime: '7:00 PM',
       dailyReminderEnabled: true,
       examDates: [
-        { subject: 'Calculus', date: '2026-10-15', title: 'Midterm Calculus & Linear Algebra' },
-        { subject: 'DSA', date: '2026-10-28', title: 'Data Structures Lab Exam' },
-        { subject: 'Government Exams', date: '2026-11-08', title: 'SSC CGL Tier-II & GATE CS Mock Examination' },
+        { subject: 'UPSC CSE', date: '2026-05-24', title: 'Civil Services Prelims (GS-I & CSAT)' },
+        { subject: 'SSC CGL', date: '2026-09-12', title: 'SSC CGL Tier-I National Examination' },
+        { subject: 'Banking', date: '2026-10-18', title: 'SBI & IBPS PO Preliminary Examination' },
       ],
       learningHistory: [
-        { topic: 'Python Functions & Scope', subject: 'Python', date: '2026-09-20', mastered: true },
-        { topic: 'Binary Search & Complexity', subject: 'DSA', date: '2026-09-21', mastered: true },
-        { topic: 'Definite Integrals', subject: 'Calculus', date: '2026-09-22', mastered: false },
+        { topic: 'Basic Structure Doctrine', subject: 'Indian Polity', date: '2026-10-20', mastered: true },
+        { topic: 'RBI Monetary Policy & Repo Rates', subject: 'Indian Economy', date: '2026-10-21', mastered: true },
+        { topic: '1857 Revolt & British Acts', subject: 'Modern History', date: '2026-10-22', mastered: true },
       ],
-      streak: 7,
+      streak: 12,
       lastActiveDate: new Date().toISOString().split('T')[0],
-      overallProgress: 76,
-      totalSessions: 24,
-      totalQuestionsAnswered: 88,
-      correctAnswers: 69,
-      notes: 'Prefers code snippets followed by step-by-step trace. Responds well to analogies.',
-    };
-
-    const profile2: StudentProfile = {
-      id: 'prof_ananya',
-      userId: user2.id,
-      name: user2.name,
-      whatsappNumber: user2.phone,
-      preferredLanguage: 'kn',
-      educationLevel: 'college',
-      subjects: ['Python', 'Java', 'Calculus'],
-      currentSkillLevel: 'beginner',
-      learningGoals: ['Learn programming basics', 'Prepare for campus placements'],
-      weakTopics: ['Java Multithreading', 'Pointers & References'],
-      strongTopics: ['Python Basics', 'Control Flow'],
-      studyHoursPerDay: 1.5,
-      preferredStudyTime: '8:30 PM',
-      examDates: [
-        { subject: 'Java', date: '2026-10-10', title: 'Core Java Semester Exam' }
-      ],
-      learningHistory: [
-        { topic: 'Variables & Loops', subject: 'Python', date: '2026-09-18', mastered: true },
-        { topic: 'Java Classes & Objects', subject: 'Java', date: '2026-09-22', mastered: true }
-      ],
-      streak: 4,
-      lastActiveDate: new Date().toISOString().split('T')[0],
-      overallProgress: 62,
-      totalSessions: 14,
-      totalQuestionsAnswered: 45,
-      correctAnswers: 32,
-      notes: 'Prefers Kannada or English mixed explanations when dealing with tricky OOP concepts.',
+      overallProgress: 82,
+      totalSessions: 36,
+      totalQuestionsAnswered: 124,
+      correctAnswers: 104,
+      notes: 'Dedicated government exam aspirant preparing for UPSC CSE, SSC CGL and State PSCs.',
     };
 
     this.profiles.set(profile1.userId, profile1);
-    this.profiles.set(profile2.userId, profile2);
 
     // 3. Subjects
     const subjectsList: Subject[] = [
@@ -265,7 +218,7 @@ class DatabaseStore {
     ];
 
     this.studyPlans.set(user1.id, {
-      id: 'plan_rahul_calc',
+      id: 'plan_individual_calc',
       userId: user1.id,
       subject: 'Calculus',
       targetExam: 'Midterm Calculus & Linear Algebra',
@@ -902,6 +855,12 @@ Type your answer below! 👇`,
     );
 
     // 10. Initial Verified Reviews & Ratings on Programming Documents and Courses
+    const peerReviewer = {
+      id: 'peer_reviewer_1',
+      name: 'Peer Scholar',
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    };
+
     const rev1: MaterialReview = {
       id: 'rev_1',
       materialId: 'doc_python_handbook',
@@ -920,9 +879,9 @@ Type your answer below! 👇`,
       materialId: 'doc_java_handbook',
       materialType: 'document',
       materialTitle: 'Java Core Architecture: JVM Internals, OOP & Concurrency',
-      userId: user2.id,
-      userName: user2.name,
-      userAvatar: user2.avatarUrl,
+      userId: peerReviewer.id,
+      userName: peerReviewer.name,
+      userAvatar: peerReviewer.avatarUrl,
       rating: 5,
       comment: 'The JVM Heap vs Metaspace breakdown and the explanation of happens-before memory visibility with volatile are top notch. Helped me ace my mock interview.',
       createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
@@ -946,9 +905,9 @@ Type your answer below! 👇`,
       materialId: 'res_py_cs50p',
       materialType: 'course',
       materialTitle: "Harvard CS50P: CS50's Introduction to Programming with Python",
-      userId: user2.id,
-      userName: user2.name,
-      userAvatar: user2.avatarUrl,
+      userId: peerReviewer.id,
+      userName: peerReviewer.name,
+      userAvatar: peerReviewer.avatarUrl,
       rating: 5,
       comment: 'Prof. David J. Malan is easily the best CS teacher on the internet. His analogies for conditionals and regex made everything click.',
       createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
@@ -972,9 +931,9 @@ Type your answer below! 👇`,
       materialId: 'doc_cpp_handbook',
       materialType: 'document',
       materialTitle: 'Modern C++ Guide: STL Containers, Templates & RAII Patterns',
-      userId: user2.id,
-      userName: user2.name,
-      userAvatar: user2.avatarUrl,
+      userId: peerReviewer.id,
+      userName: peerReviewer.name,
+      userAvatar: peerReviewer.avatarUrl,
       rating: 4,
       comment: 'Smart pointer ownership rules (unique_ptr vs shared_ptr) are explained very clearly with zero memory leak guarantees.',
       createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
@@ -1136,8 +1095,8 @@ Type your answer below! 👇`,
     let prof = this.getProfileByUserId(userId);
     if (!prof) {
       const created = this.getOrCreateProfile(
-        updates.whatsappNumber || '+919876543210',
-        updates.name || 'Student',
+        updates.whatsappNumber || '+91 98450 11223',
+        updates.name || 'Government Exam Aspirant',
         userId
       );
       prof = created.profile;
@@ -1148,8 +1107,6 @@ Type your answer below! 👇`,
       userId: prof.userId,
     };
     this.profiles.set(prof.userId, updated);
-    // Persist to MongoDB Atlas asynchronously
-    saveStudentProfileMongo(updated).catch(() => {});
     return updated;
   }
 
@@ -1164,8 +1121,6 @@ Type your answer below! 👇`,
     if (this.messages.length > 500) {
       this.messages.shift();
     }
-    // Persist to MongoDB Atlas asynchronously
-    saveChatMessageMongo(record).catch(() => {});
     return record;
   }
 
@@ -1276,13 +1231,6 @@ Type your answer below! 👇`,
       history.push(entry);
     }
     this.updateProfile(userId, { learningHistory: history });
-    saveLearningProgressMongo({
-      userId,
-      subject,
-      topic,
-      masteryLevel,
-      date: todayStr,
-    }).catch(() => {});
   }
 
   checkAndAwardAchievements(userId: string): { id: string; title: string; xpReward: number }[] {
@@ -1497,7 +1445,7 @@ Type your answer below! 👇`,
     const normalized: Reminder = {
       id: reminder.id || `rem_${Date.now()}`,
       userId: reminder.userId,
-      whatsappNumber: reminder.whatsappNumber || '+919876543210',
+      whatsappNumber: reminder.whatsappNumber || '+91 98450 11223',
       reminderText: reminder.reminderText || reminder.message || 'Scheduled Study Session',
       targetTime: reminder.targetTime || reminder.scheduledTime || '07:00 PM',
       frequency: reminder.frequency || 'daily',

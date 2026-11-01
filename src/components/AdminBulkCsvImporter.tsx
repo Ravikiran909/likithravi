@@ -210,7 +210,7 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
             id: userId,
             name: String(row.name).slice(0, 95),
             email: String(row.email).slice(0, 140),
-            phone: String(row.whatsappnumber || '+919876543210').slice(0, 28),
+            phone: String(row.whatsappnumber || '+91 98450 11223').slice(0, 28),
             role: 'student',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -220,7 +220,7 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
             id: profileId,
             userId: userId,
             name: String(row.name).slice(0, 95),
-            whatsappNumber: String(row.whatsappnumber || '+919876543210').slice(0, 28),
+            whatsappNumber: String(row.whatsappnumber || '+91 98450 11223').slice(0, 28),
             preferredLanguage: ['en', 'hi', 'kn'].includes(row.preferredlanguage)
               ? row.preferredlanguage
               : 'en',
@@ -518,7 +518,7 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
                         <td className="p-3 font-semibold text-white">{row.name}</td>
                         <td className="p-3 text-slate-400">{row.email}</td>
                         <td className="p-3 font-mono text-[11px] text-emerald-400">
-                          {row.whatsappnumber || '+919876543210'}
+                          {row.whatsappnumber || '+91 98450 11223'}
                         </td>
                         <td className="p-3">{row.educationlevel || 'college'}</td>
                         <td className="p-3">

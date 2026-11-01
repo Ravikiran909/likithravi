@@ -30,20 +30,20 @@ async function runAllTests() {
 
   // Test 1: User Profile Retrieval / Auto-registration
   console.log('Test Suite 1: Database & Student Profile Management');
-  const { profile } = db.getOrCreateProfile('+919876543210', 'Rahul Sharma');
-  assert(profile.name === 'Rahul Sharma', 'Profile retrieved correctly by phone number');
+  const { profile } = db.getOrCreateProfile('+919876543210', 'Individual Learner');
+  assert(profile.name === 'Individual Learner', 'Profile retrieved correctly by phone number');
   assert(profile.subjects.includes('Python'), 'Profile has Python in subjects');
   assert(profile.streak >= 7, 'Streak counter is loaded');
 
   // Test 2: Fast Slash Command & Intent Detection
   console.log('\nTest Suite 2: Intent Classification & Routing');
-  const intent1 = await detectIntent('/quiz Python', 'Name: Rahul');
+  const intent1 = await detectIntent('/quiz Python', 'Name: Student');
   assert(intent1.intent === 'GENERATE_QUIZ', 'Intent for /quiz is GENERATE_QUIZ');
 
-  const intent2 = await detectIntent('/progress', 'Name: Rahul');
+  const intent2 = await detectIntent('/progress', 'Name: Student');
   assert(intent2.intent === 'TRACK_PROGRESS', 'Intent for /progress is TRACK_PROGRESS');
 
-  const intent3 = await detectIntent('Remind me to study DSA at 7 PM every day', 'Name: Rahul');
+  const intent3 = await detectIntent('Remind me to study DSA at 7 PM every day', 'Name: Student');
   assert(intent3.intent === 'SET_REMINDER', 'Intent for reminder is SET_REMINDER');
 
   // Test 3: Quiz Generation & Evaluation
@@ -105,7 +105,7 @@ async function runAllTests() {
   console.log('\nTest Suite 8: Orchestrator Pipeline');
   const orchestrateResult = await orchestrateMessage({
     fromPhone: '+919876543210',
-    senderName: 'Rahul Sharma',
+    senderName: 'Individual Learner',
     text: 'What should I learn next?',
   });
   assert(orchestrateResult.intent === 'GET_RECOMMENDATION', 'Orchestrator routed recommendation query');

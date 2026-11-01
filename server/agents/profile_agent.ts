@@ -32,7 +32,7 @@ export class ProfileAgent {
 
     const responseText =
       `👤 *STUDENT PROFILE — ${profile.name.toUpperCase()}*\n\n` +
-      `📱 *WhatsApp:* ${profile.whatsappNumber || '+919876543210'}\n` +
+      `📱 *WhatsApp:* ${profile.whatsappNumber || '+91 98450 11223'}\n` +
       `🎓 *Education Level:* ${(profile.educationLevel || 'college').toUpperCase()}\n` +
       `⚡ *Skill Level:* ${(profile.currentSkillLevel || 'intermediate').toUpperCase()}\n` +
       `🌐 *Preferred Language:* ${langLabels[profile.preferredLanguage] || 'English (EN)'}\n` +

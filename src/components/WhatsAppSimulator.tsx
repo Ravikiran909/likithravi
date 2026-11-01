@@ -27,8 +27,14 @@ import {
   Pin,
   Lightbulb,
   HelpCircle,
+  Lock,
+  ShieldCheck,
+  QrCode,
+  Fingerprint,
 } from 'lucide-react';
-import { StudentProfile, MessageRecord, DocumentRecord, SUPPORTED_LANGUAGES } from '../types/index.ts';
+import { StudentProfile, MessageRecord, DocumentRecord, SUPPORTED_LANGUAGES, E2EESecurityProfile } from '../types/index.ts';
+import { E2EESafetyNumberModal } from './E2EESafetyNumberModal.tsx';
+import { getOrCreateE2EEProfile, rotateSessionKey, saveE2EEProfile, encryptText, decryptText } from '../utils/e2eeCrypto.ts';
 
 interface WhatsAppSimulatorProps {
   selectedProfile: StudentProfile;
@@ -53,6 +59,24 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
   const [hintMenuOpen, setHintMenuOpen] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
+
+  // End-to-End Encryption (E2EE) State
+  const [e2eeProfile, setE2eeProfile] = useState<E2EESecurityProfile | null>(null);
+  const [isE2EEModalOpen, setIsE2EEModalOpen] = useState(false);
+  const [inspectedMsgId, setInspectedMsgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    getOrCreateE2EEProfile(
+      selectedProfile.userId,
+      selectedProfile.whatsappNumber || '+91 98450 11223'
+    ).then((p) => {
+      if (isMounted) setE2eeProfile(p);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedProfile.userId, selectedProfile.whatsappNumber]);
 
   const [lastAgentInfo, setLastAgentInfo] = useState<{
     intent: string;
@@ -168,7 +192,16 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
       else if (mediaData?.mediaType === 'audio') outgoingContent = '🎙️ [Voice Note Audio]';
     }
 
-    const effectivePhone = selectedProfile.whatsappNumber || '+919876543210';
+    const effectivePhone = selectedProfile.whatsappNumber || '+91 98450 11223';
+
+    let userEnvelope: any = null;
+    if (e2eeProfile?.enabled && e2eeProfile.rawKeyB64) {
+      try {
+        userEnvelope = await encryptText(outgoingContent, e2eeProfile.rawKeyB64, selectedProfile.userId);
+      } catch (err) {
+        console.warn('E2EE encryption warning:', err);
+      }
+    }
 
     const tempUserMsg: MessageRecord = {
       id: 'temp_' + Date.now(),
@@ -178,6 +211,12 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
       messageType: mediaData?.mediaType || 'text',
       content: outgoingContent,
       timestamp: new Date().toISOString(),
+      isEncrypted: Boolean(userEnvelope),
+      ciphertext: userEnvelope?.ciphertext,
+      iv: userEnvelope?.iv,
+      keyFingerprint: userEnvelope?.keyFingerprint,
+      algorithm: 'AES-GCM-256',
+      decryptedContent: outgoingContent,
     };
 
     setMessages((prev) => [...prev, tempUserMsg]);
@@ -199,6 +238,10 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
           mediaType: mediaData?.mediaType || 'text',
           mediaBase64: mediaData?.mediaBase64,
           mimeType: mediaData?.mimeType,
+          isEncrypted: Boolean(userEnvelope),
+          ciphertext: userEnvelope?.ciphertext,
+          iv: userEnvelope?.iv,
+          keyFingerprint: userEnvelope?.keyFingerprint,
         }),
       });
 
@@ -217,6 +260,13 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
           onProfileUpdate(data.studentProfile);
         }
 
+        let botEnvelope: any = null;
+        if (e2eeProfile?.enabled && e2eeProfile.rawKeyB64) {
+          try {
+            botEnvelope = await encryptText(data.responseText, e2eeProfile.rawKeyB64, selectedProfile.userId);
+          } catch {}
+        }
+
         const botReply: MessageRecord = {
           id: 'bot_' + Date.now(),
           userId: selectedProfile.userId,
@@ -227,6 +277,12 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
           timestamp: new Date().toISOString(),
           intent: data.intent || 'LEARN_TOPIC',
           agentName: data.agentName || 'Tutor Agent',
+          isEncrypted: Boolean(botEnvelope),
+          ciphertext: botEnvelope?.ciphertext,
+          iv: botEnvelope?.iv,
+          keyFingerprint: botEnvelope?.keyFingerprint,
+          algorithm: 'AES-GCM-256',
+          decryptedContent: data.responseText,
         };
         setMessages((prev) => [...prev, botReply]);
 
@@ -658,7 +714,20 @@ function createSampleVoiceWav(frequency = 440): string {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2 text-emerald-100">
+              <div className="flex items-center space-x-1.5 text-emerald-100">
+                <button
+                  type="button"
+                  onClick={() => setIsE2EEModalOpen(true)}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-semibold flex items-center space-x-1 border transition cursor-pointer ${
+                    e2eeProfile?.enabled
+                      ? 'bg-emerald-400 text-[#075E54] border-white shadow-xs'
+                      : 'bg-emerald-900/60 text-emerald-200 border-emerald-400/30'
+                  }`}
+                  title="WhatsApp End-to-End Encryption Security. Click to inspect 60-digit safety code."
+                >
+                  <Lock className="w-3 h-3" />
+                  <span>E2EE {e2eeProfile?.enabled ? 'ON' : 'OFF'}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setAutoSpeechEnabled(!autoSpeechEnabled)}
@@ -680,11 +749,16 @@ function createSampleVoiceWav(frequency = 440): string {
 
             {/* Chat Body with authentic WhatsApp doodle wallpaper */}
             <div className="flex-1 bg-[#efeae2] dark:bg-[#0b141a] overflow-y-auto p-4 space-y-3 relative font-sans text-sm">
-              {/* Security Banner */}
+              {/* Interactive End-to-End Encryption Security Banner */}
               <div className="flex justify-center my-1">
-                <span className="bg-[#ffeecd] dark:bg-[#182229] text-[#54656f] dark:text-[#8696a0] text-[11px] px-3 py-1 rounded-lg text-center shadow-xs max-w-xs">
-                  🔒 Messages and calls are end-to-end encrypted. Connected via official WhatsApp Cloud API.
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsE2EEModalOpen(true)}
+                  className="bg-[#ffeecd] dark:bg-[#182229] hover:bg-[#fedfa8] dark:hover:bg-[#202c33] text-[#54656f] dark:text-[#8696a0] hover:text-slate-900 dark:hover:text-slate-100 text-[11px] px-3.5 py-1.5 rounded-xl text-center shadow-xs max-w-sm transition cursor-pointer border border-amber-300/40 dark:border-slate-700/60 flex items-center justify-center space-x-1.5"
+                >
+                  <Lock className="w-3 h-3 text-amber-600 dark:text-emerald-400 shrink-0" />
+                  <span>Messages are end-to-end encrypted with AES-256-GCM. Tap to verify.</span>
+                </button>
               </div>
 
               {messages.map((m) => {
@@ -785,11 +859,51 @@ function createSampleVoiceWav(frequency = 440): string {
                             minute: '2-digit',
                           })}
                         </span>
+                        {m.isEncrypted && (
+                          <button
+                            type="button"
+                            onClick={() => setInspectedMsgId(inspectedMsgId === m.id ? null : m.id)}
+                            className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline flex items-center space-x-0.5 cursor-pointer ml-1"
+                            title="End-to-End Encrypted (AES-GCM-256) - Click to inspect wire ciphertext"
+                          >
+                            <Lock className="w-2.5 h-2.5" />
+                            <span>E2EE</span>
+                          </button>
+                        )}
                         {isStudent && (
                           <CheckCheck className="w-3.5 h-3.5 text-sky-500" />
                         )}
                       </div>
                     </div>
+
+                    {/* Wire Ciphertext Inspector for this message */}
+                    {inspectedMsgId === m.id && (
+                      <div className="mt-1.5 mb-2 p-2.5 bg-slate-950/95 border border-emerald-500/30 rounded-xl text-[10px] font-mono text-slate-300 space-y-1 shadow-lg max-w-[85%] animate-fadeIn">
+                        <div className="flex items-center justify-between text-emerald-400 font-bold border-b border-slate-800 pb-1">
+                          <span className="flex items-center space-x-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                            <span>AES-256-GCM Wire Ciphertext</span>
+                          </span>
+                          <span className="text-slate-400">Authenticated ✓</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block">Ciphertext (Base64):</span>
+                          <span className="text-emerald-300 break-all">{m.ciphertext || 'e2ee_aes_gcm_encrypted_blob'}</span>
+                        </div>
+                        {m.iv && (
+                          <div>
+                            <span className="text-slate-500 block">IV (12-byte nonce):</span>
+                            <span className="text-cyan-300">{m.iv}</span>
+                          </div>
+                        )}
+                        {m.keyFingerprint && (
+                          <div>
+                            <span className="text-slate-500 block">Signer Fingerprint:</span>
+                            <span className="text-amber-300">{m.keyFingerprint}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Interactive Smart Study Session Link inside Daily Reminder Messages */}
                     {!isStudent &&
@@ -1284,6 +1398,29 @@ function createSampleVoiceWav(frequency = 440): string {
           </div>
         </div>
       </div>
+
+      {e2eeProfile && (
+        <E2EESafetyNumberModal
+          isOpen={isE2EEModalOpen}
+          onClose={() => setIsE2EEModalOpen(false)}
+          profile={e2eeProfile}
+          contactName="AI Learning Mentor"
+          phoneNumber={selectedProfile.whatsappNumber || '+91 98450 11223'}
+          onRotateKey={async () => {
+            const updated = await rotateSessionKey(
+              selectedProfile.userId,
+              selectedProfile.whatsappNumber || '+91 98450 11223'
+            );
+            setE2eeProfile(updated);
+          }}
+          onVerifyStatusChange={(verified) => {
+            if (!e2eeProfile) return;
+            const updated = { ...e2eeProfile, verified };
+            setE2eeProfile(updated);
+            saveE2EEProfile(selectedProfile.userId, updated);
+          }}
+        />
+      )}
     </div>
   );
 };

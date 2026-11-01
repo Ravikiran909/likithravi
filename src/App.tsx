@@ -6,8 +6,9 @@ import { AdminDashboard } from './components/AdminDashboard.tsx';
 import { VoiceAIAgent } from './components/VoiceAIAgent.tsx';
 import { StudyDocuments } from './components/StudyDocuments.tsx';
 import { OfflineIndicator } from './components/OfflineIndicator.tsx';
-import { FaceAuthLoginModal } from './components/FaceAuthLoginModal.tsx';
-import { MongoDbAtlasModal } from './components/MongoDbAtlasModal.tsx';
+import { AppLockOverlay } from './components/AppLockOverlay.tsx';
+import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.tsx';
+import { GovernmentExamApp } from './components/GovernmentExamApp.tsx';
 import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
 import {
@@ -29,39 +30,39 @@ const normalizeStudentProfile = (
   fallback?: StudentProfile | null
 ): StudentProfile => {
   const base = fallback || ({} as Partial<StudentProfile>);
-  const userId = raw?.userId || base.userId || 'usr_rahul';
+  const userId = raw?.userId || base.userId || 'usr_aspirant';
   return {
     ...base,
     ...(raw || {}),
     id: raw?.id || base.id || `prof_${userId}`,
     userId,
-    name: raw?.name || base.name || 'Student',
-    whatsappNumber: raw?.whatsappNumber || base.whatsappNumber || '+919876543210',
+    name: raw?.name || base.name || 'Government Exam Aspirant',
+    whatsappNumber: raw?.whatsappNumber || base.whatsappNumber || '+91 98450 11223',
     preferredLanguage: raw?.preferredLanguage || base.preferredLanguage || 'en',
-    educationLevel: raw?.educationLevel || base.educationLevel || 'college',
+    educationLevel: raw?.educationLevel || base.educationLevel || 'competitive_exam',
     subjects:
       Array.isArray(raw?.subjects) && raw.subjects.length > 0
         ? raw.subjects
         : Array.isArray(base.subjects) && base.subjects.length > 0
         ? base.subjects
-        : ['Python', 'DSA', 'Calculus', 'Machine Learning'],
+        : ['Indian Polity', 'UPSC & SSC CGL', 'Modern Indian History', 'Indian Economy', 'Quantitative Aptitude', 'Current Affairs'],
     currentSkillLevel: raw?.currentSkillLevel || base.currentSkillLevel || 'intermediate',
     learningGoals:
       Array.isArray(raw?.learningGoals) && raw.learningGoals.length > 0
         ? raw.learningGoals
         : Array.isArray(base.learningGoals) && base.learningGoals.length > 0
         ? base.learningGoals
-        : ['Master Programming & Algorithms', 'Ace Academic Exams with AI Tutor'],
+        : ['Crack UPSC Civil Services & SSC CGL', 'Master Indian Polity (Articles & Schedules)', 'Daily Government Exam Mock Tests'],
     weakTopics: Array.isArray(raw?.weakTopics)
       ? raw.weakTopics
       : Array.isArray(base.weakTopics)
       ? base.weakTopics
-      : ['Calculus (Integration)', 'Recursion edge cases'],
+      : ['Indian Polity (Constitutional Amendments)', 'Indian Economy (Monetary Policy & Inflation)', 'CSAT & Quantitative Aptitude'],
     strongTopics: Array.isArray(raw?.strongTopics)
       ? raw.strongTopics
       : Array.isArray(base.strongTopics)
       ? base.strongTopics
-      : ['Python Basics', 'Control Flow'],
+      : ['Modern Indian History', 'General Science', 'Logical Reasoning'],
     studyHoursPerDay:
       typeof raw?.studyHoursPerDay === 'number' && raw.studyHoursPerDay > 0
         ? raw.studyHoursPerDay
@@ -121,7 +122,7 @@ const normalizeStudentProfile = (
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin'>('simulator');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams'>('simulator');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [profiles, setProfiles] = useState<StudentProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile | null>(null);
@@ -130,7 +131,9 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(true);
   const [focusMode, setFocusMode] = useState<boolean>(false);
-  const [isFaceAuthModalOpen, setIsFaceAuthModalOpen] = useState<boolean>(false);
+  const [isIndividualLoginModalOpen, setIsIndividualLoginModalOpen] = useState<boolean>(false);
+  const [isSecurityHubOpen, setIsSecurityHubOpen] = useState<boolean>(false);
+  const [isLocked, setIsLocked] = useState<boolean>(false);
   const [isMongoDbModalOpen, setIsMongoDbModalOpen] = useState<boolean>(false);
   const [mongoDbStatus, setMongoDbStatus] = useState<{
     connected: boolean;
@@ -276,16 +279,10 @@ export default function App() {
 
   const fetchInitialData = async () => {
     try {
-      const [studentsRes, waRes, mongoRes] = await Promise.all([
+      const [studentsRes, waRes] = await Promise.all([
         fetch('/api/students'),
         fetch('/api/whatsapp/config'),
-        fetch('/api/mongodb/status').catch(() => null),
       ]);
-
-      if (mongoRes && mongoRes.ok) {
-        const mongoData = await mongoRes.json();
-        setMongoDbStatus(mongoData);
-      }
 
       if (studentsRes.ok) {
         const data = await studentsRes.json();
@@ -352,21 +349,31 @@ export default function App() {
 
   const handleSignInWithGoogle = async () => {
     try {
-      await googleSignIn();
+      const res = await googleSignIn();
+      if (!res) {
+        // Sign-in was dismissed, cancelled, or handled gracefully
+        return;
+      }
     } catch (err: any) {
-      console.error('Google Sign-in error:', err);
+      if (
+        err?.code === 'auth/popup-closed-by-user' ||
+        err?.code === 'auth/cancelled-popup-request'
+      ) {
+        return;
+      }
+      console.warn('Google Sign-in notice:', err?.message || err);
     }
   };
 
   const handleSignOut = async () => {
     try {
       await logout();
-      // Fallback to first seeded profile
+      // Fallback to first available student profile
       if (profiles.length > 0) {
         setSelectedProfile(profiles[0]);
       }
-    } catch (err) {
-      console.error('Sign-out error:', err);
+    } catch (err: any) {
+      console.warn('Sign-out notice:', err?.message || err);
     }
   };
 
@@ -400,19 +407,22 @@ export default function App() {
         isFirebaseConnected={isFirebaseConnected}
         focusMode={focusMode}
         onToggleFocusMode={handleToggleFocusMode}
-        onOpenFaceAuth={() => setIsFaceAuthModalOpen(true)}
-        onOpenMongoDbModal={() => setIsMongoDbModalOpen(true)}
-        mongoDbStatus={mongoDbStatus}
+        onOpenSecurityHub={() => setIsSecurityHubOpen(true)}
+        onLockApp={() => setIsLocked(true)}
       />
 
-      <FaceAuthLoginModal
-        isOpen={isFaceAuthModalOpen}
-        onClose={() => setIsFaceAuthModalOpen(false)}
-        profiles={profiles}
-        selectedProfile={selectedProfile}
-        onFaceAuthSuccess={(authenticatedProfile) => {
-          handleProfileUpdate(authenticatedProfile);
-        }}
+      <AppLockOverlay
+        isLocked={isLocked}
+        profile={selectedProfile}
+        onUnlock={() => setIsLocked(false)}
+      />
+
+      <SecurityPrivacyHubModal
+        isOpen={isSecurityHubOpen}
+        onClose={() => setIsSecurityHubOpen(false)}
+        profile={selectedProfile}
+        onProfileUpdate={handleProfileUpdate}
+        onLockApp={() => setIsLocked(true)}
       />
 
       {/* Ambient Focus Mode Dimming Vignette around the active study workspace */}
@@ -466,11 +476,33 @@ export default function App() {
             }}
             focusMode={focusMode}
             onToggleFocusMode={handleToggleFocusMode}
-            onOpenFaceAuth={() => setIsFaceAuthModalOpen(true)}
           />
         )}
 
         {activeTab === 'admin' && <AdminDashboard />}
+
+        {activeTab === 'gov_exams' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <GovernmentExamApp
+              profile={selectedProfile}
+              onProfileUpdate={handleProfileUpdate}
+              onNavigateToChat={(text) => {
+                if (text) setPendingChatPrompt(text);
+                setActiveTab('simulator');
+              }}
+              onNavigateToQuiz={() => {
+                setActiveTab('student');
+              }}
+              onLogStudyMinutes={(mins) => {
+                handleProfileUpdate({
+                  ...selectedProfile,
+                  dailyStudyMinutesCompleted:
+                    (selectedProfile.dailyStudyMinutesCompleted || 0) + mins,
+                });
+              }}
+            />
+          </div>
+        )}
       </main>
 
       <footer

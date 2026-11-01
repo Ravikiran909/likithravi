@@ -9,6 +9,21 @@ export interface User {
   updatedAt: string;
 }
 
+export interface FaceAuthLogEntry {
+  id: string;
+  userId: string;
+  studentName: string;
+  timestamp: string; // ISO string
+  status: 'SUCCESS' | 'FAILED';
+  confidenceScore?: number;
+  biometricHash?: string;
+  livenessVerified: boolean;
+  failureReason?: string;
+  deviceInfo?: string;
+  ipHash?: string;
+  source?: string;
+}
+
 export interface StudentProfile {
   id: string;
   userId: string;
@@ -59,6 +74,12 @@ export interface StudentProfile {
   faceAuthEnabled?: boolean;
   faceAuthVerifiedAt?: string;
   faceBiometricHash?: string;
+  faceAuthHistory?: FaceAuthLogEntry[];
+  securityPinEnabled?: boolean;
+  securityPinHash?: string;
+  autoLockMinutes?: number;
+  e2eeEnabled?: boolean;
+  ephemeralSession?: boolean;
   aadhaarVerification?: {
     verified: boolean;
     maskedAadhaar: string;
@@ -412,6 +433,57 @@ export interface MessageRecord {
   rawPayload?: any;
   deliveryStatus?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
   deliveryError?: string;
+  // End-to-End Encryption (E2EE) Properties
+  isEncrypted?: boolean;
+  ciphertext?: string;
+  iv?: string;
+  authTag?: string;
+  keyFingerprint?: string;
+  algorithm?: string;
+  decryptedContent?: string;
+}
+
+export interface EncryptedEnvelope {
+  ciphertext: string;
+  iv: string;
+  authTag?: string;
+  keyFingerprint: string;
+  algorithm: 'AES-GCM-256';
+  timestamp: string;
+  senderPhone?: string;
+}
+
+export interface SecurityAuditLogEntry {
+  id: string;
+  timestamp: string;
+  action:
+    | 'key_pair_generated'
+    | 'key_rotated'
+    | 'safety_number_verified'
+    | 'message_encrypted'
+    | 'message_decrypted'
+    | 'backup_exported'
+    | 'backup_imported';
+  description: string;
+  fingerprint: string;
+  status: 'success' | 'warning' | 'error';
+}
+
+export interface E2EESecurityProfile {
+  enabled: boolean;
+  algorithm: 'AES-GCM-256';
+  keyFingerprint: string;
+  safetyNumber: string; // 60-digit safety code in 12 blocks of 5 digits
+  publicKeyB64?: string;
+  rawKeyB64?: string;
+  createdAt: string;
+  lastRotatedAt: string;
+  verified: boolean;
+  verificationMethod?: 'manual_comparison' | 'qr_code_scan';
+  autoEncryptMessages: boolean;
+  autoEncryptDocuments: boolean;
+  autoEncryptQuizHistory: boolean;
+  auditLogs: SecurityAuditLogEntry[];
 }
 
 export interface WhatsAppLogEntry {

@@ -51,7 +51,7 @@ export class ReminderAgent {
         db.saveReminder({
           id: `rem_smart_${Date.now()}`,
           userId: profile.userId,
-          whatsappNumber: profile.whatsappNumber || '+919876543210',
+          whatsappNumber: profile.whatsappNumber || '+91 98450 11223',
           message: `🧠 Smart Study Session: ${topSlot.recommendedSubject} — ${topSlot.recommendedTopic} (${topSlot.durationMinutes}m)`,
           scheduledTime: topSlot.time24,
           frequency: 'daily',
@@ -106,7 +106,7 @@ export class ReminderAgent {
     const newReminder: Reminder = {
       id: `rem_${Date.now()}`,
       userId: profile.userId,
-      whatsappNumber: profile.whatsappNumber || '+919876543210',
+      whatsappNumber: profile.whatsappNumber || '+91 98450 11223',
       reminderText: `⏰ Time for your scheduled session: ${customTopic}! Reply "/smart-quiz" to begin.`,
       targetTime: displayTime,
       frequency: 'daily',
@@ -132,7 +132,7 @@ export class ReminderAgent {
       `⏰ *WHATSAPP STUDY REMINDER SCHEDULED!* ✅\n\n` +
       `📌 *Session Focus:* ${customTopic}\n` +
       `🕒 *Scheduled Time:* *${displayTime}* (${time24} Daily)\n` +
-      `📱 *WhatsApp Number:* ${profile.whatsappNumber || '+919876543210'}\n\n` +
+      `📱 *WhatsApp Number:* ${profile.whatsappNumber || '+91 98450 11223'}\n\n` +
       `📋 *Your Active Reminders (${activeReminders.length}):*\n${activeList}\n\n` +
       `💡 _Tip: Reply with *"/smartreminder"* anytime to get AI-optimized study time suggestions based on your exam schedule!_`
     );

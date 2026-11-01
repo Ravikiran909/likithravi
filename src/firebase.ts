@@ -117,8 +117,20 @@ export const googleSignIn = async (): Promise<{ user: FirebaseUser; accessToken:
     notifyTokenListeners();
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error: any) {
-    console.error('Sign in error:', error);
-    throw error;
+    // Gracefully handle expected user actions such as dismissing the popup window
+    if (
+      error?.code === 'auth/popup-closed-by-user' ||
+      error?.code === 'auth/cancelled-popup-request'
+    ) {
+      console.info('Google Sign-in popup dismissed or cancelled by user.');
+      return null;
+    }
+    if (error?.code === 'auth/popup-blocked') {
+      console.warn('Google Sign-in popup was blocked by the browser. Please allow popups for this site.');
+      return null;
+    }
+    console.warn('Google Sign-in notice:', error?.message || error);
+    return null;
   } finally {
     isSigningIn = false;
   }
@@ -129,9 +141,14 @@ export const getAccessToken = async (): Promise<string | null> => {
 };
 
 export const logout = async () => {
-  await auth.signOut();
-  cachedAccessToken = null;
-  notifyTokenListeners();
+  try {
+    await auth.signOut();
+  } catch (err: any) {
+    console.warn('Sign out notice:', err?.message || err);
+  } finally {
+    cachedAccessToken = null;
+    notifyTokenListeners();
+  }
 };
 
 export enum OperationType {

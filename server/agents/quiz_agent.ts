@@ -85,7 +85,7 @@ export class QuizAgent {
     const session: QuizSession = {
       id: `quiz_${Date.now()}`,
       userId: profile.userId,
-      whatsappNumber: profile.whatsappNumber || '+919876543210',
+      whatsappNumber: profile.whatsappNumber || '+91 98450 11223',
       subject: targetSubject,
       topic: targetTopic,
       difficulty: targetDiff,
@@ -196,7 +196,7 @@ export class QuizAgent {
     const session: QuizSession = {
       id: `smart_quiz_${Date.now()}`,
       userId: profile.userId,
-      whatsappNumber: profile.whatsappNumber || '+919876543210',
+      whatsappNumber: profile.whatsappNumber || '+91 98450 11223',
       subject: targetSubject,
       topic: targetTopic,
       difficulty: adaptiveDifficulty,

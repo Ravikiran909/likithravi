@@ -10,7 +10,7 @@ import { orchestrateMessage } from './server/agents/orchestrator.ts';
 import { ragService } from './server/rag/rag_service.ts';
 import { quizAgent } from './server/agents/quiz_agent.ts';
 import { plannerAgent } from './server/agents/planner_agent.ts';
-import { transcribeAudio, getGeminiAI, generateContentWithRetry, generateDynamicQuiz } from './server/gemini.ts';
+import { transcribeAudio, getGeminiAI, generateContentWithRetry, generateDynamicQuiz, generateDailyWeakTopicsQuiz } from './server/gemini.ts';
 import { runTutorAgent } from './server/agents/tutor_agent.ts';
 import { CURATED_LEARNING_RESOURCES } from './server/database/learningResources.ts';
 import {
@@ -24,16 +24,6 @@ import {
   recordFcmPushDelivery,
   getFcmPushHistory,
 } from './server/services/automatedReminders.ts';
-import {
-  connectToMongoDB,
-  getMongoStatus,
-  saveQuizResultMongo,
-  getChatMessagesMongo,
-  getQuizResultsMongo,
-  getRecentVerifiedRecordsMongo,
-  createVerificationRecordMongo,
-  getLearningProgressMongo,
-} from './server/database/mongodb.ts';
 
 dotenv.config();
 
@@ -71,6 +61,45 @@ app.get(['/api/health', '/health'], (_req, res) => {
 // Body parsers with ample limit for question screenshots
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ----------------------------------------------------
+// Enterprise Security Headers & Rate Limiting Shield
+// ----------------------------------------------------
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=*, microphone=*, geolocation=()');
+  next();
+});
+
+// Anti-brute force sliding-window rate limiter for sensitive authentication endpoints
+const authRateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const authRateLimiter = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 5 * 60 * 1000; // 5 minute window
+  const maxAttempts = 60; // Max 60 auth requests per 5 minutes per IP
+
+  const record = authRateLimitMap.get(ip);
+  if (!record || now > record.resetTime) {
+    authRateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
+    return next();
+  }
+
+  record.count++;
+  if (record.count > maxAttempts) {
+    return res.status(429).json({
+      error: 'Security rate limit exceeded: Too many authentication attempts. Please wait 5 minutes.',
+      retryAfterSeconds: Math.ceil((record.resetTime - now) / 1000),
+    });
+  }
+
+  next();
+};
+
+app.use('/api/auth', authRateLimiter);
 
 // ----------------------------------------------------
 // 1. Official WhatsApp Cloud API Webhook Endpoints
@@ -291,113 +320,6 @@ app.put('/api/students/:id', (req, res) => {
 });
 
 // ----------------------------------------------------
-// 3a. Secure MongoDB Atlas Connection & Verification Endpoints
-// ----------------------------------------------------
-app.get('/api/mongodb/status', async (req, res) => {
-  try {
-    const status = await getMongoStatus();
-    res.json(status);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to get MongoDB status' });
-  }
-});
-
-app.post('/api/mongodb/test-connection', async (req, res) => {
-  try {
-    const result = await connectToMongoDB();
-    const status = await getMongoStatus();
-    if (result.success) {
-      res.json({
-        success: true,
-        message: `Successfully connected to MongoDB Atlas (${status.databaseName}) with ${status.pingLatencyMs}ms ping.`,
-        status,
-      });
-    } else {
-      res.status(result.error?.includes('MONGODB_URI secret is not set') ? 400 : 500).json({
-        success: false,
-        error: result.error,
-        status,
-      });
-    }
-  } catch (err: any) {
-    res.status(500).json({
-      success: false,
-      error: err?.message || 'MongoDB connection test failed',
-    });
-  }
-});
-
-app.get('/api/mongodb/records', async (req, res) => {
-  try {
-    const limit = Number(req.query.limit) || 10;
-    const records = await getRecentVerifiedRecordsMongo(limit);
-    const status = await getMongoStatus();
-    res.json({
-      success: true,
-      status,
-      records,
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to fetch MongoDB records' });
-  }
-});
-
-app.post('/api/mongodb/verify-write', async (req, res) => {
-  try {
-    const { triggeredBy, purpose, testNote } = req.body || {};
-    const created = await createVerificationRecordMongo({
-      triggeredBy: triggeredBy || 'AI Studio Test Verification',
-      purpose: purpose || 'Live MongoDB Atlas Connectivity Verification',
-      testNote: testNote || 'Verified real database record written to MongoDB Atlas',
-    });
-    const status = await getMongoStatus();
-    res.json({
-      success: true,
-      record: created,
-      status,
-      message: `Verified write successful! Document created in collection "verification_records" with _id: ${created._id}`,
-    });
-  } catch (err: any) {
-    res.status(500).json({
-      success: false,
-      error: err?.message || 'Failed to write verification record to MongoDB Atlas',
-    });
-  }
-});
-
-app.get('/api/mongodb/chat-history', async (req, res) => {
-  try {
-    const userId = req.query.userId ? String(req.query.userId) : undefined;
-    const limit = Number(req.query.limit) || 50;
-    const messages = await getChatMessagesMongo(userId, limit);
-    res.json({ success: true, messages });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to fetch chat history from MongoDB' });
-  }
-});
-
-app.get('/api/mongodb/quiz-history', async (req, res) => {
-  try {
-    const userId = req.query.userId ? String(req.query.userId) : undefined;
-    const limit = Number(req.query.limit) || 50;
-    const quizResults = await getQuizResultsMongo(userId, limit);
-    res.json({ success: true, quizResults });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to fetch quiz history from MongoDB' });
-  }
-});
-
-app.get('/api/mongodb/learning-progress', async (req, res) => {
-  try {
-    const userId = String(req.query.userId || 'usr_rahul');
-    const progress = await getLearningProgressMongo(userId);
-    res.json({ success: true, progress });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to fetch learning progress from MongoDB' });
-  }
-});
-
-// ----------------------------------------------------
 // 3b. Daily Morning Affirmations & Study Quotes Endpoint
 // ----------------------------------------------------
 const CURATED_MORNING_AFFIRMATIONS = [
@@ -568,45 +490,46 @@ Return strictly valid JSON with these exact keys:
 });
 
 // ----------------------------------------------------
-// 3c. Biometric Face Authentication & Aadhaar + DigiLocker Course Enrollment Verification
+// Security Audit Logging & Threat Prevention Endpoints
 // ----------------------------------------------------
-app.post('/api/auth/face-login', (req, res) => {
+const inMemorySecurityLogs: Array<{
+  id: string;
+  eventType: string;
+  userId: string;
+  description: string;
+  severity: string;
+  timestamp: string;
+  ipHash: string;
+}> = [];
+
+app.post('/api/security/audit-event', async (req, res) => {
   try {
-    const { userId, faceBiometricHash, confidenceScore = 99.4 } = req.body || {};
-    const targetUserId = userId || 'user_1';
-    const prof =
-      db.getProfileByUserId(targetUserId) || Array.from(db.profiles.values())[0];
+    const { eventType, userId, description, severity = 'info' } = req.body || {};
+    const record = {
+      id: `SEC-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      eventType: eventType || 'SECURITY_AUDIT',
+      userId: userId || 'usr_individual',
+      description: description || 'Security event logged',
+      severity,
+      timestamp: new Date().toISOString(),
+      ipHash: req.ip ? `IP-${req.ip.slice(0, 6)}...` : 'IP-CLIENT',
+    };
 
-    if (!prof) {
-      return res.status(404).json({ error: 'Student profile not found for Face Authentication' });
-    }
+    inMemorySecurityLogs.unshift(record);
+    if (inMemorySecurityLogs.length > 150) inMemorySecurityLogs.pop();
 
-    const nowIso = new Date().toISOString();
-    const biometricSignature =
-      faceBiometricHash ||
-      `FACE-BIO-${targetUserId.toUpperCase()}-${Math.random()
-        .toString(36)
-        .substring(2, 8)
-        .toUpperCase()}`;
-
-    const updated = db.updateProfile(prof.userId, {
-      faceAuthEnabled: true,
-      faceAuthVerifiedAt: nowIso,
-      faceBiometricHash: biometricSignature,
-      lastActiveDate: nowIso.split('T')[0],
-    });
-
-    res.json({
-      success: true,
-      authenticated: true,
-      confidenceScore,
-      biometricSignature,
-      verifiedAt: nowIso,
-      profile: updated || prof,
-    });
+    res.json({ success: true, record });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Face authentication failed' });
+    res.status(500).json({ error: err.message || 'Failed to record audit event' });
   }
+});
+
+app.get('/api/security/audit-logs', (_req, res) => {
+  res.json({
+    success: true,
+    count: inMemorySecurityLogs.length,
+    logs: inMemorySecurityLogs.slice(0, 50),
+  });
 });
 
 app.post('/api/verification/aadhaar', (req, res) => {
@@ -1462,6 +1385,40 @@ app.post('/api/quiz/adaptive-generate', async (req, res) => {
   }
 });
 
+// Daily 5-Question Quiz specifically targeting student's weakTopics using Gemini API
+app.post('/api/quiz/daily-generate', async (req, res) => {
+  try {
+    const { userId, weakTopics: incomingWeakTopics, difficulty } = req.body || {};
+    const prof = userId ? db.getProfileByUserId(userId) : null;
+
+    const weakTopicsList = Array.isArray(incomingWeakTopics) && incomingWeakTopics.length > 0
+      ? incomingWeakTopics
+      : (prof?.weakTopics && prof.weakTopics.length > 0
+          ? prof.weakTopics
+          : ['Recursion in Python', 'Limits in Calculus', 'Dynamic Programming', 'SQL Joins', 'Binary Search']);
+
+    const targetDifficulty =
+      difficulty ||
+      (prof?.currentSkillLevel === 'beginner'
+        ? 'beginner'
+        : prof?.currentSkillLevel === 'expert'
+        ? 'advanced'
+        : 'intermediate');
+
+    const questions = await generateDailyWeakTopicsQuiz(weakTopicsList, targetDifficulty);
+
+    res.json({
+      success: true,
+      questions,
+      weakTopics: weakTopicsList,
+      difficulty: targetDifficulty,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Daily quiz generation failed' });
+  }
+});
+
 // Record quiz results and update student mastery / weak topics + daily learning goal progress
 app.post('/api/quiz/record-result', async (req, res) => {
   try {
@@ -1535,19 +1492,7 @@ app.post('/api/quiz/record-result', async (req, res) => {
       ],
     });
 
-    // Asynchronously persist quiz result to MongoDB Atlas
-    saveQuizResultMongo({
-      userId,
-      topic,
-      subject: subject || 'General',
-      score,
-      totalQuestions,
-      percentage,
-      isMastered,
-      quizMinutesEarned,
-      date: todayStr,
-      timestamp: new Date().toISOString(),
-    }).catch(() => {});
+
 
     res.json({
       success: true,
@@ -4467,19 +4412,6 @@ async function startServer() {
     console.log(`🚀 WhatsApp AI Learning Agent server running on http://${displayHost}:${PORT} (bound to ${HOST}:${PORT})`);
     console.log(`📱 WhatsApp Webhook URL: http://${displayHost}:${PORT}/webhook/whatsapp`);
     startAutomatedReminderScheduler();
-
-    // Securely connect to MongoDB Atlas if MONGODB_URI secret is present
-    if (process.env.MONGODB_URI) {
-      connectToMongoDB().then((res) => {
-        if (res.success) {
-          console.log(`🍃 [MongoDB Atlas] Connected successfully with ${res.latencyMs}ms ping.`);
-        } else {
-          console.warn(`⚠️ [MongoDB Atlas] Initial connection note: ${res.error}`);
-        }
-      });
-    } else {
-      console.log(`🍃 [MongoDB Atlas] Server running. MONGODB_URI secret not configured (using in-memory verified mock database).`);
-    }
   });
 
   // Catch server port binding errors (e.g., EADDRINUSE when port 3000 is still releasing)

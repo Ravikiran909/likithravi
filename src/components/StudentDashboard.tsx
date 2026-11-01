@@ -61,6 +61,7 @@ import { SmartNotificationScheduler } from './SmartNotificationScheduler.tsx';
 import { ThirtyDayProgressLineChart } from './ThirtyDayProgressLineChart.tsx';
 import { LearningVelocityChart } from './LearningVelocityChart.tsx';
 import { CalendarKnowledgeGapHeatmap } from './CalendarKnowledgeGapHeatmap.tsx';
+import { E2EESecurityVault } from './E2EESecurityVault.tsx';
 import { DailyFlashcards } from './DailyFlashcards.tsx';
 import { AcademicPdfExportCard } from './AcademicPdfExportCard.tsx';
 import { HighLevelThinkingModels } from './HighLevelThinkingModels.tsx';
@@ -75,19 +76,15 @@ import { DailyMicroGoalsWidget } from './DailyMicroGoalsWidget.tsx';
 import { IndiaPlacementPrepHub } from './IndiaPlacementPrepHub.tsx';
 import { MockInterviewModule } from './MockInterviewModule.tsx';
 import { PeerStudyGroupModule } from './PeerStudyGroupModule.tsx';
-import {
-  IdentityAndCourseVerificationHub,
-  CourseEnrollmentVerificationModal,
-  EnrollableCourseTarget,
-} from './CourseEnrollmentVerificationModal.tsx';
-import { FaceAuthLoginModal } from './FaceAuthLoginModal.tsx';
+import { DailyQuiz } from './DailyQuiz.tsx';
+import { GovernmentExamApp } from './GovernmentExamApp.tsx';
 import { calculateLearningRank } from '../utils/learningRank.ts';
 import {
   generateStudentProgressPdf,
   generateExportNotesStudyGuidePdf,
   RagDocumentSummaryItem,
 } from '../utils/generatePdfReport.ts';
-import { BarChart2, Timer, Layers, Pin, Youtube, BellOff, Shield, MessageSquare, Briefcase, Users, Mic } from 'lucide-react';
+import { BarChart2, Timer, Layers, Pin, Youtube, BellOff, Shield, MessageSquare, Briefcase, Users, Mic, Building2 } from 'lucide-react';
 
 interface StudentDashboardProps {
   profile: StudentProfile;
@@ -95,7 +92,6 @@ interface StudentDashboardProps {
   onNavigateToChat: (prefilledText?: string) => void;
   focusMode?: boolean;
   onToggleFocusMode?: (nextState?: boolean) => void;
-  onOpenFaceAuth?: () => void;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
@@ -104,13 +100,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onNavigateToChat,
   focusMode,
   onToggleFocusMode,
-  onOpenFaceAuth,
 }) => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'velocity' | 'knowledge_gaps' | 'placements' | 'mock_interview' | 'peer_groups' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
-  const [enrollModalCourse, setEnrollModalCourse] = useState<EnrollableCourseTarget | null>(null);
-  const [localFaceAuthOpen, setLocalFaceAuthOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'gov_exams' | 'velocity' | 'knowledge_gaps' | 'placements' | 'mock_interview' | 'peer_groups' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -673,6 +666,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             >
               {deepFocusActive ? 'Focus Workspace' : 'Overview'}
             </button>
+            <button
+              onClick={() => setActiveTab('gov_exams')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
+                activeTab === 'gov_exams'
+                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30 ring-1 ring-amber-400/50'
+                  : 'text-amber-400 hover:text-amber-300 hover:bg-slate-800'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>Govt Exam Prep App</span>
+            </button>
             {!deepFocusActive && (
               <>
                 <button
@@ -929,21 +933,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             />
           )}
 
-          {/* Biometric Face Authentication Login & Aadhaar / DigiLocker Course Enrollment Hub */}
-          {!deepFocusActive && (
-            <IdentityAndCourseVerificationHub
-              profile={profile}
-              onProfileUpdate={onProfileUpdate}
-              onOpenFaceAuthModal={() => {
-                if (onOpenFaceAuth) {
-                  onOpenFaceAuth();
-                } else {
-                  setLocalFaceAuthOpen(true);
-                }
-              }}
-              onOpenEnrollModal={(course) => setEnrollModalCourse(course)}
-            />
-          )}
 
           {/* Visual Streak Alert & Toast Component (Hidden in Focus Mode) */}
           {!deepFocusActive && (
@@ -2006,6 +1995,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
+      {/* Dedicated Government Exam Preparation App Tab */}
+      {activeTab === 'gov_exams' && (
+        <GovernmentExamApp
+          profile={profile}
+          onProfileUpdate={onProfileUpdate}
+          onNavigateToChat={onNavigateToChat}
+          onNavigateToQuiz={() => setActiveTab('quiz')}
+          onLogStudyMinutes={handleAddStudyMinutes}
+        />
+      )}
+
       {/* Dedicated Learning Velocity Tab (Recharts 30-Day Multi-Line Weak Topics Trajectory) */}
       {activeTab === 'velocity' && (
         <div className="space-y-6">
@@ -2179,18 +2179,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {/* Free Courses & YouTube Videos Tab */}
       {activeTab === 'courses' && (
         <div className="space-y-6">
-          <IdentityAndCourseVerificationHub
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onOpenFaceAuthModal={() => {
-              if (onOpenFaceAuth) {
-                onOpenFaceAuth();
-              } else {
-                setLocalFaceAuthOpen(true);
-              }
-            }}
-            onOpenEnrollModal={(course) => setEnrollModalCourse(course)}
-          />
           <DsaAndGovExamHub
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -2299,6 +2287,26 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
       {activeTab === 'quiz' && (
         <div className="space-y-6">
+          <DailyQuiz
+            profile={profile}
+            onProfileUpdate={onProfileUpdate}
+            onNavigateToChat={onNavigateToChat}
+            onQuizCompleted={({ minutesEarned, questionsCount, score, topics }) => {
+              const nowTime = new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              setActivityLogsToday((prev) => [
+                {
+                  id: `daily_quiz_${Date.now()}`,
+                  label: `Daily Quiz: Weak Topics (${score}/${questionsCount})`,
+                  minutes: minutesEarned,
+                  time: nowTime,
+                },
+                ...prev.slice(0, 4),
+              ]);
+            }}
+          />
           <DailyQuizStreakCounter
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -2590,35 +2598,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         isActive={deepFocusActive}
         onToggleDeepFocus={(next) => handleToggleDeepFocus(next)}
         onSessionMinutesLogged={(mins) => handleAddStudyMinutes(mins)}
-      />
-
-      {/* Aadhaar e-KYC & DigiLocker Course Enrollment Verification Modal */}
-      <CourseEnrollmentVerificationModal
-        isOpen={!!enrollModalCourse}
-        onClose={() => setEnrollModalCourse(null)}
-        course={enrollModalCourse}
-        profile={profile}
-        onProfileUpdate={onProfileUpdate}
-        onOpenFaceAuth={() => {
-          setEnrollModalCourse(null);
-          if (onOpenFaceAuth) {
-            onOpenFaceAuth();
-          } else {
-            setLocalFaceAuthOpen(true);
-          }
-        }}
-      />
-
-      {/* Fallback Local Face Auth Modal if triggered inside StudentDashboard */}
-      <FaceAuthLoginModal
-        isOpen={localFaceAuthOpen}
-        onClose={() => setLocalFaceAuthOpen(false)}
-        profiles={[profile]}
-        selectedProfile={profile}
-        onFaceAuthSuccess={(updated) => {
-          onProfileUpdate(updated);
-          setLocalFaceAuthOpen(false);
-        }}
       />
     </div>
   );

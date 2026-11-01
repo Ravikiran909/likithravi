@@ -1386,3 +1386,107 @@ function getCuratedTopicQuestionBank(
     },
   ];
 }
+
+/**
+ * Generate 5 targeted questions specifically addressing the student's weakTopics using Gemini 3.8 Flash
+ */
+export async function generateDailyWeakTopicsQuiz(
+  weakTopics: string[],
+  difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate'
+): Promise<any[]> {
+  const topicsList = Array.isArray(weakTopics) && weakTopics.length > 0
+    ? weakTopics
+    : ['Recursion in Python', 'Limits in Calculus', 'Dynamic Programming', 'SQL Joins', 'Binary Search'];
+
+  const prompt = `You are a personalized academic tutor generating a 5-question Daily Diagnostic Quiz.
+The student has the following weak topics: ${JSON.stringify(topicsList)}.
+Generate exactly 5 challenging multiple-choice questions (MCQs) designed to test and reinforce their knowledge in these specific weak topics.
+Distribute the 5 questions across their weak topics.
+Each question MUST follow this schema:
+- "questionText": Clear, concise, academically precise question or code snippet.
+- "targetedWeakTopic": The specific weak topic from the list above that this question targets.
+- "options": Array of exactly 4 choices starting with "A) ", "B) ", "C) ", "D) ".
+- "correctAnswer": Exact single letter ("A", "B", "C", or "D").
+- "explanation": Pedagogical explanation of why the correct option is right and the reasoning behind common pitfalls.
+Difficulty level: ${difficulty}.
+
+Return a JSON array of 5 question objects.`;
+
+  try {
+    const response = await generateContentWithRetry({
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              questionText: { type: Type.STRING },
+              targetedWeakTopic: { type: Type.STRING },
+              options: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+              correctAnswer: { type: Type.STRING, description: "Single letter 'A', 'B', 'C', or 'D'" },
+              explanation: { type: Type.STRING },
+            },
+            required: ['questionText', 'targetedWeakTopic', 'options', 'correctAnswer', 'explanation'],
+          },
+        },
+      },
+      preferredModel: 'gemini-3.8-flash',
+      timeoutMs: 8500,
+    });
+
+    const rawText = (response.text || '[]')
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+    const list = JSON.parse(rawText || '[]');
+    if (Array.isArray(list) && list.length > 0) {
+      const normalized = list.slice(0, 5).map((q: any, idx: number) => {
+        const topic = q.targetedWeakTopic || topicsList[idx % topicsList.length];
+        const sub = topic.toLowerCase().includes('python')
+          ? 'Python'
+          : topic.toLowerCase().includes('calculus') || topic.toLowerCase().includes('math')
+          ? 'Calculus'
+          : 'Data Structures';
+        return {
+          id: `dq_${Date.now()}_${idx}`,
+          ...normalizeQuizQuestion(q, sub, topic, difficulty),
+          targetedWeakTopic: topic,
+          subject: sub,
+        };
+      });
+      if (normalized.length === 5) {
+        return normalized;
+      }
+    }
+  } catch (err) {
+    console.warn('Gemini daily weak topics quiz generation warning, using curated fallback:', err);
+  }
+
+  // Curated 5 questions for weak topics fallback
+  const curatedResults: any[] = [];
+  for (let i = 0; i < 5; i++) {
+    const t = topicsList[i % topicsList.length];
+    const sub = t.toLowerCase().includes('python')
+      ? 'Python'
+      : t.toLowerCase().includes('calculus') || t.toLowerCase().includes('limit')
+      ? 'Calculus'
+      : 'Data Structures';
+    const bank = getCuratedTopicQuestionBank(sub, t, difficulty);
+    const qRaw = bank[i % bank.length] || bank[0];
+    const norm = normalizeQuizQuestion(qRaw, sub, t, difficulty);
+    curatedResults.push({
+      ...norm,
+      id: `dq_fallback_${Date.now()}_${i}`,
+      targetedWeakTopic: t,
+      subject: sub,
+    });
+  }
+  return curatedResults.slice(0, 5);
+}
+

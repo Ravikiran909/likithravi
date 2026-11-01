@@ -12,15 +12,17 @@ import {
   BellOff,
   Sparkles,
   EyeOff,
-  ScanFace,
   CheckCircle2,
+  ShieldCheck,
+  Lock,
+  Building2,
 } from 'lucide-react';
 import { StudentProfile, SUPPORTED_LANGUAGES } from '../types/index.ts';
 import type { FirebaseUser } from '../firebase.ts';
 
 interface NavbarProps {
-  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin';
-  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin') => void;
+  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams';
+  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams') => void;
   profiles: StudentProfile[];
   selectedProfile: StudentProfile | null;
   onSelectProfile: (profile: StudentProfile) => void;
@@ -31,9 +33,8 @@ interface NavbarProps {
   isFirebaseConnected: boolean;
   focusMode?: boolean;
   onToggleFocusMode?: (next?: boolean) => void;
-  onOpenFaceAuth?: () => void;
-  onOpenMongoDbModal?: () => void;
-  mongoDbStatus?: { connected: boolean; configured: boolean; pingLatencyMs: number | null } | null;
+  onOpenSecurityHub?: () => void;
+  onLockApp?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -48,9 +49,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSignOut,
   focusMode = false,
   onToggleFocusMode,
-  onOpenFaceAuth,
-  onOpenMongoDbModal,
-  mongoDbStatus,
+  onOpenSecurityHub,
+  onLockApp,
 }) => {
   return (
     <header
@@ -167,6 +167,22 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden md:inline">Student Portal</span>
             </button>
 
+            {/* Government Exam Preparation App Tab */}
+            <button
+              onClick={() => setActiveTab('gov_exams')}
+              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer relative ${
+                activeTab === 'gov_exams'
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-md shadow-orange-600/40 ring-1 ring-amber-400'
+                  : 'text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 border border-amber-500/30'
+              }`}
+            >
+              <Building2 className="w-4 h-4 text-amber-400" />
+              <span>Govt Exam Prep</span>
+              <span className="hidden xl:inline-block text-[9px] uppercase tracking-wider px-1.5 py-0.2 bg-amber-400/20 text-amber-200 rounded font-black">
+                UPSC/SSC
+              </span>
+            </button>
+
             {!focusMode && (
               <button
                 onClick={() => setActiveTab('admin')}
@@ -247,52 +263,49 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
 
-            {/* Student Switcher Dropdown (Hidden in Focus Mode to reduce clutter) */}
-            {!focusMode && profiles.length > 0 && selectedProfile && (
-              <div className="relative hidden lg:flex items-center bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
-                <User className="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0" />
-                <select
-                  id="navbar-student-profile-select"
-                  name="selectedStudentProfile"
-                  aria-label="Select Student Profile"
-                  value={selectedProfile.userId}
-                  onChange={(e) => {
-                    const found = profiles.find((p) => p.userId === e.target.value);
-                    if (found) onSelectProfile(found);
-                  }}
-                  className="bg-transparent text-xs text-white focus:outline-none cursor-pointer pr-1"
-                >
-                  {profiles.map((p) => (
-                    <option key={p.userId} value={p.userId} className="bg-slate-800 text-white">
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+            {/* Active Student Identity Chip */}
+            {!focusMode && selectedProfile && (
+              <div
+                className="relative hidden lg:flex items-center space-x-2 bg-slate-800/80 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
+                title={`Active Learner: ${selectedProfile.name}`}
+              >
+                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
+                  {selectedProfile.name[0]?.toUpperCase() || 'S'}
+                </div>
+                <span className="font-semibold text-white max-w-[120px] truncate">{selectedProfile.name}</span>
+                <span className="text-[10px] text-emerald-400 font-mono">
+                  {selectedProfile.whatsappNumber ? selectedProfile.whatsappNumber.slice(-4) : ''}
+                </span>
               </div>
             )}
 
-            {/* Biometric Face Authentication Login Button */}
-            {onOpenFaceAuth && (
+            {/* Security Hub Modal Button */}
+            {onOpenSecurityHub && (
               <button
                 type="button"
-                onClick={onOpenFaceAuth}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer active:scale-95 ${
-                  selectedProfile?.faceAuthEnabled
-                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-sm'
-                    : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-emerald-400 hover:text-emerald-300'
-                }`}
-                title="Biometric Face Authentication Login"
+                onClick={onOpenSecurityHub}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 transition cursor-pointer active:scale-95 shadow-sm"
+                title="Security & Privacy Hub: App Passcode, Face ID, AES-256 E2EE & MongoDB Vault"
               >
-                <ScanFace className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">
-                  {selectedProfile?.faceAuthEnabled ? 'Face ID Verified' : 'Face Login'}
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden xl:inline">Security Hub</span>
+                <span className="text-[10px] bg-indigo-500/30 text-indigo-200 px-1 py-0.2 rounded font-mono">
+                  AES-256
                 </span>
-                {selectedProfile?.faceAuthEnabled && (
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                )}
               </button>
             )}
 
+            {/* Quick Session Lock Button (shown if PIN lock is enabled) */}
+            {onLockApp && selectedProfile?.securityPinEnabled && (
+              <button
+                type="button"
+                onClick={onLockApp}
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/50 border border-slate-700 hover:border-rose-500/50 text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                title="Lock App Session Now"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
+            )}
 
             {/* Google Authentication & Firestore Sync (Dimmed in Focus Mode) */}
             <div className={focusMode ? 'opacity-50 hover:opacity-100 transition-opacity' : ''}>
