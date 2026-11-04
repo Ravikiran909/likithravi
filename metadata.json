@@ -1,6 +1,6 @@
 {
   "name": "India Exam & Skill Command Center",
-  "description": "Unified platform for Government Exam preparation (UPSC, SSC, Banking) and Technical Skill-Up for companies (GenAI, Agentic AI, Programming) with RAG-powered study materials and Socratic AI Tutor.",
+  "description": "Unified platform for Government Exam preparation and Technical Skill-Up with RAG-powered Socratic AI Tutor and Secure Student Login Dashboard for cloud sync.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

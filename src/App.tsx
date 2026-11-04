@@ -10,14 +10,19 @@ import { AppLockOverlay } from './components/AppLockOverlay.tsx';
 import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.tsx';
 import { GovernmentExamApp } from './components/GovernmentExamApp.tsx';
 import { FreeCoursesAndVideos } from './components/FreeCoursesAndVideos.tsx';
+import { StudentLoginDashboard } from './components/StudentLoginDashboard.tsx';
 import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, LogOut } from 'lucide-react';
 import {
   db,
   doc,
   setDoc,
+  getDoc,
   testConnection,
+  auth,
+  onAuthStateChanged,
+  signOutUser,
 } from './firebase.ts';
 
 const normalizeStudentProfile = (
@@ -133,9 +138,69 @@ export default function App() {
   const [focusMode, setFocusMode] = useState<boolean>(false);
   const [isSecurityHubOpen, setIsSecurityHubOpen] = useState<boolean>(false);
   const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [user, setUser] = useState<any>(null);
+  const [isEntryComplete, setIsEntryComplete] = useState<boolean>(() => {
+    return localStorage.getItem('entry_complete') === 'true';
+  });
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Initialize Guest Profile
+  // Connection check on boot
   useEffect(() => {
+    const checkConnection = async () => {
+      const isConnected = await testConnection();
+      setIsFirebaseConnected(isConnected);
+    };
+    checkConnection();
+  }, []);
+
+  // Monitor Auth State
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      setAuthLoading(false);
+      
+      if (firebaseUser) {
+        setIsEntryComplete(true);
+        localStorage.setItem('entry_complete', 'true');
+        
+        try {
+          // Sync/Load Profile for this UID
+          const docSnap = await getDoc(doc(db, 'profiles', firebaseUser.uid));
+          if (docSnap.exists()) {
+            setSelectedProfile(normalizeStudentProfile(docSnap.data() as StudentProfile));
+          } else {
+            // Create initial profile for new user
+            const newProfile = normalizeStudentProfile({
+              userId: firebaseUser.uid,
+              name: firebaseUser.displayName || 'Student',
+            });
+            setSelectedProfile(newProfile);
+            await setDoc(doc(db, 'profiles', firebaseUser.uid), newProfile);
+          }
+        } catch (err) {
+          console.warn('Profile fetch failed (offline or reachability issue):', err);
+          // Fallback to local profile if available
+          const savedProfile = localStorage.getItem(`profile_${firebaseUser.uid}`);
+          if (savedProfile) {
+            try {
+              setSelectedProfile(normalizeStudentProfile(JSON.parse(savedProfile)));
+            } catch {
+              setSelectedProfile(normalizeStudentProfile({ userId: firebaseUser.uid }));
+            }
+          } else {
+            setSelectedProfile(normalizeStudentProfile({ userId: firebaseUser.uid }));
+          }
+          setIsFirebaseConnected(false);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Initialize Guest Profile if not logged in
+  useEffect(() => {
+    if (authLoading || user) return;
+
     const savedGuestId = localStorage.getItem('guest_user_id');
     const guestId = savedGuestId || `guest_${Math.random().toString(36).substring(2, 11)}`;
     if (!savedGuestId) {
@@ -155,7 +220,19 @@ export default function App() {
     }
     
     fetchInitialData();
-  }, []);
+  }, [authLoading, user]);
+
+  const handleLogout = async () => {
+    await signOutUser();
+    setIsEntryComplete(false);
+    localStorage.removeItem('entry_complete');
+    window.location.reload();
+  };
+
+  const handleEnterAsGuest = () => {
+    setIsEntryComplete(true);
+    localStorage.setItem('entry_complete', 'true');
+  };
 
   const handleToggleFocusMode = async (nextState?: boolean) => {
     const target = nextState !== undefined ? nextState : !focusMode;
@@ -247,7 +324,7 @@ export default function App() {
     } catch {}
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
         <div className="flex flex-col items-center space-y-3">
@@ -255,6 +332,18 @@ export default function App() {
           <p className="text-xs text-slate-400 font-mono">Initializing Prep Command Center...</p>
         </div>
       </div>
+    );
+  }
+
+  if (!isEntryComplete && !user) {
+    return (
+      <StudentLoginDashboard 
+        onEnterAsGuest={handleEnterAsGuest}
+        onLoginSuccess={() => {
+          setIsEntryComplete(true);
+          localStorage.setItem('entry_complete', 'true');
+        }}
+      />
     );
   }
 
@@ -276,6 +365,8 @@ export default function App() {
         onToggleFocusMode={handleToggleFocusMode}
         onOpenSecurityHub={() => setIsSecurityHubOpen(true)}
         onLockApp={() => setIsLocked(true)}
+        onLogout={handleLogout}
+        user={user}
       />
 
       <AppLockOverlay

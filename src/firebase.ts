@@ -1,10 +1,16 @@
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import {
   getFirestore,
   initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   getDocFromServer,
   setDoc,
@@ -16,6 +22,7 @@ import {
   where,
   onSnapshot,
 } from 'firebase/firestore';
+
 import {
   getMessaging,
   getToken,
@@ -32,21 +39,40 @@ const firestoreDatabaseId =
   (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId ||
   'ai-studio-whatsappailearni-302dbf05-0a9b-4f72-8002-b0f079bc692b';
 
+let db: any;
 try {
-  initializeFirestore(
+  db = initializeFirestore(
     app,
     {
-      experimentalForceLongPolling: true,
-      experimentalAutoDetectLongPolling: true,
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
     },
     firestoreDatabaseId
   );
-} catch {
-  // Instance already initialized
+} catch (e) {
+  db = getFirestore(app, firestoreDatabaseId);
 }
 
-export const db = getFirestore(app, firestoreDatabaseId); /* CRITICAL: The app will break without this line */
+export { db };
+
 export const auth = getAuth(app);
+
+const googleProvider = new GoogleAuthProvider();
+
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error) {
+    console.error('Error signing in with Google', error);
+    throw error;
+  }
+};
+
+export const signOutUser = () => signOut(auth);
+
+export { onAuthStateChanged };
 
 export enum OperationType {
   CREATE = 'create',
@@ -104,6 +130,10 @@ export function handleFirestoreError(
  * Validate Connection to Firestore on initial boot
  */
 export async function testConnection(): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return false;
+  }
+
   try {
     const checkPromise = getDocFromServer(doc(db, 'test', 'connection'));
     const timeoutPromise = new Promise((_, reject) =>
@@ -111,11 +141,20 @@ export async function testConnection(): Promise<boolean> {
     );
     await Promise.race([checkPromise, timeoutPromise]);
     return true;
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
+  } catch (error: any) {
+    const isOffline = 
+      error?.message?.includes('the client is offline') || 
+      error?.code === 'unavailable' ||
+      error?.code === 'failed-precondition' ||
+      !navigator.onLine;
+
+    if (isOffline) {
       console.warn('Firestore server reachability check fell back to local cache mode.');
+      return false;
     }
-    return Boolean(db && app && firestoreDatabaseId);
+    
+    // If it's a permission error or something else, it's still technically "connected" but failing
+    return Boolean(db && app);
   }
 }
 

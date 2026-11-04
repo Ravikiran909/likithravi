@@ -28,7 +28,9 @@ interface NavbarProps {
   onToggleFocusMode?: (next?: boolean) => void;
   onOpenSecurityHub?: () => void;
   onLockApp?: () => void;
+  onLogout?: () => void;
   isFirebaseConnected?: boolean;
+  user?: any;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -40,6 +42,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleFocusMode,
   onOpenSecurityHub,
   onLockApp,
+  onLogout,
+  user,
 }) => {
   return (
     <header
@@ -221,6 +225,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
 
+
+            {onLogout && (
+              <div className="flex items-center space-x-2 border-l border-slate-800 ml-2 pl-4">
+                <div className="flex flex-col items-end hidden sm:flex">
+                  <span className="text-[10px] font-bold text-white leading-tight truncate max-w-[100px]">
+                    {user?.displayName || selectedProfile?.name || 'Student'}
+                  </span>
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider leading-tight">
+                    {user ? 'Cloud Active' : 'Guest Mode'}
+                  </span>
+                </div>
+                <button
+                  onClick={onLogout}
+                  className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            )}
 
             {/* WhatsApp Cloud API Live Indicator */}
             {!focusMode && (
