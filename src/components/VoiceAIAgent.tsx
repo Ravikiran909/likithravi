@@ -647,10 +647,10 @@ export const VoiceAIAgent: React.FC<VoiceAIAgentProps> = ({
 
             <div className="flex flex-col space-y-1.5">
               <button
-                onClick={() => handleQuickPrompt('Explain recursion with a real-life analogy from my course notes')}
+                onClick={() => handleQuickPrompt('Explain the Basic Structure Doctrine with examples from Indian Polity')}
                 className="text-xs text-left p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 transition-all flex items-center justify-between"
               >
-                <span>💡 "Explain recursion with an analogy from my notes"</span>
+                <span>💡 "Explain the Basic Structure Doctrine"</span>
                 <Play className="w-3 h-3 text-emerald-400 shrink-0 ml-1" />
               </button>
 

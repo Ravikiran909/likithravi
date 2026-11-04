@@ -66,7 +66,7 @@ export const StudyCircles: React.FC<StudyCirclesProps> = ({
   onLogStudyMinutes,
 }) => {
   const [circles, setCircles] = useState<StudyCircleGroup[]>([]);
-  const [selectedCircleId, setSelectedCircleId] = useState<string>('circle_python_recursion');
+  const [selectedCircleId, setSelectedCircleId] = useState<string>('circle_polity_fundamental_rights');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -80,9 +80,9 @@ export const StudyCircles: React.FC<StudyCirclesProps> = ({
   // Create new Study Circle modal/drawer state
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
   const [newCircleName, setNewCircleName] = useState<string>('');
-  const [newCircleSubject, setNewCircleSubject] = useState<string>(profile.subjects[0] || 'Python');
+  const [newCircleSubject, setNewCircleSubject] = useState<string>(profile.subjects[0] || 'Polity');
   const [newCircleTopic, setNewCircleTopic] = useState<string>(
-    profile.weakTopics?.[0] || 'Recursion & Dynamic Programming'
+    profile.weakTopics?.[0] || 'Fundamental Rights & DPSP'
   );
   const [newCircleDesc, setNewCircleDesc] = useState<string>('');
   const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -311,7 +311,7 @@ export const StudyCircles: React.FC<StudyCirclesProps> = ({
                 required
                 value={newCircleName}
                 onChange={(e) => setNewCircleName(e.target.value)}
-                placeholder="e.g., System Design & Scalability Circle"
+                placeholder="e.g., Modern History Freedom Struggle Circle"
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
@@ -326,7 +326,7 @@ export const StudyCircles: React.FC<StudyCirclesProps> = ({
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               >
                 {Array.from(
-                  new Set([...profile.subjects, 'Python', 'Calculus', 'DSA', 'Generative AI', 'Java'])
+                  new Set([...profile.subjects, 'Indian Polity', 'Modern History', 'Indian Economy', 'Geography', 'General Science'])
                 ).map((sub) => (
                   <option key={sub} value={sub}>
                     {sub}
@@ -344,7 +344,7 @@ export const StudyCircles: React.FC<StudyCirclesProps> = ({
                 required
                 value={newCircleTopic}
                 onChange={(e) => setNewCircleTopic(e.target.value)}
-                placeholder="e.g., Graph Shortest Paths"
+                placeholder="e.g., Non-Cooperation Movement"
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
@@ -378,7 +378,7 @@ export const StudyCircles: React.FC<StudyCirclesProps> = ({
               Active Topic Circles ({filteredCircles.length})
             </span>
             <div className="flex items-center space-x-1">
-              {['all', 'Python', 'Calculus', 'DSA'].map((sub) => (
+              {['all', 'Polity', 'History', 'Economy'].map((sub) => (
                 <button
                   key={sub}
                   type="button"

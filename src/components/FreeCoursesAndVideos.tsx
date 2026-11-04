@@ -129,7 +129,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
     fetchResourcesAndRatings();
   }, []);
 
-  const subjectsList = ['all', 'DSA', 'Government Exams', 'Generative AI', 'AI Agents', 'Python', 'Java', 'C', 'C++', 'C#', 'R', 'Mathematics'];
+  const subjectsList = ['all', 'Government Exams', 'Indian Polity', 'Indian History', 'Economy', 'Geography', 'Mathematics', 'Professional Skills'];
 
   // Filtered resources
   const filteredResources = useMemo(() => {
@@ -163,7 +163,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
     <div className="space-y-6">
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-red-950/60 via-slate-900 to-indigo-950/60 border border-red-500/30 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-red-500/10 rounded-xl blur-3xl pointer-events-none" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="flex items-center space-x-3.5">
@@ -175,7 +175,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                 <span className="text-xs font-bold text-red-400 uppercase tracking-wider">
                   Verified Free Education
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
+                <span className="px-2 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
                   <CheckCircle2 className="w-2.5 h-2.5" />
                   <span>100% Free & No Paywalls</span>
                 </span>
@@ -184,7 +184,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                 Curated YouTube Videos & Free University Courses
               </h3>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-                Master Python, Java, C, C++, C#, R, DSA, and Calculus with world-class free courses from Harvard CS50, MIT OpenCourseWare, freeCodeCamp, Bro Code, The Cherno, and StatQuest.
+                Master Indian Polity, History, Economy, Geography, Quantitative Aptitude, and Professional Skills with world-class free courses from official sources and top educators.
               </p>
             </div>
           </div>
@@ -279,17 +279,14 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                   : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
               }`}
             >
-              {sub === 'Generative AI' && <span>✨</span>}
-              {sub === 'AI Agents' && <span>🤖</span>}
-              {sub === 'Python' && <span>🐍</span>}
-              {sub === 'Java' && <span>☕</span>}
-              {sub === 'C' && <span>⚡</span>}
-              {sub === 'C++' && <span>🚀</span>}
-              {sub === 'C#' && <span>🔷</span>}
-              {sub === 'R' && <span>📊</span>}
-              {sub === 'DSA' && <span>🌳</span>}
+              {sub === 'Government Exams' && <span>🏛️</span>}
+              {sub === 'Indian Polity' && <span>📜</span>}
+              {sub === 'Indian History' && <span>🏺</span>}
+              {sub === 'Economy' && <span>📈</span>}
+              {sub === 'Geography' && <span>🌍</span>}
               {sub === 'Mathematics' && <span>📐</span>}
-              <span>{sub === 'all' ? 'All Languages' : sub}</span>
+              {sub === 'Professional Skills' && <span>💼</span>}
+              <span>{sub === 'all' ? 'All Topics' : sub}</span>
             </button>
           ))}
         </div>
@@ -298,7 +295,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
       {/* Loading Skeleton */}
       {loading && (
         <div className="py-16 text-center space-y-3">
-          <div className="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-8 h-8 border-3 border-red-500 border-t-transparent rounded-xl animate-spin mx-auto" />
           <p className="text-xs text-slate-400">Loading free learning courses and tutorials...</p>
         </div>
       )}
@@ -331,7 +328,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                 {item.embedUrl && (
                   <button
                     onClick={() => setActiveVideo(item)}
-                    className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-xl hover:scale-110 transition cursor-pointer backdrop-blur-sm"
+                    className="absolute inset-0 m-auto w-12 h-12 rounded-xl bg-red-600/90 text-white flex items-center justify-center shadow-xl hover:scale-110 transition cursor-pointer backdrop-blur-sm"
                     title="Watch Video"
                   >
                     <Play className="w-5 h-5 fill-white ml-0.5" />
@@ -340,7 +337,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
 
                 {/* Top Badges */}
                 <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/80">
+                  <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/80">
                     {item.subject}
                   </span>
 
@@ -348,7 +345,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                     {/* Interactive Rating Badge */}
                     <button
                       onClick={() => setReviewModalTarget(item)}
-                      className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-black/80 hover:bg-black text-amber-300 backdrop-blur-md border border-amber-500/40 text-[10px] font-bold transition cursor-pointer shadow-sm"
+                      className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-black/80 hover:bg-black text-amber-300 backdrop-blur-md border border-amber-500/40 text-[10px] font-bold transition cursor-pointer shadow-sm"
                       title="View reviews and star ratings"
                     >
                       <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
@@ -358,7 +355,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                       </span>
                     </button>
 
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/90 text-slate-950 backdrop-blur-md shadow-sm">
+                    <span className="px-2 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-500/90 text-slate-950 backdrop-blur-md shadow-sm">
                       FREE
                     </span>
                   </div>

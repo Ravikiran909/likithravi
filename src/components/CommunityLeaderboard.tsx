@@ -159,8 +159,8 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         studyHours: 42.5,
         streak: 18,
         accuracy: 94,
-        topSubject: 'DSA & Algorithms',
-        badgeTitle: 'Algorithm Grandmaster',
+        topSubject: 'UPSC CSE',
+        badgeTitle: 'Polity Professional',
         badgeTier: 'Diamond' as const,
         kudosBase: 24,
       },
@@ -187,8 +187,8 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         studyHours: 31.5,
         streak: 12,
         accuracy: 86,
-        topSubject: 'Python',
-        badgeTitle: 'Python Ninja',
+        topSubject: 'SSC CGL',
+        badgeTitle: 'SSC Aspirant Star',
         badgeTier: 'Platinum' as const,
         kudosBase: 15,
       },
@@ -201,8 +201,8 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         studyHours: 28.0,
         streak: 9,
         accuracy: 83,
-        topSubject: 'Calculus',
-        badgeTitle: 'Calculus Conqueror',
+        topSubject: 'Indian Polity',
+        badgeTitle: 'Constitution Expert',
         badgeTier: 'Gold' as const,
         kudosBase: 11,
       },
@@ -215,8 +215,8 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         studyHours: 24.5,
         streak: 7,
         accuracy: 81,
-        topSubject: 'Generative AI',
-        badgeTitle: 'Prompt Engineer',
+        topSubject: 'Modern Indian History',
+        badgeTitle: 'History Scholar',
         badgeTier: 'Gold' as const,
         kudosBase: 8,
       },
@@ -229,8 +229,8 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         studyHours: 19.5,
         streak: 6,
         accuracy: 79,
-        topSubject: 'Java',
-        badgeTitle: 'OOP Specialist',
+        topSubject: 'General Awareness',
+        badgeTitle: 'GK Master',
         badgeTier: 'Silver' as const,
         kudosBase: 6,
       },
@@ -291,7 +291,7 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
           accuracy: acc,
           points: pts,
           weeklyDelta: Math.round(sessions * 14 + (p.streak || 1) * 6),
-          topSubject: p.subjects?.[0] || 'DSA & Algorithms',
+          topSubject: p.subjects?.[0] || 'UPSC CSE',
           badgeTitle: pts >= 2500 ? 'Mastery Prodigy' : 'Rising Scholar',
           badgeTier: pts >= 2500 ? 'Platinum' : pts >= 1800 ? 'Gold' : 'Silver',
           kudosCount: kudosMap[p.userId] || 7,
@@ -336,7 +336,7 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
       accuracy: myAccuracy,
       points: myPoints,
       weeklyDelta: 280 + extraSimulatedBonus,
-      topSubject: profile.subjects?.[0] || 'Python Programming',
+      topSubject: profile.subjects?.[0] || 'Government Exams',
       badgeTitle: myPoints >= 2500 ? 'Diamond Veteran' : myPoints >= 1800 ? 'Gold Scholar' : 'Silver Learner',
       badgeTier: myPoints >= 2500 ? 'Diamond' : myPoints >= 1800 ? 'Gold' : 'Silver',
       kudosCount: kudosMap[profile.userId] || 12,
@@ -727,11 +727,11 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
             className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
           >
             <option value="all">All Subjects</option>
-            <option value="dsa">DSA & Algorithms</option>
-            <option value="python">Python</option>
-            <option value="calculus">Calculus</option>
+            <option value="upsc">UPSC CSE</option>
+            <option value="ssc">SSC CGL</option>
+            <option value="polity">Indian Polity</option>
             <option value="government">Gov Exams</option>
-            <option value="ai">AI & Agents</option>
+            <option value="history">Indian History</option>
           </select>
         </div>
       </div>

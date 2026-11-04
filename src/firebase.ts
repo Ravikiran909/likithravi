@@ -1,11 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  User as FirebaseUser,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -52,104 +47,6 @@ try {
 
 export const db = getFirestore(app, firestoreDatabaseId); /* CRITICAL: The app will break without this line */
 export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-
-// Google Workspace Scopes (Least Privilege: Calendar Events)
-export const SCOPES = [
-  'https://www.googleapis.com/auth/calendar.events',
-];
-
-SCOPES.forEach((scope) => {
-  googleProvider.addScope(scope);
-});
-
-// Flag to indicate if we are in the middle of a sign-in flow.
-let isSigningIn = false;
-// Cache the access token in memory ONLY (never in localStorage or sessionStorage).
-let cachedAccessToken: string | null = null;
-const authListeners = new Set<(token: string | null, user: FirebaseUser | null) => void>();
-
-const notifyTokenListeners = () => {
-  authListeners.forEach((cb) => cb(cachedAccessToken, auth.currentUser));
-};
-
-// Initialize auth state listener. Clears cached token when user signs out.
-export const initAuth = (
-  onAuthSuccess?: (user: FirebaseUser, token: string) => void,
-  onAuthFailure?: () => void
-) => {
-  const tokenSub = (token: string | null, user: FirebaseUser | null) => {
-    if (user && token) {
-      if (onAuthSuccess) onAuthSuccess(user, token);
-    } else if (!isSigningIn) {
-      if (onAuthFailure) onAuthFailure();
-    }
-  };
-  authListeners.add(tokenSub);
-
-  const unsubFirebase = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
-    if (user) {
-      if (cachedAccessToken) {
-        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        cachedAccessToken = null;
-        if (onAuthFailure) onAuthFailure();
-      }
-    } else {
-      cachedAccessToken = null;
-      if (onAuthFailure) onAuthFailure();
-    }
-  });
-
-  return () => {
-    authListeners.delete(tokenSub);
-    unsubFirebase();
-  };
-};
-
-// Must be called from a button click or user interaction
-export const googleSignIn = async (): Promise<{ user: FirebaseUser; accessToken: string } | null> => {
-  try {
-    isSigningIn = true;
-    const result = await signInWithPopup(auth, googleProvider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    cachedAccessToken = credential?.accessToken || '';
-    notifyTokenListeners();
-    return { user: result.user, accessToken: cachedAccessToken };
-  } catch (error: any) {
-    // Gracefully handle expected user actions such as dismissing the popup window
-    if (
-      error?.code === 'auth/popup-closed-by-user' ||
-      error?.code === 'auth/cancelled-popup-request'
-    ) {
-      console.info('Google Sign-in popup dismissed or cancelled by user.');
-      return null;
-    }
-    if (error?.code === 'auth/popup-blocked') {
-      console.warn('Google Sign-in popup was blocked by the browser. Please allow popups for this site.');
-      return null;
-    }
-    console.warn('Google Sign-in notice:', error?.message || error);
-    return null;
-  } finally {
-    isSigningIn = false;
-  }
-};
-
-export const getAccessToken = async (): Promise<string | null> => {
-  return cachedAccessToken;
-};
-
-export const logout = async () => {
-  try {
-    await auth.signOut();
-  } catch (err: any) {
-    console.warn('Sign out notice:', err?.message || err);
-  } finally {
-    cachedAccessToken = null;
-    notifyTokenListeners();
-  }
-};
 
 export enum OperationType {
   CREATE = 'create',
@@ -243,7 +140,6 @@ export async function getFirebaseMessaging(): Promise<Messaging | null> {
 /**
  * Requests notification permission (if supported) and retrieves an FCM registration token
  * for delivering Smart Study Reminders at the student's preferredStudyTime.
- * Gracefully generates a verified local-device FCM token fallback when inside a sandboxed preview iframe.
  */
 export async function requestFcmStudyReminderToken(userId: string): Promise<{
   token: string;
@@ -294,7 +190,7 @@ export async function requestFcmStudyReminderToken(userId: string): Promise<{
     console.warn('FCM live token retrieval fell back to bridge token:', err);
   }
 
-  // Deterministic FCM registration token for preview / iframe environments or when VAPID key is not required
+  // Deterministic FCM registration token for preview / iframe environments
   const storageKey = `fcm_token_${userId}`;
   let fallbackToken = '';
   try {
@@ -335,9 +231,6 @@ export async function subscribeToForegroundFcmMessages(
 }
 
 export {
-  signInWithPopup,
-  firebaseSignOut,
-  onAuthStateChanged,
   doc,
   getDocFromServer,
   setDoc,
@@ -349,4 +242,4 @@ export {
   where,
   onSnapshot,
 };
-export type { FirebaseUser, MessagePayload };
+export type { MessagePayload };

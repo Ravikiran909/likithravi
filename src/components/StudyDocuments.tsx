@@ -81,33 +81,33 @@ interface SemanticSearchPayload {
 
 const SAMPLE_SEMANTIC_QUERIES = [
   {
-    label: 'Prevent stack overflow in recursion',
-    query: 'How to prevent stack overflow and infinite loops in recursive functions?',
+    label: 'Constitutional Amendment Process',
+    query: 'How is the Indian Constitution amended under Article 368?',
     subject: 'all',
   },
   {
-    label: 'C++ Smart Pointers & RAII memory safety',
-    query: 'Automatic memory management without leaks using unique_ptr, shared_ptr and RAII',
+    label: 'RBI Monetary Policy Tools',
+    query: 'What are the quantitative and qualitative tools used by RBI to control inflation?',
     subject: 'all',
   },
   {
-    label: 'RAG Vector Embeddings & Hallucinations',
-    query: 'How do vector embeddings and cosine similarity ground LLMs in RAG pipelines?',
+    label: 'Revolt of 1857 Causes',
+    query: 'What were the political, social, and immediate causes of the Great Revolt of 1857?',
     subject: 'all',
   },
   {
-    label: 'Calculus Integration by Parts (LIATE)',
-    query: 'How to choose u and dv when integrating products of functions in calculus?',
+    label: 'Monsoon Mechanism in India',
+    query: 'Explain the mechanism of the Southwest Monsoon and the role of the Tibetan Plateau.',
     subject: 'all',
   },
   {
-    label: 'Binary Search O(log n) & overflow',
-    query: 'Finding an element in a sorted array in logarithmic time without integer overflow',
+    label: 'Percentage Successive Changes',
+    query: 'How to calculate successive percentage changes in profit and loss problems?',
     subject: 'all',
   },
   {
-    label: 'JVM Heap vs Stack & Concurrency',
-    query: 'How Java manages object memory on the heap vs stack frames and thread visibility',
+    label: 'Green Revolution Impact',
+    query: 'What were the positive and negative impacts of the Green Revolution on Indian agriculture?',
     subject: 'all',
   },
 ];
@@ -206,7 +206,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                 {
                   id: d.id,
                   title: String(d.title || 'Course Document').slice(0, 195),
-                  subject: String(d.subject || 'Python').slice(0, 95),
+                  subject: String(d.subject || 'General Studies').slice(0, 95),
                   category: String(d.category || 'Course Notes').slice(0, 95),
                   originalFilename: String(d.originalFilename || 'notes.txt').slice(0, 195),
                   fileSizeKb: Number(d.fileSizeKb) || 2,
@@ -329,16 +329,14 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
 
   const subjectsList = [
     'all',
-    'Generative AI',
-    'AI Agents',
-    'Python',
-    'Java',
-    'C',
-    'C++',
-    'C#',
-    'R',
-    'DSA',
-    'Mathematics',
+    'UPSC CSE',
+    'SSC CGL',
+    'Indian Polity',
+    'Modern Indian History',
+    'Indian Economy',
+    'Geography',
+    'Quantitative Aptitude',
+    'Professional Skills',
   ];
 
   // Helper to get rating info
@@ -587,7 +585,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-                Search conceptually across our indexed RAG knowledge base using dense vector embeddings and cosine similarity, or browse student-rated programming handbooks and courses.
+                Search conceptually across our indexed RAG knowledge base using dense vector embeddings and cosine similarity, or browse student-rated government exam handbooks and courses.
               </p>
             </div>
           </div>
@@ -742,7 +740,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={
                   searchMode === 'semantic'
-                    ? 'Ask a conceptual question or describe a topic (e.g., "how to prevent stack overflow in recursive calls" or "memory leaks in C++")...'
+                    ? 'Ask a conceptual question or describe a topic (e.g., "how is the constitution amended" or "Repo rate impact")...'
                     : 'Filter by exact document title, subject, or keyword...'
                 }
                 aria-label="Semantic search across RAG knowledge base"
@@ -867,16 +865,14 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                     : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
                 }`}
               >
-                {sub === 'Generative AI' && <span>✨</span>}
-                {sub === 'AI Agents' && <span>🤖</span>}
-                {sub === 'Python' && <span>🐍</span>}
-                {sub === 'Java' && <span>☕</span>}
-                {sub === 'C' && <span>⚡</span>}
-                {sub === 'C++' && <span>🚀</span>}
-                {sub === 'C#' && <span>🔷</span>}
-                {sub === 'R' && <span>📊</span>}
-                {sub === 'DSA' && <span>🌳</span>}
-                {sub === 'Mathematics' && <span>📐</span>}
+                {sub === 'UPSC CSE' && <span>🏛️</span>}
+                {sub === 'SSC CGL' && <span>📜</span>}
+                {sub === 'Indian Polity' && <span>⚖️</span>}
+                {sub === 'Modern Indian History' && <span>🕒</span>}
+                {sub === 'Indian Economy' && <span>💹</span>}
+                {sub === 'Geography' && <span>🌍</span>}
+                {sub === 'Quantitative Aptitude' && <span>🔢</span>}
+                {sub === 'Professional Skills' && <span>💼</span>}
                 <span>{sub === 'all' ? 'All Subjects' : sub}</span>
               </button>
             ))}

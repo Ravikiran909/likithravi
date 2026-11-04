@@ -130,13 +130,13 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
           (profile.correctAnswers || 0) + 9,
           Math.round(badge.targetValue * 0.85)
         );
-      } else if (badge.id === 'badge_mastery_calculus' || badge.category === 'subject_mastery') {
+      } else if (badge.id === 'badge_mastery_polity' || badge.category === 'subject_mastery') {
         const topicName =
-          badge.id === 'badge_mastery_calculus'
-            ? 'Calculus (Integration & Derivatives)'
-            : badge.id === 'badge_mastery_python'
-            ? 'Python OOP & Recursion'
-            : 'DSA Binary Search & Trees';
+          badge.id === 'badge_mastery_polity'
+            ? 'Indian Polity (Constitutional Articles)'
+            : badge.id === 'badge_mastery_aptitude'
+            ? 'Quantitative Aptitude & Reasoning'
+            : 'Modern Indian History & Movement';
         updates.strongTopics = Array.from(new Set([...(profile.strongTopics || []), topicName]));
         updates.overallProgress = Math.max(profile.overallProgress || 0, 88);
       }
@@ -234,10 +234,10 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
               </span>
             </div>
             <h3 className="text-xl font-black text-white mt-1 tracking-tight">
-              Milestone Badges: 7-Day Streak, 100 Questions & Subject Mastery
+              Milestone Badges: 7-Day Streak, 100 Questions & Topic Mastery
             </h3>
             <p className="text-xs text-slate-300 mt-1 max-w-xl">
-              Earn verified badges for milestones like <strong className="text-amber-300">7-Day Streak</strong>, <strong className="text-emerald-300">100 Questions Answered</strong>, and <strong className="text-rose-300">Mastery in Calculus</strong>. Stored directly in your user profile document.
+              Earn verified badges for milestones like <strong className="text-amber-300">7-Day Streak</strong>, <strong className="text-emerald-300">100 Questions Answered</strong>, and <strong className="text-rose-300">Mastery in Indian Polity</strong>. Stored directly in your user profile document.
             </p>
           </div>
         </div>

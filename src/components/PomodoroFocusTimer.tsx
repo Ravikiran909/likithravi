@@ -44,7 +44,7 @@ export const PomodoroFocusTimer: React.FC<PomodoroFocusTimerProps> = ({
   const [mode, setMode] = useState<TimerMode>('pomodoro');
   const [timeLeft, setTimeLeft] = useState<number>(MODE_DURATIONS.pomodoro);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [selectedSubject, setSelectedSubject] = useState<string>(profile.subjects[0] || 'Python');
+  const [selectedSubject, setSelectedSubject] = useState<string>(profile.subjects[0] || 'Indian Polity');
   const [sessionNotes, setSessionNotes] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [recentSessions, setRecentSessions] = useState<FocusSession[]>([]);
@@ -412,7 +412,7 @@ export const PomodoroFocusTimer: React.FC<PomodoroFocusTimerProps> = ({
           </label>
           <input
             type="text"
-            placeholder="e.g. Master Recursion base cases"
+            placeholder="e.g. Fundamental Rights Article 19-21"
             value={sessionNotes}
             onChange={(e) => setSessionNotes(e.target.value)}
             className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"

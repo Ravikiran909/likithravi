@@ -91,7 +91,7 @@ export const DailyAffirmationsCard: React.FC<DailyAffirmationsCardProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: profile.userId,
-            focusTopic: profile.weakTopics?.[0] || profile.subjects?.[0] || 'DSA & Exams',
+            focusTopic: profile.weakTopics?.[0] || profile.subjects?.[0] || 'GS & Exams',
           }),
         });
         if (geminiRes.ok) {
@@ -129,7 +129,7 @@ export const DailyAffirmationsCard: React.FC<DailyAffirmationsCardProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: profile.userId,
-          focusTopic: profile.weakTopics?.[0] || profile.subjects?.[0] || 'DSA & Competitive Exams',
+          focusTopic: profile.weakTopics?.[0] || profile.subjects?.[0] || 'GS & Competitive Exams',
         }),
       });
       if (res.ok) {
@@ -299,7 +299,7 @@ export const DailyAffirmationsCard: React.FC<DailyAffirmationsCardProps> = ({
                 onClick={() =>
                   onNavigateToChat(
                     `🌅 Morning Affirmation: "${data.quote}" — ${data.author}. Let's start today's study session on ${
-                      profile.subjects[0] || 'Python'
+                      profile.subjects[0] || 'General Studies'
                     }!`
                   )
                 }

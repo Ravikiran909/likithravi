@@ -60,7 +60,7 @@ export const WeeklyStudyReport: React.FC<WeeklyStudyReportProps> = ({
       );
 
       const topSub =
-        profile.subjects[i % profile.subjects.length] || profile.subjects[0] || 'Python';
+        profile.subjects[i % profile.subjects.length] || profile.subjects[0] || 'Indian Polity';
 
       days.push({
         dateStr,
@@ -113,7 +113,7 @@ export const WeeklyStudyReport: React.FC<WeeklyStudyReportProps> = ({
 
 🧠 PEDAGOGICAL INSIGHTS & NEXT WEEK FOCUS:
 1. Strong Retention in ${profile.strongTopics?.[0] || profile.subjects[0] || 'Core Concepts'}: Problem-solving speed improved by 18%.
-2. Priority Topic for Next Week: Dedicate 45 mins to ${profile.weakTopics?.[0] || 'Integration & Tree Traversal'}.
+2. Priority Topic for Next Week: Dedicate 45 mins to ${profile.weakTopics?.[0] || 'Fundamental Rights & Constitutional Amendments'}.
 3. Goal Consistency: Met target on 6 of 7 days. Your ${profile.streak}-day streak is in the top 5% of active learners!`;
       setAiReportOutput(summary);
       setIsGeneratingAiReport(false);

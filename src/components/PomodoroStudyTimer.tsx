@@ -70,11 +70,11 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   const availableSubjects = Array.from(
-    new Set([...(profile.subjects || []), 'DSA', 'Government Exams', 'Python', 'Mathematics'])
+    new Set([...(profile.subjects || []), 'Indian Polity', 'Modern History', 'Indian Economy', 'Geography'])
   );
-  const [selectedSubject, setSelectedSubject] = useState<string>(availableSubjects[0] || 'DSA');
+  const [selectedSubject, setSelectedSubject] = useState<string>(availableSubjects[0] || 'Indian Polity');
   const [focusTopicGoal, setFocusTopicGoal] = useState<string>(
-    profile.weakTopics?.[0] || 'Sliding Window & Dynamic Programming'
+    profile.weakTopics?.[0] || 'Fundamental Rights & Constitutional Amendments'
   );
 
   // Browser Notification State
@@ -91,21 +91,21 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
   const [notificationLogs, setNotificationLogs] = useState<NotificationLogItem[]>([
     {
       id: 'init_pomo_log_1',
-      title: 'Time to Take a Break! (25m DSA Focus Complete)',
+      title: 'Time to Take a Break! (25m Polity Focus Complete)',
       body: 'Logged +25 mins to your daily study goal and weekly streak. Step away for a 5m recharge break!',
       timestamp: 'Earlier Today',
       mode: 'focus',
-      subject: 'DSA',
+      subject: 'Indian Polity',
       minutesLogged: 25,
       browserDelivered: true,
     },
     {
       id: 'init_pomo_log_2',
       title: 'Time to Resume Study Session! (5m Break Complete)',
-      body: 'Your recharge break is over. Ready to resume your next 25m focus session on DSA?',
+      body: 'Your recharge break is over. Ready to resume your next 25m focus session on Modern History?',
       timestamp: 'Earlier Today',
       mode: 'short_break',
-      subject: 'DSA',
+      subject: 'Modern History',
       minutesLogged: 0,
       browserDelivered: true,
     },
@@ -963,7 +963,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
                   type="text"
                   value={focusTopicGoal}
                   onChange={(e) => setFocusTopicGoal(e.target.value)}
-                  placeholder="e.g. Graph BFS & Dijkstra"
+                  placeholder="e.g. 1857 Revolt Timeline"
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                 />
               </div>

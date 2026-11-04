@@ -154,12 +154,12 @@ export const AdminDashboard: React.FC = () => {
       return adminStats.popularSubjects;
     }
     return [
-      { name: 'Python', learners: 44, avgMastery: 84, documentsCount: 2, quizAccuracy: 86 },
-      { name: 'DSA', learners: 40, avgMastery: 72, documentsCount: 3, quizAccuracy: 75 },
-      { name: 'Gov Exams', learners: 37, avgMastery: 69, documentsCount: 3, quizAccuracy: 74 },
-      { name: 'Calculus', learners: 31, avgMastery: 64, documentsCount: 2, quizAccuracy: 68 },
-      { name: 'Java & OOP', learners: 26, avgMastery: 77, documentsCount: 1, quizAccuracy: 79 },
-      { name: 'GenAI & RAG', learners: 33, avgMastery: 81, documentsCount: 2, quizAccuracy: 83 },
+      { name: 'Indian Polity', learners: 44, avgMastery: 84, documentsCount: 2, quizAccuracy: 86 },
+      { name: 'Quantitative Aptitude', learners: 40, avgMastery: 72, documentsCount: 3, quizAccuracy: 75 },
+      { name: 'Modern History', learners: 37, avgMastery: 69, documentsCount: 3, quizAccuracy: 74 },
+      { name: 'Indian Economy', learners: 31, avgMastery: 64, documentsCount: 2, quizAccuracy: 68 },
+      { name: 'General Awareness', learners: 26, avgMastery: 77, documentsCount: 1, quizAccuracy: 79 },
+      { name: 'Current Affairs', learners: 33, avgMastery: 81, documentsCount: 2, quizAccuracy: 83 },
     ];
   }, [adminStats]);
 
@@ -446,7 +446,7 @@ export const AdminDashboard: React.FC = () => {
                         <td className="p-3 font-mono text-emerald-400">{st.whatsappNumber}</td>
                         <td className="p-3 capitalize">{st.educationLevel || 'college'}</td>
                         <td className="p-3 text-slate-300">
-                          {Array.isArray(st.subjects) ? st.subjects.join(', ') : 'Python, DSA'}
+                          {Array.isArray(st.subjects) ? st.subjects.join(', ') : 'Indian Polity, History'}
                         </td>
                         <td className="p-3 font-bold text-amber-400">{st.streak || 1}d</td>
                         <td className="p-3 font-bold text-emerald-400">{st.overallProgress || 65}%</td>

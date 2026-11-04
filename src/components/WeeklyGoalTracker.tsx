@@ -99,7 +99,7 @@ export const WeeklyGoalTracker: React.FC<WeeklyGoalTrackerProps> = ({
     const subjectsList =
       profile.subjects && profile.subjects.length > 0
         ? profile.subjects
-        : ['Python', 'Data Structures', 'Calculus', 'Algorithms'];
+        : ['Indian Polity', 'Modern History', 'Indian Economy', 'Quantitative Aptitude'];
 
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);

@@ -39,50 +39,50 @@ interface MiniQuizItem {
 const QUICK_QUIZ_BANK: MiniQuizItem[] = [
   {
     id: 'qq_1',
-    subject: 'Python',
-    topic: 'Recursion & Call Stack',
-    question: 'What happens if a recursive function in Python lacks a valid base case?',
+    subject: 'Indian Polity',
+    topic: 'Fundamental Rights',
+    question: 'Which Article of the Indian Constitution empowers the Supreme Court to issue writs for the enforcement of Fundamental Rights?',
     options: [
-      'A) Python automatically converts it into a while loop',
-      'B) Call stack frames overflow and raise RecursionError',
-      'C) It returns 0 after 10 iterations',
-      'D) It garbage-collects active stack frames immediately',
+      'A) Article 226',
+      'B) Article 32',
+      'C) Article 131',
+      'D) Article 143',
     ],
     correctLetter: 'B',
     explanation:
-      'Every recursive call pushes a new stack frame onto the LIFO Call Stack. Without a base case, it hits sys.getrecursionlimit() and raises RecursionError.',
+      'Article 32 provides the right to Constitutional Remedies, which Dr. Ambedkar described as the "Heart and Soul" of the Constitution.',
     minutesReward: 15,
   },
   {
     id: 'qq_2',
-    subject: 'Calculus',
-    topic: 'Integration by Parts',
-    question: 'According to the LIATE rule for ∫ u dv, which function type has the highest priority to be chosen as u?',
+    subject: 'Modern History',
+    topic: '1857 Revolt',
+    question: 'Who was the Governor-General of India during the Great Revolt of 1857?',
     options: [
-      'A) Exponential functions (e^x)',
-      'B) Trigonometric functions (sin x)',
-      'C) Logarithmic functions (ln x)',
-      'D) Algebraic polynomials (x^2)',
+      'A) Lord Dalhousie',
+      'B) Lord Canning',
+      'C) Lord Bentinck',
+      'D) Lord Lytton',
     ],
-    correctLetter: 'C',
+    correctLetter: 'B',
     explanation:
-      'LIATE stands for Logarithmic, Inverse trig, Algebraic, Trigonometric, Exponential. Logarithmic functions differentiate cleanly into algebraic terms (1/x).',
+      'Lord Canning was the Governor-General of India during the 1857 Revolt and became the first Viceroy after the Government of India Act 1858.',
     minutesReward: 15,
   },
   {
     id: 'qq_3',
-    subject: 'DSA',
-    topic: 'Binary Search Trees & Complexity',
-    question: 'What is the worst-case time complexity of searching for a key in an unbalanced Binary Search Tree (BST) with N nodes?',
+    subject: 'Indian Economy',
+    topic: 'Monetary Policy',
+    question: 'Which of the following is a quantitative tool used by the RBI to control the money supply in the economy?',
     options: [
-      'A) O(1)',
-      'B) O(log N)',
-      'C) O(N)',
-      'D) O(N log N)',
+      'A) Moral Suasion',
+      'B) Credit Rationing',
+      'C) Cash Reserve Ratio (CRR)',
+      'D) Direct Action',
     ],
     correctLetter: 'C',
     explanation:
-      'If elements are inserted in sorted order, an unbalanced BST degenerates into a skewed linked list of height N, making lookup O(N).',
+      'Cash Reserve Ratio (CRR) is a quantitative (general) tool, whereas Moral Suasion and Credit Rationing are qualitative (selective) tools.',
     minutesReward: 15,
   },
 ];
@@ -692,8 +692,8 @@ export const DailyLearningGoalTracker: React.FC<DailyLearningGoalTrackerProps> =
                 3,
                 3,
                 15,
-                profile.weakTopics?.[0] || 'Python Recursion',
-                profile.subjects?.[0] || 'Python'
+                profile.weakTopics?.[0] || 'Indian Polity',
+                profile.subjects?.[0] || 'General Studies'
               )
             }
             className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer active:scale-95 flex items-center space-x-1"
@@ -709,8 +709,8 @@ export const DailyLearningGoalTracker: React.FC<DailyLearningGoalTrackerProps> =
                 5,
                 4,
                 25,
-                profile.weakTopics?.[0] || 'Calculus Integration',
-                profile.subjects?.[0] || 'Calculus'
+                profile.weakTopics?.[0] || 'Indian Economy',
+                profile.subjects?.[0] || 'General Awareness'
               )
             }
             className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer active:scale-95 flex items-center space-x-1"

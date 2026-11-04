@@ -415,10 +415,10 @@ app.post('/api/daily-affirmation/gemini', async (req, res) => {
     const { userId, focusTopic, mood } = req.body || {};
     const prof = userId ? db.getProfileByUserId(String(userId)) : undefined;
     const studentName = prof?.name || 'Scholar';
-    const subjects = (prof?.subjects || ['DSA', 'Government Exams', 'Python']).join(', ');
+    const subjects = (prof?.subjects || ['Indian Polity', 'Government Exams', 'Modern History']).join(', ');
     const streak = prof?.streak || 7;
     const targetTopic =
-      focusTopic || prof?.weakTopics?.[0] || 'Data Structures, Algorithms & Competitive Exams';
+      focusTopic || prof?.weakTopics?.[0] || 'Indian Polity, History & Current Affairs';
     const dateKey = new Date().toISOString().split('T')[0];
 
     let generated: any = null;
@@ -824,16 +824,16 @@ interface StudyCircleGroup {
 
 const studyCirclesStore = new Map<string, StudyCircleGroup>([
   [
-    'circle_python_recursion',
+    'circle_indian_polity',
     {
-      id: 'circle_python_recursion',
-      name: 'Python Recursion & Dynamic Programming Lab',
-      subject: 'Python',
-      topic: 'Recursion edge cases & Memoization',
+      id: 'circle_indian_polity',
+      name: 'Indian Polity & Constitutional Amendments Lab',
+      subject: 'Indian Polity',
+      topic: 'Articles, Schedules & Recent Amendments',
       description:
-        'Peer-to-peer problem solving on recursion call stacks, base case invariants, and @lru_cache optimization.',
-      whatsappInviteCode: 'WA-PY-REC-101',
-      activeNowCount: 6,
+        'Peer-to-peer discussion on constitutional frameworks, landmark SC judgments, and parliamentary procedures.',
+      whatsappInviteCode: 'WA-POL-CON-101',
+      activeNowCount: 8,
       createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
       members: [
         {
@@ -841,13 +841,6 @@ const studyCirclesStore = new Map<string, StudyCircleGroup>([
           name: 'Ananya Sharma',
           avatarInitials: 'AS',
           role: 'founder',
-          whatsappSynced: true,
-        },
-        {
-          userId: 'peer_rohan',
-          name: 'Rohan Verma',
-          avatarInitials: 'RV',
-          role: 'mentor',
           whatsappSynced: true,
         },
         {
@@ -861,90 +854,32 @@ const studyCirclesStore = new Map<string, StudyCircleGroup>([
       messages: [
         {
           id: 'sc_msg_1',
-          circleId: 'circle_python_recursion',
+          circleId: 'circle_indian_polity',
           senderId: 'peer_ananya',
           senderName: 'Ananya Sharma',
           senderRole: 'peer_mentor',
           content:
-            'Quick tip from our Python RAG notes: Always validate both the empty collection `if not arr:` AND single-element `if len(arr) == 1:` before your recursive divide step!',
+            'Quick tip: Remember Article 32 is the "Heart and Soul" of the Constitution as per Dr. Ambedkar. Always link Fundamental Rights with their corresponding Directive Principles.',
           tag: 'note',
           timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
           whatsappBridged: true,
-          upvotes: 8,
-        },
-        {
-          id: 'sc_msg_2',
-          circleId: 'circle_python_recursion',
-          senderId: 'peer_rohan',
-          senderName: 'Rohan Verma',
-          senderRole: 'student',
-          content:
-            'When tracing Fibonacci(n), adding `@functools.lru_cache(maxsize=None)` drops time complexity from O(2^n) to O(n). Try testing it in the WhatsApp simulator!',
-          tag: 'solution',
-          timestamp: new Date(Date.now() - 1800000).toISOString(),
-          whatsappBridged: true,
-          upvotes: 5,
+          upvotes: 12,
         },
       ],
     },
   ],
   [
-    'circle_calculus_integration',
+    'circle_current_affairs',
     {
-      id: 'circle_calculus_integration',
-      name: 'Calculus Integration & Limits Mastery Circle',
-      subject: 'Calculus',
-      topic: 'Integration by Parts (LIATE) & L’Hôpital’s Rule',
+      id: 'circle_current_affairs',
+      name: 'Daily Current Affairs & Editorial Analysis',
+      subject: 'General Awareness',
+      topic: 'National & International Importance',
       description:
-        'Collaborative step-by-step derivations, u-substitution tricks, and daily JEE/AP Calculus exam prep.',
-      whatsappInviteCode: 'WA-CALC-INT-204',
-      activeNowCount: 5,
-      createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
-      members: [
-        {
-          userId: 'peer_meera',
-          name: 'Meera Nair',
-          avatarInitials: 'MN',
-          role: 'founder',
-          whatsappSynced: true,
-        },
-        {
-          userId: 'peer_kabir',
-          name: 'Kabir Patel',
-          avatarInitials: 'KP',
-          role: 'member',
-          whatsappSynced: true,
-        },
-      ],
-      messages: [
-        {
-          id: 'sc_msg_3',
-          circleId: 'circle_calculus_integration',
-          senderId: 'peer_meera',
-          senderName: 'Meera Nair',
-          senderRole: 'peer_mentor',
-          content:
-            'Remember the LIATE priority rule for Integration by Parts (∫ u dv = uv - ∫ v du): Logarithmic > Inverse Trig > Algebraic > Trigonometric > Exponential.',
-          tag: 'note',
-          timestamp: new Date(Date.now() - 5400000).toISOString(),
-          whatsappBridged: true,
-          upvotes: 11,
-        },
-      ],
-    },
-  ],
-  [
-    'circle_dsa_graphs',
-    {
-      id: 'circle_dsa_graphs',
-      name: 'DSA Binary Search, Trees & Graph Algorithms',
-      subject: 'DSA',
-      topic: 'Binary Search invariants, BFS/DFS & Dijkstra',
-      description:
-        'Share dry-run traces, off-by-one boundary fixes, and Big-O complexity proofs with fellow coders.',
-      whatsappInviteCode: 'WA-DSA-ALG-309',
-      activeNowCount: 9,
-      createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
+        'Daily updates from The Hindu and Indian Express, government schemes, and international summits.',
+      whatsappInviteCode: 'WA-CA-DAILY-204',
+      activeNowCount: 15,
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       members: [
         {
           userId: 'peer_rohan',
@@ -953,72 +888,58 @@ const studyCirclesStore = new Map<string, StudyCircleGroup>([
           role: 'founder',
           whatsappSynced: true,
         },
-        {
-          userId: 'peer_zoya',
-          name: 'Zoya Khan',
-          avatarInitials: 'ZK',
-          role: 'member',
-          whatsappSynced: true,
-        },
-        {
-          userId: 'user_1',
-          name: 'Aarav Mehta',
-          avatarInitials: 'AM',
-          role: 'member',
-          whatsappSynced: true,
-        },
       ],
       messages: [
         {
-          id: 'sc_msg_4',
-          circleId: 'circle_dsa_graphs',
-          senderId: 'peer_zoya',
-          senderName: 'Zoya Khan',
-          senderRole: 'student',
+          id: 'sc_msg_2',
+          circleId: 'circle_current_affairs',
+          senderId: 'peer_rohan',
+          senderName: 'Rohan Verma',
+          senderRole: 'peer_mentor',
           content:
-            'Using `mid = low + (high - low) // 2` instead of `(low + high) // 2` prevents integer overflow in languages like Java and C++!',
-          tag: 'note',
-          timestamp: new Date(Date.now() - 2400000).toISOString(),
+            'The PM-KUSUM scheme was recently extended. Make sure to note the revised targets for solar pump installations!',
+          tag: 'resource',
+          timestamp: new Date(Date.now() - 5400000).toISOString(),
           whatsappBridged: true,
-          upvotes: 7,
+          upvotes: 9,
         },
       ],
     },
   ],
   [
-    'circle_genai_agents',
+    'circle_quant_aptitude',
     {
-      id: 'circle_genai_agents',
-      name: 'Generative AI, RAG & Autonomous Agents Guild',
-      subject: 'Generative AI',
-      topic: 'Vector Embeddings, ReAct Agents & Prompt Engineering',
+      id: 'circle_quant_aptitude',
+      name: 'Quantitative Aptitude & CSAT Strategy',
+      subject: 'Mathematics',
+      topic: 'Data Interpretation & Logical Reasoning',
       description:
-        'Discuss RAG chunking strategies, semantic search, tool calling, and multi-agent orchestration.',
-      whatsappInviteCode: 'WA-GENAI-RAG-412',
-      activeNowCount: 7,
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        'Practice sessions for fast calculation, number systems, and logical reasoning patterns for SSC and Banking.',
+      whatsappInviteCode: 'WA-QA-CSAT-309',
+      activeNowCount: 10,
+      createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
       members: [
         {
-          userId: 'peer_ananya',
-          name: 'Ananya Sharma',
-          avatarInitials: 'AS',
+          userId: 'user_1',
+          name: 'Aarav Mehta',
+          avatarInitials: 'AM',
           role: 'founder',
           whatsappSynced: true,
         },
       ],
       messages: [
         {
-          id: 'sc_msg_5',
-          circleId: 'circle_genai_agents',
-          senderId: 'peer_ananya',
-          senderName: 'Ananya Sharma',
-          senderRole: 'peer_mentor',
+          id: 'sc_msg_3',
+          circleId: 'circle_quant_aptitude',
+          senderId: 'user_1',
+          senderName: 'Aarav Mehta',
+          senderRole: 'student',
           content:
-            'In ReAct agents (Reason + Act), grounding tool outputs with RAG citations reduces hallucination rates significantly.',
-          tag: 'resource',
-          timestamp: new Date(Date.now() - 4200000).toISOString(),
+            'Does anyone have a shortcut for calculating compound interest for 3 years without using the long formula?',
+          tag: 'question',
+          timestamp: new Date(Date.now() - 2400000).toISOString(),
           whatsappBridged: true,
-          upvotes: 9,
+          upvotes: 4,
         },
       ],
     },

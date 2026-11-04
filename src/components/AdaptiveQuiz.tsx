@@ -69,7 +69,7 @@ export const AdaptiveQuiz: React.FC<AdaptiveQuizProps> = ({
   // Target topic selection
   const weakTopics = profile.weakTopics && profile.weakTopics.length > 0
     ? profile.weakTopics
-    : ['Recursion in Python', 'Limits in Calculus', 'Dynamic Programming'];
+    : ['Fundamental Rights in Polity', '1857 Revolt in History', 'Indian River Systems'];
 
   const [selectedTopic, setSelectedTopic] = useState<string>(weakTopics[0]);
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
@@ -172,105 +172,105 @@ export const AdaptiveQuiz: React.FC<AdaptiveQuizProps> = ({
   };
 
   const generateFallbackQuestions = (topic: string) => {
-    const isPython = topic.toLowerCase().includes('python') || topic.toLowerCase().includes('recursion');
-    const fallbackList: QuizQuestion[] = isPython
+    const isPolity = topic.toLowerCase().includes('polity') || topic.toLowerCase().includes('rights') || topic.toLowerCase().includes('constitution');
+    const fallbackList: QuizQuestion[] = isPolity
       ? [
           {
             id: 'q1',
-            subject: 'Python',
+            subject: 'Indian Polity',
             topic,
-            questionText: 'What is the primary purpose of a "base case" in a recursive function?',
+            questionText: 'Under which article of the Indian Constitution can the President seek the opinion of the Supreme Court?',
             type: 'mcq',
             options: [
-              'A) To allocate additional heap memory',
-              'B) To terminate recursion and prevent infinite call stack execution',
-              'C) To compile bytecode into native machine instructions',
-              'D) To initialize default function arguments',
+              'A) Article 123',
+              'B) Article 143',
+              'C) Article 356',
+              'D) Article 72',
             ],
             correctAnswer: 'B',
-            explanation: 'The base case provides a stopping condition. Without it, the recursive call continues until Python exceeds recursion limit (RecursionError).',
+            explanation: 'Article 143 of the Indian Constitution grants the President the power to consult the Supreme Court on questions of law or fact of public importance.',
             difficulty: 'intermediate',
           },
           {
             id: 'q2',
-            subject: 'Python',
+            subject: 'Indian Polity',
             topic,
-            questionText: 'Which data structure does the computer runtime use internally to track recursive calls?',
+            questionText: 'Which fundamental right was described by Dr. B.R. Ambedkar as the "Heart and Soul of the Constitution"?',
             type: 'mcq',
             options: [
-              'A) FIFO Queue',
-              'B) Hash Table',
-              'C) LIFO Call Stack',
-              'D) Min Heap',
+              'A) Right to Equality',
+              'B) Right against Exploitation',
+              'C) Right to Constitutional Remedies',
+              'D) Freedom of Religion',
             ],
             correctAnswer: 'C',
-            explanation: 'Recursive function frames are stored on the Call Stack (Last-In, First-Out), popping off when reaching the base case.',
+            explanation: 'Dr. B.R. Ambedkar called Article 32 (Right to Constitutional Remedies) the "Heart and Soul of the Constitution" because it makes other rights meaningful.',
             difficulty: 'intermediate',
           },
           {
             id: 'q3',
-            subject: 'Python',
+            subject: 'Indian Polity',
             topic,
-            questionText: 'What is the return value of a recursive factorial function for input n = 0?',
+            questionText: 'Who is the ex-officio Chairman of the Rajya Sabha?',
             type: 'mcq',
             options: [
-              'A) 0',
-              'B) 1',
-              'C) None',
-              'D) -1',
+              'A) The President of India',
+              'B) The Vice-President of India',
+              'C) The Prime Minister',
+              'D) The Speaker of Lok Sabha',
             ],
             correctAnswer: 'B',
-            explanation: 'By mathematical convention and recursive definition, 0! = 1, which serves as the classic base case.',
+            explanation: 'According to Article 64, the Vice-President of India shall be the ex-officio Chairman of the Council of States (Rajya Sabha).',
             difficulty: 'intermediate',
           },
         ]
       : [
           {
             id: 'q1',
-            subject: 'Mathematics',
+            subject: 'General Studies',
             topic,
-            questionText: `What is the fundamental objective when analyzing "${topic}"?`,
+            questionText: `What is the primary focus of your current preparation in "${topic}"?`,
             type: 'mcq',
             options: [
-              'A) Finding the limiting value as the variable approaches a target point',
-              'B) Randomly testing integer parameters',
-              'C) Ignoring boundary conditions',
-              'D) Simplifying equations by eliminating variables',
+              'A) Understanding core conceptual frameworks and facts',
+              'B) Memorizing dates without context',
+              'C) Ignoring previous year questions',
+              'D) Skipping revisions',
             ],
             correctAnswer: 'A',
-            explanation: 'Evaluating limits allows mathematicians and computer scientists to understand asymptotic behavior near points of discontinuity.',
+            explanation: 'A balanced approach involving conceptual clarity and factual recall is essential for competitive exams like UPSC and SSC.',
             difficulty: 'intermediate',
           },
           {
             id: 'q2',
-            subject: 'Mathematics',
+            subject: 'General Studies',
             topic,
-            questionText: 'What technique is used when direct substitution results in the indeterminate form 0/0?',
+            questionText: 'Which of the following is the highest mountain peak in India?',
             type: 'mcq',
             options: [
-              'A) Factoring, rationalization, or L\'Hôpital\'s Rule',
-              'B) Declaring the limit undefined immediately',
-              'C) Rounding to zero',
-              'D) Inverting the numerator and denominator',
+              'A) Mount Everest',
+              'B) K2 (Godwin-Austen)',
+              'C) Kangchenjunga',
+              'D) Nanda Devi',
             ],
-            correctAnswer: 'A',
-            explanation: 'Indeterminate forms require algebraic simplification or derivatives (L\'Hôpital\'s Rule) to reveal the true limit.',
+            correctAnswer: 'C',
+            explanation: 'Kangchenjunga is the highest mountain peak in India and the third highest in the world.',
             difficulty: 'intermediate',
           },
           {
             id: 'q3',
-            subject: 'Mathematics',
+            subject: 'General Studies',
             topic,
-            questionText: 'For a function f(x) to be continuous at point c, which condition must hold?',
+            questionText: 'Why is regular revision considered the most important part of exam preparation?',
             type: 'mcq',
             options: [
-              'A) The limit as x approaches c must exist and equal f(c)',
-              'B) f(c) must equal zero',
-              'C) The derivative must be infinite',
-              'D) The function must be strictly linear',
+              'A) To increase the number of books read',
+              'B) To ensure long-term retention of concepts and facts',
+              'C) To spend more time at the desk',
+              'D) To finish the syllabus as fast as possible',
             ],
-            correctAnswer: 'A',
-            explanation: 'Continuity requires: 1) f(c) is defined, 2) limit x->c exists, and 3) limit equals f(c).',
+            correctAnswer: 'B',
+            explanation: 'Spaced repetition and regular revision help in moving information from short-term to long-term memory.',
             difficulty: 'intermediate',
           },
         ];
@@ -572,7 +572,7 @@ export const AdaptiveQuiz: React.FC<AdaptiveQuizProps> = ({
               type="text"
               value={newWeakTopicInput}
               onChange={(e) => setNewWeakTopicInput(e.target.value)}
-              placeholder="Enter new challenging topic (e.g. Graph Traversal, Chain Rule)..."
+              placeholder="Enter new challenging topic (e.g. Indian Polity, Percentages)..."
               className="flex-1 bg-slate-800 border border-slate-700 text-xs rounded-xl px-3 py-2 text-white focus:outline-none"
             />
             <button

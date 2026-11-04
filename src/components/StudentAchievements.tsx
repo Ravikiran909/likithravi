@@ -18,7 +18,6 @@ import {
   X,
   Sparkles,
   ShieldCheck,
-  Code2,
   Building2,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
@@ -58,7 +57,6 @@ export interface StudentMilestoneBadge {
     | 'graduation'
     | 'book'
     | 'award'
-    | 'code'
     | 'building';
 }
 
@@ -170,7 +168,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         tier: 'Gold',
         xpPoints: 500,
         description:
-          'Awarded for answering 100 adaptive quiz and exam practice questions across DSA, STEM, and Government Exams.',
+          'Awarded for answering 100 adaptive quiz and exam practice questions across General Studies, CSAT, and Government Exams.',
         requirementSummary: 'Answer 100 practice or quiz questions',
         currentValue: Math.min(100, totalQuestions),
         targetValue: 100,
@@ -365,14 +363,14 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
       // Additional Concept Mastery Digital Badges
       {
         id: 'milestone_mastered_3_topics',
-        title: 'DSA & Algorithm Architect',
+        title: 'Polity & Governance Architect',
         badgeCode: 'BDG-MSTR-03',
         milestoneLabel: 'Mastered 3 Topics',
         category: 'topic_mastery',
         tier: 'Gold',
         xpPoints: 500,
         description:
-          'Achieved verified mastery across 3 distinct academic topics including Data Structures & Algorithms.',
+          'Achieved verified mastery across 3 distinct academic topics including Indian Polity & Governance.',
         requirementSummary: 'Master 3 distinct curriculum topics',
         currentValue: Math.min(3, masteredTopicsCount),
         targetValue: 3,
@@ -384,7 +382,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
           isUnlocked('milestone_mastered_3_topics', masteredTopicsCount >= 3)
         ),
         accent: 'emerald',
-        iconName: 'code',
+        iconName: 'building',
       },
       {
         id: 'milestone_mastered_5_topics',
@@ -395,7 +393,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         tier: 'Diamond',
         xpPoints: 750,
         description:
-          'Mastered 5 or more core topics across DSA, Government Exams, and STEM subjects with high retention.',
+          'Mastered 5 or more core topics across General Studies, Government Exams, and Ethics subjects with high retention.',
         requirementSummary: 'Master 5 distinct curriculum topics',
         currentValue: Math.min(5, masteredTopicsCount),
         targetValue: 5,
@@ -586,21 +584,21 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
       );
     } else if (badge.category === 'topic_mastery') {
       const candidateTopics = [
-        'Dynamic Programming & Memoization',
+        'Indian History — Modern Era',
         'Indian Polity — Fundamental Rights (Art. 12–35)',
-        'Graph Algorithms — Dijkstra & BFS',
+        'Geography — Indian & World',
         'Quantitative Aptitude — Profit & Loss',
-        'Python Asynchronous Generators',
+        'Economy — Fiscal & Monetary Policy',
       ];
       const nextTopic =
         candidateTopics.find((t) => !masteredTopics.includes(t)) ||
-        `Advanced ${profile.subjects?.[0] || 'DSA'} Concept #${masteredTopicsCount + 1}`;
+        `Advanced ${profile.subjects?.[0] || 'Polity'} Concept #${masteredTopicsCount + 1}`;
       const updatedStrong = Array.from(new Set([...(profile.strongTopics || []), nextTopic]));
       const updatedHistory = [
         ...(profile.learningHistory || []),
         {
           topic: nextTopic,
-          subject: profile.subjects?.[0] || 'DSA',
+          subject: profile.subjects?.[0] || 'Polity',
           date: new Date().toISOString().split('T')[0],
           score: 94,
           mastered: true,
@@ -630,7 +628,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
       ...(profile.learningHistory || []),
       {
         topic: trimmed,
-        subject: profile.subjects?.[0] || 'DSA & Exams',
+        subject: profile.subjects?.[0] || 'Polity & Exams',
         date: new Date().toISOString().split('T')[0],
         score: 95,
         mastered: true,
@@ -671,8 +669,6 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         return <GraduationCap className={className} />;
       case 'book':
         return <BookOpen className={className} />;
-      case 'code':
-        return <Code2 className={className} />;
       case 'building':
         return <Building2 className={className} />;
       default:
@@ -848,7 +844,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
               Unlock &ldquo;Concept Master&rdquo; Digital Badge
             </div>
             <p className="text-[11px] text-slate-400">
-              Log a DSA, Government Exam, or STEM topic you have mastered to claim or upgrade your Concept Master badge.
+              Log a Polity, Government Exam, or GS topic you have mastered to claim or upgrade your Concept Master badge.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-1 max-w-md">

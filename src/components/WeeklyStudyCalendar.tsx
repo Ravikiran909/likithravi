@@ -62,7 +62,7 @@ export const WeeklyStudyCalendar: React.FC<WeeklyStudyCalendarProps> = ({
 
   // Custom task form
   const [customTaskTitle, setCustomTaskTitle] = useState('');
-  const [customTaskSubject, setCustomTaskSubject] = useState(profile.subjects[0] || 'Python');
+  const [customTaskSubject, setCustomTaskSubject] = useState(profile.subjects[0] || 'Indian Polity');
   const [customTaskDuration, setCustomTaskDuration] = useState(60);
   const [poolFilter, setPoolFilter] = useState<'all' | 'exam' | 'weak' | 'custom'>('all');
 
@@ -435,10 +435,10 @@ export const WeeklyStudyCalendar: React.FC<WeeklyStudyCalendarProps> = ({
 
   const getSubjectColor = (subject: string) => {
     const s = subject.toLowerCase();
-    if (s.includes('python')) return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
-    if (s.includes('calculus') || s.includes('math')) return 'bg-violet-500/10 text-violet-300 border-violet-500/30';
-    if (s.includes('dsa') || s.includes('algo')) return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
-    if (s.includes('machine') || s.includes('ai')) return 'bg-pink-500/10 text-pink-300 border-pink-500/30';
+    if (s.includes('polity')) return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+    if (s.includes('history')) return 'bg-violet-500/10 text-violet-300 border-violet-500/30';
+    if (s.includes('economy')) return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
+    if (s.includes('geography')) return 'bg-pink-500/10 text-pink-300 border-pink-500/30';
     return 'bg-amber-500/10 text-amber-300 border-amber-500/30';
   };
 
@@ -652,7 +652,7 @@ export const WeeklyStudyCalendar: React.FC<WeeklyStudyCalendarProps> = ({
             <form onSubmit={handleCreateCustomTask} className="space-y-2">
               <input
                 type="text"
-                placeholder="e.g. Master Calculus Taylor Series"
+                placeholder="e.g. 1857 Revolt Socio-Religious Causes"
                 value={customTaskTitle}
                 onChange={(e) => setCustomTaskTitle(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"

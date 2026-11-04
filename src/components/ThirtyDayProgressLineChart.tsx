@@ -59,15 +59,15 @@ export const ThirtyDayProgressLineChart: React.FC<ThirtyDayProgressLineChartProp
     const subjects =
       profile.subjects && profile.subjects.length > 0
         ? profile.subjects
-        : ['Python', 'Calculus', 'DSA'];
+        : ['Indian Polity', 'Modern History', 'Indian Economy'];
     const topicsPool = [
       ...(profile.strongTopics || []),
       ...(profile.weakTopics || []),
-      'Recursion & Call Stack',
-      'Integration by Parts',
-      'Binary Search Invariants',
-      'Dynamic Programming',
-      'Vector Embeddings & RAG',
+      'Fundamental Rights & Duties',
+      'Freedom Struggle (1857-1947)',
+      'Monetary Policy & Inflation',
+      'Physical Geography of India',
+      'Directive Principles of State Policy',
     ];
 
     const historyMap = new Map<string, { topic: string; subject: string; mastered: boolean }>();

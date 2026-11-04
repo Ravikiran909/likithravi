@@ -36,7 +36,7 @@ export const DailyFlashcards: React.FC<DailyFlashcardsProps> = ({
   const weakTopicsList =
     profile.weakTopics && profile.weakTopics.length > 0
       ? profile.weakTopics
-      : ['Recursion & Base Cases', 'Integration by Parts', 'Binary Search Invariants'];
+      : ['Indian Polity: Fundamental Rights', 'Modern History: 1857 Revolt', 'Quantitative Aptitude: Percentages'];
 
   const [selectedWeakTopic, setSelectedWeakTopic] = useState<string>(weakTopicsList[0]);
   const [cards, setCards] = useState<SpacedFlashcardItem[]>([]);
@@ -64,13 +64,13 @@ export const DailyFlashcards: React.FC<DailyFlashcardsProps> = ({
     setGraduatedBanner(null);
 
     const inferredSubject =
-      topicName.toLowerCase().includes('calc') || topicName.toLowerCase().includes('integrat')
-        ? 'Calculus'
-        : topicName.toLowerCase().includes('dsa') ||
-          topicName.toLowerCase().includes('tree') ||
-          topicName.toLowerCase().includes('graph')
-        ? 'DSA'
-        : profile.subjects[0] || 'Python';
+      topicName.toLowerCase().includes('polity') || topicName.toLowerCase().includes('constitution')
+        ? 'Indian Polity'
+        : topicName.toLowerCase().includes('history') ||
+          topicName.toLowerCase().includes('revolt') ||
+          topicName.toLowerCase().includes('movement')
+        ? 'Modern History'
+        : profile.subjects[0] || 'General Studies';
 
     try {
       const res = await fetch('/api/flashcards/generate', {

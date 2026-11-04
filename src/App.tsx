@@ -11,18 +11,12 @@ import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.ts
 import { GovernmentExamApp } from './components/GovernmentExamApp.tsx';
 import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
+import { GraduationCap } from 'lucide-react';
 import {
-  auth,
   db,
-  googleSignIn,
-  logout,
-  onAuthStateChanged,
   doc,
   setDoc,
-  getDoc,
-  onSnapshot,
   testConnection,
-  FirebaseUser,
 } from './firebase.ts';
 
 const normalizeStudentProfile = (
@@ -118,34 +112,49 @@ const normalizeStudentProfile = (
         : typeof base.correctAnswers === 'number'
         ? base.correctAnswers
         : 8,
+    completedSyllabusTopics: Array.isArray(raw?.completedSyllabusTopics)
+      ? raw.completedSyllabusTopics
+      : Array.isArray(base.completedSyllabusTopics)
+      ? base.completedSyllabusTopics
+      : [],
   };
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams'>('simulator');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams'>('gov_exams');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
-  const [profiles, setProfiles] = useState<StudentProfile[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<StudentProfile | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<StudentProfile>(
+    normalizeStudentProfile(null)
+  );
   const [isWhatsAppConfigured, setIsWhatsAppConfigured] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(false);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(true);
   const [focusMode, setFocusMode] = useState<boolean>(false);
-  const [isIndividualLoginModalOpen, setIsIndividualLoginModalOpen] = useState<boolean>(false);
   const [isSecurityHubOpen, setIsSecurityHubOpen] = useState<boolean>(false);
   const [isLocked, setIsLocked] = useState<boolean>(false);
-  const [isMongoDbModalOpen, setIsMongoDbModalOpen] = useState<boolean>(false);
-  const [mongoDbStatus, setMongoDbStatus] = useState<{
-    connected: boolean;
-    configured: boolean;
-    pingLatencyMs: number | null;
-  } | null>(null);
 
+  // Initialize Guest Profile
   useEffect(() => {
-    if (selectedProfile?.deepFocusEnabled !== undefined) {
-      setFocusMode(Boolean(selectedProfile.deepFocusEnabled));
+    const savedGuestId = localStorage.getItem('guest_user_id');
+    const guestId = savedGuestId || `guest_${Math.random().toString(36).substring(2, 11)}`;
+    if (!savedGuestId) {
+      localStorage.setItem('guest_user_id', guestId);
     }
-  }, [selectedProfile?.userId, selectedProfile?.deepFocusEnabled]);
+
+    const savedProfile = localStorage.getItem(`profile_${guestId}`);
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        setSelectedProfile(normalizeStudentProfile(parsed));
+      } catch {
+        setSelectedProfile(normalizeStudentProfile({ userId: guestId }));
+      }
+    } else {
+      setSelectedProfile(normalizeStudentProfile({ userId: guestId }));
+    }
+    
+    fetchInitialData();
+  }, []);
 
   const handleToggleFocusMode = async (nextState?: boolean) => {
     const target = nextState !== undefined ? nextState : !focusMode;
@@ -167,134 +176,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    testConnection().then((connected) => setIsFirebaseConnected(connected));
-    fetchInitialData();
-  }, []);
-
-  // Listen to Firebase Authentication state
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        try {
-          const profileDocRef = doc(db, 'profiles', user.uid);
-          const userDocRef = doc(db, 'users', user.uid);
-
-          const snap = await getDoc(profileDocRef);
-          let userProfile: StudentProfile;
-
-          if (snap.exists()) {
-            userProfile = normalizeStudentProfile(snap.data() as Partial<StudentProfile>, selectedProfile);
-          } else {
-            // Create user account & profile in Firestore
-            const initialUserData = {
-              id: user.uid,
-              name: user.displayName || 'Google Student',
-              email: user.email || '',
-              phone: user.phoneNumber || '+1' + Math.floor(1000000000 + Math.random() * 9000000000),
-              role: 'student',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-
-            await setDoc(userDocRef, initialUserData);
-
-            userProfile = normalizeStudentProfile({
-              id: 'prof_' + user.uid,
-              userId: user.uid,
-              name: user.displayName || 'Google Student',
-              whatsappNumber: initialUserData.phone,
-              preferredLanguage: 'en',
-              educationLevel: 'college',
-              subjects: ['Python', 'DSA', 'Calculus', 'Machine Learning'],
-              currentSkillLevel: 'intermediate',
-              learningGoals: ['Master Programming & Algorithms', 'Ace Academic Exams with AI Tutor'],
-              weakTopics: ['Calculus (Integration)', 'Recursion edge cases'],
-              strongTopics: ['Python Basics', 'Control Flow'],
-              studyHoursPerDay: 2,
-              preferredStudyTime: '7:30 PM',
-              dailyReminderEnabled: true,
-              examDates: [],
-              learningHistory: [],
-              streak: 1,
-              lastActiveDate: new Date().toISOString().split('T')[0],
-              overallProgress: 65,
-              totalSessions: 1,
-              totalQuestionsAnswered: 10,
-              correctAnswers: 8,
-            });
-
-            await setDoc(profileDocRef, JSON.parse(JSON.stringify(userProfile)));
-          }
-
-          // Sync profile to backend in-memory DB so all AI agents have the active student profile
-          fetch(`/api/students/${userProfile.userId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userProfile),
-          }).catch(() => {});
-
-          // Add to profiles state and select
-          setProfiles((prev) => {
-            const exists = prev.some((p) => p.userId === userProfile.userId);
-            return exists ? prev.map((p) => (p.userId === userProfile.userId ? userProfile : p)) : [userProfile, ...prev];
-          });
-          setSelectedProfile(userProfile);
-        } catch (err) {
-          console.warn('Firestore user profile sync notice:', err);
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Listen to Firestore updates if signed in
-  useEffect(() => {
-    if (!currentUser) return;
-    const profileDocRef = doc(db, 'profiles', currentUser.uid);
-    const unsub = onSnapshot(
-      profileDocRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setSelectedProfile((prevSelected) => {
-            const remoteProfile = normalizeStudentProfile(
-              docSnap.data() as Partial<StudentProfile>,
-              prevSelected
-            );
-            setProfiles((prev) =>
-              prev.map((p) => (p.userId === remoteProfile.userId ? remoteProfile : p))
-            );
-            return remoteProfile;
-          });
-        }
-      },
-      (error) => {
-        console.warn('Realtime profile sync fallback:', error);
-      }
-    );
-
-    return () => unsub();
-  }, [currentUser]);
+    if (selectedProfile?.deepFocusEnabled !== undefined) {
+      setFocusMode(Boolean(selectedProfile.deepFocusEnabled));
+    }
+  }, [selectedProfile?.userId, selectedProfile?.deepFocusEnabled]);
 
   const fetchInitialData = async () => {
     try {
-      const [studentsRes, waRes] = await Promise.all([
-        fetch('/api/students'),
-        fetch('/api/whatsapp/config'),
-      ]);
-
-      if (studentsRes.ok) {
-        const data = await studentsRes.json();
-        const normalizedProfiles = (data.profiles || []).map((p: Partial<StudentProfile>) =>
-          normalizeStudentProfile(p)
-        );
-        setProfiles(normalizedProfiles);
-        if (normalizedProfiles.length > 0 && !selectedProfile) {
-          setSelectedProfile(normalizedProfiles[0]);
-          saveOfflineProfile(normalizedProfiles[0]);
-        }
-      }
+      const waRes = await fetch('/api/whatsapp/config');
 
       // Pre-cache learning materials in IndexedDB for offline rural use
       Promise.all([
@@ -320,14 +209,16 @@ export default function App() {
 
   const handleProfileUpdate = async (updated: StudentProfile) => {
     const cleanProfile = normalizeStudentProfile(updated, selectedProfile);
-    setProfiles((prev) =>
-      prev.map((p) => (p.userId === cleanProfile.userId ? cleanProfile : p))
-    );
     if (selectedProfile?.userId === cleanProfile.userId) {
       setSelectedProfile(cleanProfile);
     }
 
-    // Persist to Firestore database cleanly without undefined properties
+    // Persist to localStorage for Guest mode
+    if (cleanProfile.userId) {
+      localStorage.setItem(`profile_${cleanProfile.userId}`, JSON.stringify(cleanProfile));
+    }
+
+    // Persist to Firestore database if connected
     if (db && cleanProfile.userId) {
       try {
         const sanitizedPayload = JSON.parse(
@@ -345,48 +236,28 @@ export default function App() {
         console.warn('Failed to sync updated profile to Firestore:', err);
       }
     }
-  };
 
-  const handleSignInWithGoogle = async () => {
     try {
-      const res = await googleSignIn();
-      if (!res) {
-        // Sign-in was dismissed, cancelled, or handled gracefully
-        return;
-      }
-    } catch (err: any) {
-      if (
-        err?.code === 'auth/popup-closed-by-user' ||
-        err?.code === 'auth/cancelled-popup-request'
-      ) {
-        return;
-      }
-      console.warn('Google Sign-in notice:', err?.message || err);
-    }
+      await fetch(`/api/students/${cleanProfile.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanProfile),
+      });
+    } catch {}
   };
 
-  const handleSignOut = async () => {
-    try {
-      await logout();
-      // Fallback to first available student profile
-      if (profiles.length > 0) {
-        setSelectedProfile(profiles[0]);
-      }
-    } catch (err: any) {
-      console.warn('Sign-out notice:', err?.message || err);
-    }
-  };
-
-  if (loading || !selectedProfile) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
         <div className="flex flex-col items-center space-y-3">
           <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-slate-400 font-mono">Initializing WhatsApp AI Learning Agent...</p>
+          <p className="text-xs text-slate-400 font-mono">Initializing Prep Command Center...</p>
         </div>
       </div>
     );
   }
+
+
 
   return (
     <div
@@ -397,13 +268,8 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        profiles={profiles}
         selectedProfile={selectedProfile}
-        onSelectProfile={(p) => setSelectedProfile(p)}
         isWhatsAppConfigured={isWhatsAppConfigured}
-        currentUser={currentUser}
-        onSignInWithGoogle={handleSignInWithGoogle}
-        onSignOut={handleSignOut}
         isFirebaseConnected={isFirebaseConnected}
         focusMode={focusMode}
         onToggleFocusMode={handleToggleFocusMode}
@@ -512,10 +378,10 @@ export default function App() {
       >
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            WhatsApp AI Learning Agent • Official WhatsApp Cloud API & Socratic Pedagogical Engine
+            Government Exam AI Preparation Command Center • Personalized UPSC, SSC & Banking Tutor
           </span>
           <span className="text-slate-500">
-            Powered by Google Gemini 3.8, Gemini 3.5 Transcribe & Firebase Firestore
+            Hardened Firestore Security • Gemini 3.8 Flash • Socratic Pedagogy
           </span>
         </div>
       </footer>
@@ -523,3 +389,4 @@ export default function App() {
     </div>
   );
 }
+

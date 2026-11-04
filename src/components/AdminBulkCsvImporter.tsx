@@ -20,16 +20,16 @@ interface AdminBulkCsvImporterProps {
 }
 
 const SAMPLE_STUDENTS_CSV = `name,email,whatsappNumber,educationLevel,preferredLanguage,subjects,studyHoursPerDay
-Ananya Sen,ananya.sen@example.com,+919876543220,college,en,Python;DSA;Machine Learning,2.5
-Vikram Rao,vikram.rao@example.com,+919876543221,school,hi,Mathematics;Calculus;Physics,2.0
-Divya Patil,divya.patil@example.com,+919876543222,college,kn,Python;Database Systems;Algorithms,3.0
-Arjun Nair,arjun.nair@example.com,+919876543223,competitive_exam,en,Calculus;Linear Algebra;DSA,3.5`;
+Ananya Sen,ananya.sen@example.com,+919876543220,college,en,Indian Polity;Modern History;Geography,2.5
+Vikram Rao,vikram.rao@example.com,+919876543221,school,hi,Mathematics;General Science;Hindi,2.0
+Divya Patil,divya.patil@example.com,+919876543222,college,kn,Indian Economy;Current Affairs;Public Administration,3.0
+Arjun Nair,arjun.nair@example.com,+919876543223,competitive_exam,en,Indian Polity;Ethics;Aptitude,3.5`;
 
 const SAMPLE_OBJECTIVES_CSV = `subject,topic,title,description,targetLevel,bloomLevel
-Python,Recursion,Master Recursive Functions,Understand base cases and stack frames in Python,intermediate,apply
-Calculus,Integration,Integration by Parts,Apply integration by parts formula to products of algebraic and transcendental functions,advanced,apply
-DSA,Binary Search,Binary Search Implementation,Implement O(log n) search on sorted arrays with boundary conditions,beginner,understand
-Machine Learning,Gradient Descent,Understand Optimization,Derive cost function gradient update rules,advanced,analyze`;
+Indian Polity,Fundamental Rights,Article 21 Deep Dive,Understand the scope of Right to Life and Personal Liberty,intermediate,apply
+Modern History,1857 Revolt,Causes of Uprising,Analyze the socio-political factors leading to the 1857 revolt,advanced,analyze
+Indian Economy,Banking,Monetary Policy Tools,Explain the impact of Repo Rate changes on market liquidity,beginner,understand
+Geography,River Systems,Himalayan Rivers,Identify major tributaries of the Ganga and Indus river systems,intermediate,remember`;
 
 export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
   onImportComplete,
@@ -138,7 +138,7 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
         if (row.subjects) {
           row._subjectsList = row.subjects.split(';').map((s: string) => s.trim()).filter(Boolean);
         } else {
-          row._subjectsList = ['Python', 'DSA'];
+          row._subjectsList = ['Indian Polity', 'Modern History'];
         }
       } else {
         if (!row.subject || !row.title) {
@@ -225,11 +225,11 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
               ? row.preferredlanguage
               : 'en',
             educationLevel: String(row.educationlevel || 'college').slice(0, 45),
-            subjects: row._subjectsList || ['Python', 'DSA'],
+            subjects: row._subjectsList || ['Indian Polity', 'Modern History'],
             currentSkillLevel: 'beginner',
             learningGoals: ['Master fundamental principles and ace examinations'],
             weakTopics: [],
-            strongTopics: row._subjectsList || ['Python'],
+            strongTopics: row._subjectsList || ['Indian Polity'],
             studyHoursPerDay: Number(row.studyhoursperday) || 2,
             preferredStudyTime: '7:00 PM',
             dailyReminderEnabled: true,
@@ -523,7 +523,7 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
                         <td className="p-3">{row.educationlevel || 'college'}</td>
                         <td className="p-3">
                           <span className="text-indigo-300 font-mono text-[11px]">
-                            {row.subjects || 'Python;DSA'}
+                            {row.subjects || 'Indian Polity;History'}
                           </span>
                         </td>
                       </>

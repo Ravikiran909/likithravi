@@ -39,7 +39,7 @@ const GOAL_MET_ENCOURAGING_MESSAGES: EncouragingMessageItem[] = [
   {
     headline: '🎉 Outstanding Work! You Met Your Daily Study Goal!',
     message:
-      'Consistency is the ultimate superpower. Every hour you invested today compounds toward mastering DSA, Government Exams, and your core curriculum!',
+      'Consistency is the ultimate superpower. Every hour you invested today compounds toward mastering Indian Polity, History, and your competitive exam curriculum!',
     subtext: 'Your daily study target is locked in and synced to your academic profile.',
   },
   {
@@ -602,7 +602,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
             {[
               { mins: 15, label: '+15m Review' },
               { mins: 25, label: '+25m Pomodoro' },
-              { mins: 30, label: '+30m DSA Practice' },
+              { mins: 30, label: '+30m Polity Revision' },
               { mins: 45, label: '+45m Mock Class' },
               { mins: 60, label: '+1h Deep Study' },
             ].map((item) => (

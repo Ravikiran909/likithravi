@@ -230,7 +230,7 @@ export const StudyMaterialsBrowser: React.FC<StudyMaterialsBrowserProps> = ({
         <div className="text-xs text-slate-400 hidden sm:block">
           {activeSubTab === 'documents'
             ? 'Grounds the Socratic AI Tutor & WhatsApp chat with verified notes'
-            : 'Curated university courses & YouTube tutorials for all programming languages'}
+            : 'Curated courses & YouTube tutorials for Government Exams & Professional Skills'}
         </div>
       </div>
 

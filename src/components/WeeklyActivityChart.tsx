@@ -168,11 +168,10 @@ export const WeeklyActivityChart: React.FC<WeeklyActivityChartProps> = ({
 
   // Build 7-day activity dataset ending Today
   const weeklyData: DailyActivityRecord[] = useMemo(() => {
-    const today = new Date();
     const subjectsList =
       profile.subjects && profile.subjects.length > 0
         ? profile.subjects
-        : ['Python', 'Data Structures', 'Algorithms', 'Calculus'];
+        : ['Indian Polity', 'Modern History', 'Indian Economy', 'Geography'];
 
     // Count actual learningHistory entries per date if present
     const historyByDate: Record<string, { count: number; questions: number; subject?: string }> = {};
@@ -192,6 +191,7 @@ export const WeeklyActivityChart: React.FC<WeeklyActivityChartProps> = ({
     const records: DailyActivityRecord[] = [];
 
     for (let i = 6; i >= 0; i--) {
+      const today = new Date();
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       const idx = 6 - i;

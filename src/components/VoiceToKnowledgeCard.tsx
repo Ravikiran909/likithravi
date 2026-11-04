@@ -27,17 +27,17 @@ interface VoiceToKnowledgeCardProps {
 }
 
 const SAMPLE_VERBAL_SUMMARIES: Record<string, { topic: string; text: string }> = {
-  Python: {
-    topic: 'Recursion Call Stack & Memoization',
-    text: 'In today’s study session on Python recursion, I learned that every recursive function requires a strict base case to terminate unwinding and prevent a RecursionError stack overflow. When solving overlapping subproblems like Fibonacci orclimbing stairs, adding functools.lru_cache memoizes previously computed states and reduces time complexity from exponential O(2^n) down to linear O(n) time.',
+  'Indian Polity': {
+    topic: 'Basic Structure Doctrine (Kesavananda Bharati Case)',
+    text: 'In today’s study session on Indian Polity, I learned about the Kesavananda Bharati case (1973). The Supreme Court ruled that while Parliament has wide powers to amend the Constitution under Article 368, it cannot alter its "Basic Structure" like secularism, federalism, and judicial review.',
   },
-  Calculus: {
-    topic: 'Integration by Parts & LIATE Rule',
-    text: 'Today I practiced Integration by Parts using the formula integral of u dv equals u times v minus the integral of v du. To choose u effectively, we follow the LIATE priority hierarchy: Logarithmic, Inverse trigonometric, Algebraic, Trigonometric, and Exponential functions.',
+  'Modern History': {
+    topic: 'Non-Cooperation Movement & Chauri Chaura',
+    text: 'Today I summarized the Non-Cooperation Movement launched in 1920 by Gandhiji. It aimed for Swaraj through non-violent means. However, the movement was abruptly called off in February 1922 following the violent Chauri Chaura incident where a mob burnt a police station.',
   },
-  DSA: {
-    topic: 'Binary Search Invariants & Monotonicity',
-    text: 'During my Data Structures session on Binary Search, I summarized that the search space must maintain a monotonic predicate. Using mid equals low plus high minus low divided by 2 prevents integer overflow, and we must carefully update high to mid minus 1 or low to mid plus 1 to avoid infinite loops on two-element boundary arrays.',
+  'Indian Economy': {
+    topic: 'RBI Monetary Policy & Repo Rate',
+    text: 'During my Economy session, I focused on the Monetary Policy Committee. The Repo Rate is the rate at which RBI lends short-term money to banks. To control inflation, the RBI usually increases the repo rate, which reduces liquidity in the market.',
   },
 };
 
@@ -49,10 +49,10 @@ export const VoiceToKnowledgeCard: React.FC<VoiceToKnowledgeCardProps> = ({
   onLogStudyMinutes,
 }) => {
   const [selectedSubject, setSelectedSubject] = useState<string>(
-    profile.subjects[0] || 'Python'
+    profile.subjects[0] || 'Indian Polity'
   );
   const [topicInput, setTopicInput] = useState<string>(
-    profile.weakTopics?.[0] || 'Recursion Call Stack & Memoization'
+    profile.weakTopics?.[0] || 'Basic Structure Doctrine'
   );
   const [noteTitle, setNoteTitle] = useState<string>('');
   const [transcript, setTranscript] = useState<string>('');
@@ -158,7 +158,7 @@ export const VoiceToKnowledgeCard: React.FC<VoiceToKnowledgeCardProps> = ({
       // If hardware mic permission is denied in iframe preview, allow live dictation/simulated voice capture
       if (!transcript.trim()) {
         const preset =
-          SAMPLE_VERBAL_SUMMARIES[selectedSubject] || SAMPLE_VERBAL_SUMMARIES.Python;
+          SAMPLE_VERBAL_SUMMARIES[selectedSubject] || SAMPLE_VERBAL_SUMMARIES['Indian Polity'];
         setTopicInput(preset.topic);
         setTranscript(preset.text);
       }
@@ -190,7 +190,7 @@ export const VoiceToKnowledgeCard: React.FC<VoiceToKnowledgeCardProps> = ({
 
   const handleLoadSampleVerbalSummary = () => {
     const sample =
-      SAMPLE_VERBAL_SUMMARIES[selectedSubject] || SAMPLE_VERBAL_SUMMARIES.Python;
+      SAMPLE_VERBAL_SUMMARIES[selectedSubject] || SAMPLE_VERBAL_SUMMARIES['Indian Polity'];
     setTopicInput(sample.topic);
     setNoteTitle(`Voice Summary: ${sample.topic}`);
     setTranscript(sample.text);
@@ -353,7 +353,7 @@ export const VoiceToKnowledgeCard: React.FC<VoiceToKnowledgeCardProps> = ({
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
               >
                 {Array.from(
-                  new Set([...profile.subjects, 'Python', 'Calculus', 'DSA', 'Generative AI', 'Java'])
+                  new Set([...profile.subjects, 'Indian Polity', 'Modern History', 'Indian Economy', 'General Awareness', 'Quantitative Aptitude'])
                 ).map((sub) => (
                   <option key={sub} value={sub}>
                     {sub}
@@ -370,7 +370,7 @@ export const VoiceToKnowledgeCard: React.FC<VoiceToKnowledgeCardProps> = ({
                 type="text"
                 value={topicInput}
                 onChange={(e) => setTopicInput(e.target.value)}
-                placeholder="e.g., Recursion Call Stack & Memoization"
+                placeholder="e.g., Indian Polity Fundamental Rights"
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
               />
             </div>

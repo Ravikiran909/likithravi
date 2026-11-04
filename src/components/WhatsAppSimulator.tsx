@@ -166,7 +166,7 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
               whatsappNumber: selectedProfile.whatsappNumber,
               direction: 'outgoing',
               messageType: 'text',
-              content: `Hey ${selectedProfile.name}! 👋 I'm your AI Learning Mentor on WhatsApp.\n\nWhat would you like to do today?\n📚 Learn a topic\n🧠 Take a quiz\n📝 Ask a doubt (text or photo 📸)\n📅 Create an exam study plan\n📊 Check progress (/progress)`,
+              content: `Hey ${selectedProfile.name}! 👋 I'm your AI Learning Mentor on WhatsApp.\n\nWhat would you like to do today?\n📚 Learn a topic (UPSC/SSC/State PSC)\n🧠 Take a mock quiz\n📝 Ask a doubt (text or photo 📸)\n📅 Create an exam study plan\n📊 Check preparation progress (/progress)`,
               timestamp: new Date().toISOString(),
               agentName: 'Orchestrator Agent',
               intent: 'HELP',
@@ -292,7 +292,7 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
       } else {
         const fallbackReply =
           data?.responseText ||
-          `👋 *Hello ${selectedProfile.name}!* Let's explore *"${outgoingContent}"*:\n\n1️⃣ *Key Concept*: Break the problem down into its base condition and step-by-step state transitions.\n2️⃣ *Practice*: Reply with */quiz* for an interactive 3-question check or ask me for a code example!`;
+          `👋 *Hello ${selectedProfile.name}!* Let's explore *"${outgoingContent}"*:\n\n1️⃣ *Key Concept*: Deconstruct the topic into its core articles, historical context, or economic principles.\n2️⃣ *Practice*: Reply with */quiz* for an interactive 3-question check or ask me for a previous year question (PYQ)!`;
         setLastAgentInfo({
           intent: 'LEARN_TOPIC',
           agentName: 'Tutor Agent',
@@ -330,7 +330,7 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
           whatsappNumber: effectivePhone,
           direction: 'outgoing',
           messageType: 'text',
-          content: `👋 *Hello ${selectedProfile.name}!* Here is a structured breakdown for *"${outgoingContent}"*:\n\n1️⃣ *Core Principle*: Identify the base case and invariant condition first.\n2️⃣ *Step-by-Step Execution*: Trace how each input transforms cleanly toward the base state.\n\n💬 Reply */quiz* or */plan* anytime to continue!`,
+          content: `👋 *Hello ${selectedProfile.name}!* Here is a structured breakdown for *"${outgoingContent}"*:\n\n1️⃣ *Core Principle*: Identify the foundational articles or historical timeline first.\n2️⃣ *Step-by-Step Analysis*: Trace the socio-political impact or economic implications step-by-step.\n\n💬 Reply */quiz* or */plan* anytime to continue!`,
           timestamp: new Date().toISOString(),
           intent: 'LEARN_TOPIC',
           agentName: 'Tutor Agent',
@@ -390,7 +390,7 @@ function createSampleVoiceWav(frequency = 440): string {
       const result = reader.result as string;
       const base64Data = result.split(',')[1];
       const cleanMime = (file.type || 'image/jpeg').split(';')[0];
-      sendMessage('Solve this mathematics / programming question step-by-step', {
+      sendMessage('Analyze this exam question or page from the study material step-by-step', {
         mediaType: 'image',
         mediaBase64: base64Data,
         mimeType: cleanMime,
@@ -536,7 +536,7 @@ function createSampleVoiceWav(frequency = 440): string {
     } catch (err) {
       console.warn('Microphone permission denied or unavailable, simulating sample voice query.', err);
       // Fallback: send a sample voice query to demonstrate transcription
-      sendMessage('🎙️ [Simulated Voice Note]: "Can you explain recursion in Python with a real-life analogy?"', {
+      sendMessage('🎙️ [Simulated Voice Note]: "Can you explain the difference between the powers of the President and the Governor in India?"', {
         mediaType: 'audio',
         mediaBase64: createSampleVoiceWav(440),
         mimeType: 'audio/wav',
@@ -614,10 +614,10 @@ function createSampleVoiceWav(frequency = 440): string {
         {/* Quick prompt shortcuts for all agents */}
         <div className="flex flex-wrap items-center gap-1.5">
           <button
-            onClick={() => sendMessage('Explain recursion')}
+            onClick={() => sendMessage('Explain Indian Polity Article 21')}
             className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
-            👨‍🏫 Tutor: Recursion
+            👨‍🏫 Tutor: Indian Polity
           </button>
           <button
             onClick={() => sendMessage('/hint')}
@@ -628,10 +628,10 @@ function createSampleVoiceWav(frequency = 440): string {
             <span>💡 /hint (Socratic Hint)</span>
           </button>
           <button
-            onClick={() => sendMessage('/quiz Python')}
+            onClick={() => sendMessage('/quiz UPSC')}
             className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
-            🧠 /quiz Python
+            🧠 /quiz UPSC
           </button>
           <button
             onClick={() => sendMessage('/smart-quiz')}
@@ -664,18 +664,18 @@ function createSampleVoiceWav(frequency = 440): string {
             👤 /profile
           </button>
           <button
-            onClick={() => sendMessage('ನನಗೆ recursion explain ಮಾಡಿ')}
+            onClick={() => sendMessage('ನನಗೆ Indian Constitution explain ಮಾಡಿ')}
             className="px-2.5 py-1 text-xs bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 rounded-lg border border-amber-800/40 transition cursor-pointer"
             title="Kannada prompt"
           >
-            ಕನ್ನಡ (Recursion)
+            ಕನ್ನಡ (Constitution)
           </button>
           <button
-            onClick={() => sendMessage('मुझे कैलकुलस में Limits समझाओ')}
+            onClick={() => sendMessage('मुझे भारत का संविधान (Constitution) समझाओ')}
             className="px-2.5 py-1 text-xs bg-sky-950/40 hover:bg-sky-900/50 text-sky-300 rounded-lg border border-sky-800/40 transition cursor-pointer"
             title="Hindi prompt"
           >
-            हिंदी (Limits)
+            हिंदी (Constitution)
           </button>
         </div>
       </div>
@@ -918,7 +918,7 @@ function createSampleVoiceWav(frequency = 440): string {
                                   selectedProfile.weakTopics &&
                                   selectedProfile.weakTopics.length > 0
                                     ? selectedProfile.weakTopics[0]
-                                    : selectedProfile.subjects[0] || 'Python'
+                                    : selectedProfile.subjects[0] || 'Indian Polity'
                                 }`
                               )
                             }
@@ -931,7 +931,7 @@ function createSampleVoiceWav(frequency = 440): string {
                                 {selectedProfile.weakTopics &&
                                 selectedProfile.weakTopics.length > 0
                                   ? selectedProfile.weakTopics[0]
-                                  : selectedProfile.subjects[0] || 'Python'}
+                                  : selectedProfile.subjects[0] || 'Indian Polity'}
                                 )
                               </span>
                             </span>
@@ -1209,20 +1209,20 @@ function createSampleVoiceWav(frequency = 440): string {
                   <span>📸 Snapshots:</span>
                   <button
                     onClick={() =>
-                      sendMessage('Solve this mathematics question: ∫ x·sin(x) dx using integration by parts.')
+                      sendMessage('Explain the concept of Fundamental Rights in the Indian Constitution.')
                     }
                     className="text-emerald-400 hover:underline"
                   >
-                    Calculus
+                    Polity
                   </button>
                   <span className="text-slate-600">•</span>
                   <button
                     onClick={() =>
-                      sendMessage('Explain this code bug: def append_to(element, target=[]): target.append(element)')
+                      sendMessage('What were the main causes of the Revolt of 1857?')
                     }
                     className="text-emerald-400 hover:underline"
                   >
-                    Python Bug
+                    History Doubts
                   </button>
                 </div>
 
@@ -1230,7 +1230,7 @@ function createSampleVoiceWav(frequency = 440): string {
                   <span>🎙️ Voice Notes:</span>
                   <button
                     onClick={() =>
-                      sendMessage('🎙️ [Voice Note Query]: "Teach me how recursion works with a simple example"', {
+                      sendMessage('🎙️ [Voice Note Query]: "Explain the Preamble of the Indian Constitution"', {
                         mediaType: 'audio',
                         mediaBase64: createSampleVoiceWav(440),
                         mimeType: 'audio/wav',
@@ -1238,7 +1238,7 @@ function createSampleVoiceWav(frequency = 440): string {
                     }
                     className="text-teal-400 hover:underline"
                   >
-                    Recursion
+                    1857 Revolt
                   </button>
                   <span className="text-slate-600">•</span>
                   <button
@@ -1251,7 +1251,7 @@ function createSampleVoiceWav(frequency = 440): string {
                     }
                     className="text-teal-400 hover:underline"
                   >
-                    DSA Search
+                    Quant Ratio
                   </button>
                 </div>
               </div>
@@ -1300,13 +1300,13 @@ function createSampleVoiceWav(frequency = 440): string {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {[
-                      { label: 'Tutor Agent', prompt: `Teach me ${selectedProfile.weakTopics?.[0] || 'Python Recursion'} with an analogy` },
+                      { label: 'Tutor Agent', prompt: `Teach me ${selectedProfile.weakTopics?.[0] || 'Indian Polity'} with an analogy` },
                       { label: 'Socratic Hint Agent', prompt: `/hint` },
-                      { label: 'Quiz Agent', prompt: `/quiz ${selectedProfile.subjects?.[0] || 'Python'}` },
-                      { label: 'Smart 5m Quiz', prompt: `/smart-quiz ${selectedProfile.weakTopics?.[0] || 'DSA'}` },
+                      { label: 'Quiz Agent', prompt: `/quiz ${selectedProfile.subjects?.[0] || 'UPSC'}` },
+                      { label: 'Smart 5m Quiz', prompt: `/smart-quiz ${selectedProfile.weakTopics?.[0] || 'Modern History'}` },
                       { label: 'Planner Agent', prompt: `Today's study plan` },
                       { label: 'Progress Agent', prompt: `/progress` },
-                      { label: 'Reminder Agent', prompt: `Remind me to study ${selectedProfile.subjects?.[0] || 'Python'} at 7:00 PM` },
+                      { label: 'Reminder Agent', prompt: `Remind me to study ${selectedProfile.subjects?.[0] || 'General Awareness'} at 7:00 PM` },
                       { label: 'Profile Agent', prompt: `/profile` },
                     ].map((ag) => (
                       <button
@@ -1367,10 +1367,10 @@ function createSampleVoiceWav(frequency = 440): string {
             </h5>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => sendMessage('/quiz Python')}
+                onClick={() => sendMessage('/quiz Polity')}
                 className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700 p-2.5 rounded-xl text-left transition"
               >
-                <div className="font-medium text-xs text-white">Start Python Quiz</div>
+                <div className="font-medium text-xs text-white">Start Polity Quiz</div>
                 <div className="text-[10px] text-slate-400">3 adaptive MCQs</div>
               </button>
               <button
@@ -1381,7 +1381,7 @@ function createSampleVoiceWav(frequency = 440): string {
                 <div className="text-[10px] text-slate-400">Day-by-day timetable</div>
               </button>
               <button
-                onClick={() => sendMessage('Remind me to study DSA at 7 PM every day')}
+                onClick={() => sendMessage('Remind me to study Polity at 7 PM every day')}
                 className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700 p-2.5 rounded-xl text-left transition"
               >
                 <div className="font-medium text-xs text-white">Set 7 PM Reminder</div>

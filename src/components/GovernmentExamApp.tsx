@@ -50,6 +50,7 @@ export interface GovExamTrack {
   stages: string[];
   totalVacanciesEst: string;
   syllabusSubjects: string[];
+  subTopics: string[];
   officialCutoffLastYear: string;
 }
 
@@ -86,6 +87,20 @@ const GOV_EXAM_TRACKS: GovExamTrack[] = [
     stages: ['Prelims (GS-I & CSAT)', 'Mains (9 Written Papers)', 'Personality Test (Interview)'],
     totalVacanciesEst: '1,056 Posts',
     syllabusSubjects: ['Indian Polity & Constitution', 'Modern Indian History', 'Economy & Budget', 'Geography & Environment', 'CSAT Quantitative Aptitude', 'Current Affairs'],
+    subTopics: [
+      'Preamble & Salient Features',
+      'Fundamental Rights & Duties',
+      'Directive Principles of State Policy',
+      'Parliament',
+      'Judiciary (SC & HC)',
+      'Modern Indian History',
+      'Art & Culture Fundamentals',
+      'Monetary & Fiscal Policy',
+      'Physical Geography of India',
+      'Climate Change & Biodiversity',
+      'International Relations Basics',
+      'CSAT: Number Systems & Data',
+    ],
     officialCutoffLastYear: '88.22 / 200 (GS-I)',
   },
   {
@@ -100,6 +115,18 @@ const GOV_EXAM_TRACKS: GovExamTrack[] = [
     stages: ['Tier-I Computer Based Test', 'Tier-II (Quant, Reasoning, English, GA, Computer)'],
     totalVacanciesEst: '14,500 Posts',
     syllabusSubjects: ['Quantitative Aptitude & Advanced Math', 'General Intelligence & Reasoning', 'General Awareness (History, Polity, Science)', 'English Comprehension'],
+    subTopics: [
+      'Arithmetic: Percentage & Ratio',
+      'Algebra & Number Systems',
+      'Geometry & Mensuration',
+      'Trigonometry Fundamentals',
+      'Logical Reasoning & Puzzles',
+      'Ancient & Medieval History',
+      'General Science (Phy, Chem, Bio)',
+      'English: Error Spotting & Vocab',
+      'English: Cloze Test & RC',
+      'Static GK & Award Winners',
+    ],
     officialCutoffLastYear: '140.5 / 200 (Tier-I)',
   },
   {
@@ -114,6 +141,17 @@ const GOV_EXAM_TRACKS: GovExamTrack[] = [
     stages: ['Prelims (Quant, Reasoning, English)', 'Mains (Data Analysis, Banking GA, Reasoning)', 'Group Discussion & Interview'],
     totalVacanciesEst: '6,200 Posts',
     syllabusSubjects: ['Data Interpretation & Caselets', 'Complex Seating Puzzles & Syllogisms', 'RBI Monetary Policy & Banking Awareness', 'Economic & Financial Current Affairs'],
+    subTopics: [
+      'Data Interpretation: Pie & Bar',
+      'Seating Arrangement (Circular/Line)',
+      'Syllogisms & Inequations',
+      'Blood Relations & Directions',
+      'Banking Awareness & RBI Policy',
+      'Computer Aptitude Basics',
+      'Financial Current Affairs',
+      'English: Grammar & Tenses',
+      'Critical Reasoning (Mains)',
+    ],
     officialCutoffLastYear: '54.50 / 100 (Prelims)',
   },
   {
@@ -128,6 +166,17 @@ const GOV_EXAM_TRACKS: GovExamTrack[] = [
     stages: ['CBT-1 (Screening Test)', 'CBT-2 (Core Selection)', 'Typing Skill Test / CBAT'],
     totalVacanciesEst: '11,558 Posts',
     syllabusSubjects: ['General Awareness (50 Marks)', 'Mathematics & Arithmetic (35 Marks)', 'General Intelligence & Reasoning (35 Marks)'],
+    subTopics: [
+      'Number Systems & Simplification',
+      'HCF/LCM & Ratio-Proportion',
+      'Time, Work & Distance',
+      'Simple & Compound Interest',
+      'Indian History & World History',
+      'Indian Geography & Ecology',
+      'Physics, Chemistry & Biology',
+      'Computer Systems & OS',
+      'Current GK & Government Schemes',
+    ],
     officialCutoffLastYear: '74.2 / 100 (CBT-1)',
   },
   {
@@ -142,6 +191,16 @@ const GOV_EXAM_TRACKS: GovExamTrack[] = [
     stages: ['Preliminary Exam', 'Main Written Exam', 'Interview'],
     totalVacanciesEst: '3,800 State Posts',
     syllabusSubjects: ['State History, Heritage & Geography', 'Indian Polity & Panchayati Raj', 'State Economic Survey & Budget', 'General Science & Mental Ability'],
+    subTopics: [
+      'Regional History & Monuments',
+      'State Geography & Agriculture',
+      'Panchayati Raj Institution',
+      'Indian Polity & Governance',
+      'State Budget & Economic Survey',
+      'Science & Tech Development',
+      'Mental Ability & Ethics',
+      'Social Issues & Welfare Schemes',
+    ],
     officialCutoffLastYear: '112 / 200 (State Average)',
   },
   {
@@ -156,6 +215,16 @@ const GOV_EXAM_TRACKS: GovExamTrack[] = [
     stages: ['Written Examination (Maths, English, GK)', '5-Day SSB Interview & Medicals'],
     totalVacanciesEst: '850 Commissioned Posts',
     syllabusSubjects: ['Elementary Mathematics', 'General Knowledge & Current Affairs', 'English Language Skills', 'Military History & Geopolitics'],
+    subTopics: [
+      'Arithmetic & Mensuration',
+      'Trigonometry & Geometry',
+      'Physics & Chemistry (Applied)',
+      'Biology & Environment Science',
+      'Modern History & Geopolitics',
+      'Vocabulary & Sentence Flow',
+      'Officer Like Qualities (SSB)',
+      'Current Defense Exercises',
+    ],
     officialCutoffLastYear: '124 / 300 (CDS Written)',
   },
 ];
@@ -350,6 +419,26 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
   const [selectedTrack, setSelectedTrack] = useState<GovExamTrack>(GOV_EXAM_TRACKS[0]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Syllabus Completion Logic
+  const handleToggleSubTopic = (topic: string) => {
+    const current = profile.completedSyllabusTopics || [];
+    const next = current.includes(topic)
+      ? current.filter((t) => t !== topic)
+      : [...current, topic];
+
+    onProfileUpdate({
+      ...profile,
+      completedSyllabusTopics: next,
+    });
+  };
+
+  const calculateCompletion = (track: GovExamTrack) => {
+    const completed = profile.completedSyllabusTopics || [];
+    const trackTopics = track.subTopics;
+    const count = trackTopics.filter((t) => completed.includes(t)).length;
+    return trackTopics.length > 0 ? Math.round((count / trackTopics.length) * 100) : 0;
+  };
+
   // Mock Test State
   const [mockState, setMockState] = useState<'ready' | 'active' | 'completed'>('ready');
   const [mockQuestions, setMockQuestions] = useState<QuizQuestion[]>(GOV_MOCK_QUESTIONS);
@@ -472,17 +561,17 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
     <div className="space-y-6 text-slate-100">
       {/* Top Hero Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950/70 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-indigo-500/10 rounded-xl blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-amber-500/10 rounded-xl blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 flex items-center space-x-1.5 shadow-sm">
+              <span className="px-3 py-1 rounded-xl text-xs font-black tracking-wider uppercase bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 flex items-center space-x-1.5 shadow-sm">
                 <Building2 className="w-3.5 h-3.5 text-amber-400" />
                 <span>All-India Government Exam Prep App</span>
               </span>
-              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
+              <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
                 <Sparkles className="w-3 h-3 text-emerald-400" />
                 <span>Negative Marking Simulator Active</span>
               </span>
@@ -630,7 +719,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-700">
                         {track.category}
                       </span>
                       <span className="text-xs font-extrabold text-orange-400 flex items-center space-x-1">
@@ -658,6 +747,19 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
                       <div className="flex items-center justify-between py-1 border-b border-slate-800/80">
                         <span className="text-slate-400">Exam Date</span>
                         <span className="text-white font-medium">{track.nextExamDate}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase mb-1">
+                        <span className="text-slate-500">Preparation Progress:</span>
+                        <span className="text-indigo-400">{calculateCompletion(track)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-950 h-1.5 rounded-xl border border-slate-800 overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 transition-all duration-500"
+                          style={{ width: `${calculateCompletion(track)}%` }}
+                        />
                       </div>
                     </div>
 
@@ -701,36 +803,58 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
           {/* Selected Track Detailed Blueprint */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                  Target Roadmap Blueprint
-                </span>
-                <h3 className="text-lg font-bold text-white mt-0.5">
-                  {selectedTrack.name} – Comprehensive Preparation Architecture
-                </h3>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                  <Target className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                    Target Roadmap Blueprint
+                  </span>
+                  <h3 className="text-lg font-bold text-white mt-0.5">
+                    {selectedTrack.name} – Comprehensive Preparation Architecture
+                  </h3>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  onNavigateToChat(
-                    `Can you create a structured 90-day study timetable for ${selectedTrack.name}? Focus on Indian Polity, Economy, and Quantitative Aptitude.`
-                  )
-                }
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow transition flex items-center space-x-1.5 cursor-pointer shrink-0"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Ask AI Tutor for 90-Day Timetable</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <div className="px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl flex items-center space-x-3">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase">Overall Syllabus Completion</div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-24 h-1.5 bg-slate-800 rounded-xl overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500"
+                        style={{ width: `${calculateCompletion(selectedTrack)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-black text-emerald-400">{calculateCompletion(selectedTrack)}%</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onNavigateToChat(
+                      `Can you create a structured 90-day study timetable for ${selectedTrack.name}? Focus on Indian Polity, Economy, and Quantitative Aptitude.`
+                    )
+                  }
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow transition flex items-center space-x-1.5 cursor-pointer shrink-0"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Ask AI Tutor for 90-Day Timetable</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                <div className="text-xs font-bold text-indigo-400 uppercase">Stage Selection Process</div>
+                <div className="text-xs font-bold text-indigo-400 uppercase mb-3 flex items-center space-x-2">
+                  <Layers className="w-4 h-4" />
+                  <span>Stage Selection Process</span>
+                </div>
                 <div className="space-y-2 mt-2">
                   {selectedTrack.stages.map((stage, idx) => (
                     <div key={stage} className="flex items-start space-x-2 text-xs">
-                      <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold flex items-center justify-center shrink-0">
+                      <span className="w-5 h-5 rounded-xl bg-indigo-500/20 text-indigo-300 font-bold flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
                       <span className="text-slate-300">{stage}</span>
@@ -740,19 +864,43 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
               </div>
 
               <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                <div className="text-xs font-bold text-emerald-400 uppercase">Syllabus Breakdown</div>
-                <div className="space-y-1.5 mt-2">
-                  {selectedTrack.syllabusSubjects.map((sub) => (
-                    <div key={sub} className="flex items-center space-x-1.5 text-xs text-slate-300">
-                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>{sub}</span>
-                    </div>
-                  ))}
+                <div className="text-xs font-bold text-emerald-400 uppercase mb-3 flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Syllabus Sub-Topic Tracker</span>
+                </div>
+                <div className="space-y-1.5 mt-2 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                  {selectedTrack.subTopics.map((topic) => {
+                    const isDone = (profile.completedSyllabusTopics || []).includes(topic);
+                    return (
+                      <button
+                        key={topic}
+                        onClick={() => handleToggleSubTopic(topic)}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition border ${
+                          isDone
+                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <span className="truncate mr-2">{topic}</span>
+                        {isDone ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : (
+                          <div className="w-4 h-4 rounded border border-slate-700 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 text-[10px] text-slate-500 italic text-center">
+                  Click topics above to mark them as completed
                 </div>
               </div>
 
               <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                <div className="text-xs font-bold text-amber-400 uppercase">Strategic Exam Guidance</div>
+                <div className="text-xs font-bold text-amber-400 uppercase mb-3 flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4" />
+                  <span>Strategic Exam Guidance</span>
+                </div>
                 <p className="text-xs text-slate-400 mt-2 leading-relaxed">
                   Focus on static fundamentals (Polity Articles, Modern History Timeline, Economic Concepts) combined with daily editorial analysis. Negative marking requires disciplined question triage: skip ambiguous choices with less than 50% certainty.
                 </p>
@@ -776,7 +924,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
               </div>
 
               <div>
-                <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
                   Real Exam Simulation
                 </span>
                 <h3 className="text-2xl font-bold text-white mt-2">
@@ -850,7 +998,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
               </div>
 
               {/* Progress bar */}
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-800 h-1.5 rounded-xl overflow-hidden">
                 <div
                   className="bg-gradient-to-r from-emerald-500 to-indigo-500 h-1.5 transition-all duration-300"
                   style={{ width: `${((mockIndex + 1) / mockQuestions.length) * 100}%` }}
@@ -968,7 +1116,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
 
           {mockState === 'completed' && (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 text-center space-y-6 max-w-2xl mx-auto shadow-2xl">
-              <div className="inline-flex p-4 rounded-full bg-gradient-to-tr from-amber-500/20 to-emerald-500/20 border border-amber-500/40 text-amber-400">
+              <div className="inline-flex p-4 rounded-xl bg-gradient-to-tr from-amber-500/20 to-emerald-500/20 border border-amber-500/40 text-amber-400">
                 <Trophy className="w-10 h-10 animate-bounce" />
               </div>
 
@@ -1060,7 +1208,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
                 Grounded in The Hindu, Indian Express, PIB, and Economic Survey for UPSC CSE & State PSCs
               </p>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            <span className="px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
               Updated Daily
             </span>
           </div>
@@ -1143,7 +1291,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
                 Most-repeated Articles, Landmark Supreme Court Judgments, and Schedules for UPSC & SSC CGL
               </p>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+            <span className="px-3 py-1 rounded-xl text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
               Laxmikanth High-Yield
             </span>
           </div>
@@ -1271,7 +1419,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
                   <span className="text-xs font-bold text-amber-400">{item.questionsAvg}</span>
                 </div>
 
-                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-800 h-2 rounded-xl overflow-hidden">
                   <div
                     className="bg-gradient-to-r from-emerald-500 to-indigo-500 h-2"
                     style={{ width: item.barWidth }}

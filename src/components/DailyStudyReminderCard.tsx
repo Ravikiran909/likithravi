@@ -334,10 +334,10 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
                       {sub}
                     </option>
                   ))}
-                  <option value="Calculus">Calculus & Maths</option>
-                  <option value="Python">Python</option>
-                  <option value="DSA">DSA</option>
-                  <option value="Java">Java</option>
+                  <option value="Modern History">Modern History</option>
+                  <option value="Indian Polity">Indian Polity</option>
+                  <option value="Indian Economy">Indian Economy</option>
+                  <option value="Quantitative Aptitude">Quantitative Aptitude</option>
                 </select>
                 <span className="text-[10px] text-slate-500 mt-1 block">
                   AI dynamically tailors prompt hints

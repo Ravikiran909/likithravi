@@ -88,12 +88,12 @@ interface SubTopicTemplate {
 }
 
 const SUBJECTS_ORDER = [
-  'DSA',
-  'Government Exams',
-  'Python',
-  'Calculus',
-  'Java',
-  'Generative AI',
+  'Indian Polity',
+  'Modern Indian History',
+  'Indian Economy',
+  'Geography',
+  'Quantitative Aptitude',
+  'Professional Skills',
 ];
 
 const MODULE_STAGE_LABELS = [
@@ -104,328 +104,328 @@ const MODULE_STAGE_LABELS = [
 ];
 
 const SUBJECT_CURRICULUM_TOPICS: Record<string, SubTopicTemplate[]> = {
-  DSA: [
+  'Indian Polity': [
     {
-      subCategory: 'Dynamic Programming',
-      topic: '0/1 Knapsack, LCS & Memoization State Transitions',
-      defaultScore: 34,
-      quizHistory: [28, 35, 38, 34],
-      keyConcepts: [
-        'Overlapping subproblems & memo table dimensions',
-        '1D reverse-capacity space optimization',
-        'Longest Common Subsequence (LCS) recurrence',
-      ],
-      pitfall:
-        'Iterating capacity forward in 1D 0/1 Knapsack, accidentally reusing the same item multiple times.',
-    },
-    {
-      subCategory: 'Graph Algorithms',
-      topic: 'Dijkstra Shortest Paths, Bellman-Ford & Topological Sort',
-      defaultScore: 43,
-      quizHistory: [38, 42, 46, 43],
-      keyConcepts: [
-        'Priority Queue min-heap edge relaxation O((V+E) log V)',
-        "Kahn's BFS in-degree cycle detection",
-        'Disjoint Set Union (DSU) path compression',
-      ],
-      pitfall:
-        'Applying Dijkstra on graphs with negative edge weights or forgetting to skip stale heap entries (d > dist[u]).',
-    },
-    {
-      subCategory: 'Trees & Priority Queues',
-      topic: 'Binary Search Tree (BST) Invariants, LCA & Morris Traversal',
-      defaultScore: 56,
-      quizHistory: [48, 52, 59, 56],
-      keyConcepts: [
-        'Strict [minVal, maxVal] range validation in O(n)',
-        'Lowest Common Ancestor (LCA) single-pass recursion',
-        'Two-Heap median maintenance (Max-Heap + Min-Heap)',
-      ],
-      pitfall:
-        'Checking only immediate left/right children instead of passing global subtree range bounds during BST validation.',
-    },
-    {
-      subCategory: 'Arrays & Sliding Window',
-      topic: "Kadane's Subarray Sum, Two Pointers & Prefix Sums",
-      defaultScore: 86,
-      quizHistory: [78, 82, 88, 86],
-      keyConcepts: [
-        'Variable window expansion & contraction invariant',
-        'Prefix sum hash map for subarray sum equals K',
-        "Kadane's O(n) local vs global maximum",
-      ],
-      pitfall:
-        'Using two pointers on arrays containing negative numbers for subarray sum problems instead of Prefix Sum + HashMap.',
-    },
-  ],
-  'Government Exams': [
-    {
-      subCategory: 'Indian Polity & Constitution',
-      topic: 'Fundamental Rights (Art 12–35), Writs & Parliamentary Bills',
+      subCategory: 'Fundamental Rights',
+      topic: 'Articles 12–35, Constitutional Writs & Basic Structure',
       defaultScore: 39,
       quizHistory: [32, 38, 42, 39],
       keyConcepts: [
-        'Articles 14–32 & 5 Constitutional Writs (Habeas Corpus to Quo Warranto)',
+        'Articles 14–32 & 5 Constitutional Writs',
         'Basic Structure Doctrine (Kesavananda Bharati 1973)',
-        'Money Bill (Art 110) vs Financial Bill & Joint Sitting',
+        'Fundamental Rights available to Citizens vs All Persons',
       ],
       pitfall:
-        'Confusing Fundamental Rights available only to Citizens (Articles 15, 16, 19, 29, 30) with rights available to all persons.',
+        'Confusing Articles 15, 16, 19, 29, 30 (Citizens only) with rights available to all.',
     },
     {
-      subCategory: 'SSC Quantitative Aptitude',
-      topic: 'Time & Work LCM, Compound Profit/Loss & Circle Geometry',
+      subCategory: 'Parliament & State Legislatures',
+      topic: 'Money Bills, Joint Sittings & Budgetary Process',
       defaultScore: 47,
       quizHistory: [40, 44, 50, 47],
       keyConcepts: [
-        'Successive percentage change A + B + (AB)/100',
-        'Total Work = LCM of days efficiency method',
-        'Circle secant-tangent PT² = PA·PB & triangle similarity',
+        'Article 110 (Money Bill) definition',
+        'Joint Sitting (Article 108) procedures',
+        'Annual Financial Statement (Article 112)',
       ],
       pitfall:
-        'Calculating discount on Cost Price (CP) instead of Marked Price (MP) in compound markup-discount questions.',
+        'Forgetting that Rajya Sabha has no power to reject or amend a Money Bill.',
     },
     {
-      subCategory: 'Banking Puzzles & Monetary Policy',
-      topic: 'Circular Seating Arrangements, Syllogisms & RBI Repo/CRR',
+      subCategory: 'Judiciary',
+      topic: 'Supreme Court & High Court Jurisdiction',
       defaultScore: 63,
       quizHistory: [56, 60, 65, 63],
       keyConcepts: [
-        '8-person Circular Arrangement (inward vs outward facing)',
-        'Only-a-few Syllogism Venn diagram possibility rules',
-        'Repo Rate, SDF, Reverse Repo, CRR & SLR instruments',
+        'Original, Appellate & Advisory Jurisdiction',
+        'Judicial Review & Judicial Activism',
+        'Appointment of Judges (Collegium System)',
       ],
       pitfall:
-        'Reversing left/right seating directions when some persons face the center and others face outward.',
+        'Confusing the advisory jurisdiction (Article 143) with binding precedents.',
     },
     {
-      subCategory: 'CSAT Data Interpretation',
-      topic: 'Ratio-Percentage Tables, Alligation & Caselet Speed Math',
+      subCategory: 'Constitutional Bodies',
+      topic: 'Election Commission, UPSC & CAG',
       defaultScore: 84,
       quizHistory: [76, 80, 86, 84],
       keyConcepts: [
-        'Reciprocal fraction-to-percentage benchmarks (1/6 to 1/19)',
-        'Weighted average & Alligation cross-difference rule',
-        'Approximation techniques for multi-chart DI sets',
+        'Composition & Independence of EC',
+        'Functions of UPSC',
+        'Role of CAG as Guardian of Public Purse',
       ],
       pitfall:
-        'Using the wrong base year denominator when computing percentage growth across consecutive bars.',
+        'Incorrectly identifying the removal process of various constitutional heads.',
     },
   ],
-  Python: [
+  'Modern Indian History': [
     {
-      subCategory: 'Recursion & Call Stack',
-      topic: 'Recursive Backtracking, Stack Frames & LEGB Scope Rules',
+      subCategory: 'Early Freedom Struggle',
+      topic: 'Revolt of 1857 & Early Socio-Religious Reforms',
       defaultScore: 42,
       quizHistory: [36, 40, 45, 42],
       keyConcepts: [
-        'Call stack activation records & base case return',
-        'LEGB (Local, Enclosing, Global, Built-in) resolution',
-        'Mutable default argument pitfall in function definitions',
+        'Causes & Consequences of 1857 Revolt',
+        'Brahmo Samaj & Arya Samaj influence',
+        'Role of Moderates vs Extremists',
       ],
       pitfall:
-        'Forgetting to return the recursive call result or mutating shared default list arguments across invocations.',
+        'Misidentifying the specific leaders and locations associated with the 1857 centers.',
     },
     {
-      subCategory: 'Asyncio & Concurrency',
-      topic: 'Event Loop Coroutines, Generators & Context Managers',
+      subCategory: 'Gandhian Era',
+      topic: 'Non-Cooperation, Civil Disobedience & Quit India',
       defaultScore: 54,
       quizHistory: [48, 52, 57, 54],
       keyConcepts: [
-        'Non-blocking await asyncio.gather() concurrency',
-        'Lazy yield generators & memory-efficient pipelines',
-        'Custom __enter__ and __exit__ resource cleanup',
+        'Chauri Chaura & withdrawal of NCM',
+        'Salt Satyagraha & Dandi March',
+        'Quit India Movement 1942 dynamics',
       ],
       pitfall:
-        'Calling synchronous time.sleep() inside an async coroutine and freezing the entire single-threaded event loop.',
+        'Confusing the chronologies of the three major Gandhian mass movements.',
     },
     {
-      subCategory: 'OOP & Dunder Protocols',
-      topic: 'Metaclasses, MRO Diamond Inheritance & Descriptor Protocol',
+      subCategory: 'Revolutionary Movements',
+      topic: 'HRA/HSRA, INA & Naval Mutiny',
       defaultScore: 71,
       quizHistory: [64, 68, 74, 71],
       keyConcepts: [
-        'C3 Linearization Method Resolution Order (MRO)',
-        '__slots__ memory layout optimization',
-        '@property getter/setter descriptor mechanics',
+        'Bhagat Singh & HSRA philosophy',
+        'Subhas Chandra Bose & Indian National Army',
+        'RIN Mutiny 1946 impact',
       ],
       pitfall:
-        'Hardcoding parent class calls instead of using super() in cooperative multiple inheritance hierarchies.',
+        'Overlooking the impact of revolutionary activities on the timeline of British departure.',
     },
     {
-      subCategory: 'Comprehensions & Itertools',
-      topic: 'Dictionary/List Comprehensions, Slicing & Functional Map/Filter',
+      subCategory: 'Constitutional Developments',
+      topic: 'Acts of 1909, 1919 & 1935',
       defaultScore: 89,
       quizHistory: [82, 86, 91, 89],
       keyConcepts: [
-        'Nested comprehension filtering order',
-        'Shallow vs deep copy reference semantics',
-        'itertools.groupby andislice lazy iteration',
+        'Morley-Minto Reforms & Separate Electorates',
+        'Montagu-Chelmsford Reforms & Dyarchy',
+        'Government of India Act 1935 - Provincial Autonomy',
       ],
       pitfall:
-        'Creating 2D matrices via [[0]*cols]*rows which aliases all inner row references to the same list object.',
+        'Confusing the introduction of Dyarchy at the Provincial level (1919) vs Center level (1935).',
     },
   ],
-  Calculus: [
+  'Indian Economy': [
     {
-      subCategory: 'Integration by Parts',
-      topic: 'LIATE Integration by Parts, Trig Substitution & Improper Bounds',
+      subCategory: 'Banking & Monetary Policy',
+      topic: 'RBI Repo Rate, CRR, SLR & Inflation Targeting',
       defaultScore: 38,
       quizHistory: [30, 35, 41, 38],
       keyConcepts: [
-        'LIATE priority rule for choosing u and dv',
-        'Definite u-substitution limit transformation',
-        'Improper integral convergence p-test',
+        'Monetary Policy Committee (MPC) structure',
+        'Quantitative vs Qualitative tools',
+        'Inflation Target band (4% +/- 2%)',
       ],
       pitfall:
-        'Forgetting to update lower and upper integration bounds [a, b] when substituting u = g(x).',
+        'Assuming that Repo Rate increase makes credit cheaper for consumers.',
     },
     {
-      subCategory: 'Differential Equations',
-      topic: 'Separable ODEs, Integrating Factors & 2nd-Order Characteristic Roots',
+      subCategory: 'Public Finance',
+      topic: 'Fiscal Deficit, Budget & Taxation (GST)',
       defaultScore: 49,
       quizHistory: [42, 46, 52, 49],
       keyConcepts: [
-        'First-order linear ODE integrating factor e^(∫P(x)dx)',
-        'Initial Value Problem (IVP) constant C evaluation',
-        'Homogeneous vs non-homogeneous particular solutions',
+        'Revenue vs Capital Expenditure',
+        'FRBM Act targets',
+        'Direct vs Indirect Tax (GST Council)',
       ],
       pitfall:
-        'Dropping the absolute value or integration constant C before applying initial boundary conditions.',
+        'Confusing Revenue Deficit with Fiscal Deficit in budget calculations.',
     },
     {
-      subCategory: 'Multivariable & Gradients',
-      topic: 'Partial Derivatives, Directional Gradients & Lagrange Multipliers',
+      subCategory: 'Economic Infrastructure',
+      topic: 'Agriculture, Industry & Schemes',
       defaultScore: 66,
       quizHistory: [58, 63, 68, 66],
       keyConcepts: [
-        'Gradient vector ∇f points in steepest ascent direction',
-        'Multivariable Chain Rule tree diagram',
-        'Hessian determinant saddle-point second derivative test',
+        'MSP & Green Revolution impact',
+        'MSME classification',
+        'Major Government Schemes (PM-KISAN, MGNREGA)',
       ],
       pitfall:
-        'Not normalizing the direction vector u into a unit vector before taking the dot product ∇f · u.',
+        'Incorrectly identifying the specific eligibility criteria for welfare schemes.',
     },
     {
-      subCategory: 'Limits & Derivatives',
-      topic: "L'Hôpital's Rule, Continuity & Implicit Differentiation",
+      subCategory: 'International Trade',
+      topic: 'BOP, Forex Reserves & Trade Agreements',
       defaultScore: 83,
       quizHistory: [76, 80, 85, 83],
       keyConcepts: [
-        'Indeterminate forms 0/0 and ∞/∞ verification',
-        'Implicit dy/dx chain rule differentiation',
-        'Mean Value Theorem & Rolle Theorem conditions',
+        'Current Account vs Capital Account',
+        'Depreciation vs Devaluation of Rupee',
+        'India’s top trading partners',
       ],
       pitfall:
-        "Applying L'Hôpital's Rule directly to a non-indeterminate limit without first verifying 0/0 or ∞/∞.",
+        'Assuming that a Trade Deficit is always harmful to the national economy.',
     },
   ],
-  Java: [
+  Geography: [
     {
-      subCategory: 'Concurrency & Locks',
-      topic: 'Volatile Memory Visibility, ReentrantLock & CompletableFuture',
+      subCategory: 'Physical Geography',
+      topic: 'Himalayas, Peninsular Plateau & River Systems',
       defaultScore: 45,
       quizHistory: [38, 43, 48, 45],
       keyConcepts: [
-        'Java Memory Model happens-before visibility guarantee',
-        'AtomicInteger CAS vs synchronized intrinsic locks',
-        'ThreadPoolExecutor queue sizing & rejection policies',
+        'Indus, Ganga & Brahmaputra systems',
+        'West flowing vs East flowing rivers',
+        'Himalayan vs Peninsular drainage characteristics',
       ],
       pitfall:
-        'Assuming volatile guarantees atomicity for compound read-modify-write operations like count++.',
+        'Confusing the left-bank and right-bank tributaries of the Ganga system.',
     },
     {
-      subCategory: 'JVM Memory & GC',
-      topic: 'Heap Generations (Eden/Survivor/Tenured), G1GC & ClassLoader',
+      subCategory: 'Climate & Vegetation',
+      topic: 'Monsoon Patterns, El-Nino & Forest Types',
       defaultScore: 58,
       quizHistory: [50, 55, 60, 58],
       keyConcepts: [
-        'Stack frame primitives vs Heap object references',
-        'Reachability roots & memory leak prevention',
-        'String Pool interning & Metaspace allocation',
+        'Mechanism of Indian Monsoon',
+        'Tropical Evergreen vs Deciduous forests',
+        'Agro-Climatic zones of India',
       ],
       pitfall:
-        'Retaining static collection references to short-lived listeners, preventing garbage collection.',
+        'Misunderstanding the withdrawal phase of the Southwest Monsoon.',
     },
     {
-      subCategory: 'Generics & Streams API',
-      topic: 'PECS Wildcards (? extends / ? super) & Parallel Stream Collectors',
+      subCategory: 'Economic Geography',
+      topic: 'Mineral Resources & Industries',
       defaultScore: 73,
       quizHistory: [66, 70, 75, 73],
       keyConcepts: [
-        'Producer Extends, Consumer Super (PECS) invariance',
-        'Type erasure & bridge methods at compile time',
-        'Collectors.groupingBy and partitioningBy reductions',
+        'Distribution of Iron, Coal & Petroleum',
+        'Major Industrial Clusters',
+        'Renewable Energy potential in India',
       ],
       pitfall:
-        'Mutating shared external state inside a parallelStream().forEach() lambda, causing race conditions.',
+        'Locating the specific mineral belts (e.g., Gondwana coal) incorrectly on the map.',
     },
     {
-      subCategory: 'Collections & HashMap',
-      topic: 'HashMap Bucket Treeification, equals/hashCode Contract & TreeSet',
+      subCategory: 'Human Geography',
+      topic: 'Demographics & Urbanization',
       defaultScore: 85,
       quizHistory: [78, 82, 87, 85],
       keyConcepts: [
-        'O(1) lookup to O(log n) Red-Black tree threshold (8)',
-        'Reflexive, symmetric, transitive equals() & hashCode()',
-        'ConcurrentHashMap segment bucket locking',
+        'Census 2011 major highlights',
+        'Population Density & Literacy trends',
+        'Urbanization challenges in India',
       ],
       pitfall:
-        'Mutating a key field after inserting it into a HashMap, making the entry unreachable in its original bucket.',
+        'Using outdated population statistics in comparison to the 2011 Census.',
     },
   ],
-  'Generative AI': [
+  'Quantitative Aptitude': [
     {
-      subCategory: 'RAG & Vector Search',
-      topic: 'Semantic Chunking, HNSW Cosine Similarity & Hybrid Reranking',
+      subCategory: 'Arithmetic',
+      topic: 'Percentage, Ratio, Profit & Loss, Time & Work',
       defaultScore: 46,
       quizHistory: [40, 44, 49, 46],
       keyConcepts: [
-        'Sliding window chunk overlap to preserve cross-boundary context',
-        'Dense vector cosine similarity + BM25 lexical fusion (RRF)',
-        'Cross-encoder reranking & citation grounding',
+        'Successive percentage change formula',
+        'LCM method for Time & Work',
+        'Marked Price vs Cost Price logic',
       ],
       pitfall:
-        'Using fixed character chunking without overlap, splitting definitions and formulas across chunk boundaries.',
+        'Applying percentage calculation on the wrong base value.',
     },
     {
-      subCategory: 'Agentic Tool Calling',
-      topic: 'ReAct Loops, Structured JSON Schema Output & Guardrails',
+      subCategory: 'Data Interpretation',
+      topic: 'Pie Charts, Bar Graphs & Tabular DI',
       defaultScore: 55,
       quizHistory: [48, 52, 58, 55],
       keyConcepts: [
-        'Deterministic function declaration parameter schemas',
-        'Thought-Action-Observation loop termination guards',
-        'Hallucination verification against retrieved context',
+        'Quick calculation of averages and ratios',
+        'Identifying trends in multi-variable charts',
+        'Approximation techniques for large numbers',
       ],
       pitfall:
-        'Allowing unbounded recursive tool-calling loops without max-step budgets or schema validation.',
+        'Misinterpreting the scale or unit of measurements in complex DI sets.',
     },
     {
-      subCategory: 'Transformer Attention',
-      topic: 'Scaled Dot-Product Self-Attention, KV Cache & RoPE Positional Encoding',
+      subCategory: 'Advanced Math',
+      topic: 'Algebra, Geometry & Trigonometry',
       defaultScore: 68,
       quizHistory: [60, 65, 71, 68],
       keyConcepts: [
-        'Softmax(QK^T / sqrt(d_k))V variance scaling factor',
-        'Multi-Head Attention subspace projection',
-        'KV-Cache memory bandwidth optimization during decoding',
+        'Quadratic equations & Polynomials',
+        'Circle & Triangle theorems',
+        'Height & Distance applications',
       ],
       pitfall:
-        'Omitting the 1/sqrt(d_k) scaling factor, pushing dot products into saturated softmax regions with vanishing gradients.',
+        'Applying incorrect trigonometric identities in multi-step problems.',
     },
     {
-      subCategory: 'Prompt Engineering & Eval',
-      topic: 'Few-Shot Chain-of-Thought, System Instructions & LLM-as-a-Judge',
+      subCategory: 'Number Systems',
+      topic: 'Divisibility, Remainder Theorem & HCF/LCM',
       defaultScore: 87,
       quizHistory: [80, 84, 89, 87],
       keyConcepts: [
-        'System role boundary & structured rubric evaluation',
-        'Temperature / Top-P sampling control for factual tasks',
-        'Ground-truth precision & recall RAG evaluation',
+        'Cyclicity rules for power remainders',
+        'Finding the last digit of large powers',
+        'HCF/LCM relationship and applications',
       ],
       pitfall:
-        'Using high temperature (>0.8) on strict extraction or schema-constrained classification prompts.',
+        'Overlooking the negative remainder concept in remainder theorem problems.',
+    },
+  ],
+  'Professional Skills': [
+    {
+      subCategory: 'Critical Thinking',
+      topic: 'Logical Deductions & Problem Solving',
+      defaultScore: 50,
+      quizHistory: [45, 48, 52, 50],
+      keyConcepts: [
+        'Analyzing cause and effect',
+        'Identifying logical fallacies',
+        'Structured problem-solving frameworks',
+      ],
+      pitfall:
+        'Making assumptions not supported by the given premises.',
+    },
+    {
+      subCategory: 'Communication',
+      topic: 'Business Writing & Verbal Skills',
+      defaultScore: 60,
+      quizHistory: [55, 58, 62, 60],
+      keyConcepts: [
+        'Effective email etiquette',
+        'Active listening techniques',
+        'Clarity and conciseness in reporting',
+      ],
+      pitfall:
+        'Using overly technical jargon when simplicity is required.',
+    },
+    {
+      subCategory: 'Leadership',
+      topic: 'Team Management & Decision Making',
+      defaultScore: 70,
+      quizHistory: [65, 68, 72, 70],
+      keyConcepts: [
+        'Situational leadership models',
+        'Conflict resolution strategies',
+        'Empowering team members',
+      ],
+      pitfall:
+        'Micromanagement leading to team burnout and low morale.',
+    },
+    {
+      subCategory: 'Digital Literacy',
+      topic: 'Office Productivity & Cyber Security',
+      defaultScore: 80,
+      quizHistory: [75, 78, 82, 80],
+      keyConcepts: [
+        'Advanced spreadsheet techniques',
+        'Secure online collaboration',
+        'Identifying phishing and social engineering',
+      ],
+      pitfall:
+        'Ignoring basic security protocols in a professional digital environment.',
     },
   ],
 };
@@ -796,8 +796,8 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
 
   const filteredCells = useMemo(() => {
     return heatmapCells.filter((c) => {
-      if (selectedSubjectFilter === 'dsa_gov_focus') {
-        if (c.subject !== 'DSA' && c.subject !== 'Government Exams') return false;
+      if (selectedSubjectFilter === 'upsc_ssc_focus') {
+        if (c.subject !== 'UPSC CSE' && c.subject !== 'SSC CGL') return false;
       } else if (selectedSubjectFilter !== 'all' && c.subject !== selectedSubjectFilter) {
         return false;
       }
@@ -862,8 +862,8 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
         shortSubject:
           subj === 'Government Exams'
             ? 'Gov Exams'
-            : subj === 'Generative AI'
-            ? 'Gen AI'
+            : subj === 'General Studies'
+            ? 'GS'
             : subj,
         strength,
         knowledgeGap,
@@ -1077,11 +1077,11 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
     const history = profile.learningHistory || [];
     if (history.length === 0) {
       return [
-        { date: 'S1 (Sep 18)', fullDate: '2026-09-18', topic: 'Python Functions', score: 85, gap: 15, mastered: true, subject: 'Python', benchmark: 70 },
-        { date: 'S2 (Sep 20)', fullDate: '2026-09-20', topic: 'Binary Search', score: 78, gap: 22, mastered: true, subject: 'DSA', benchmark: 70 },
-        { date: 'S3 (Sep 22)', fullDate: '2026-09-22', topic: 'Calculus Limits', score: 48, gap: 52, mastered: false, subject: 'Calculus', benchmark: 70 },
-        { date: 'S4 (Sep 24)', fullDate: '2026-09-24', topic: 'Definite Integrals', score: 38, gap: 62, mastered: false, subject: 'Calculus', benchmark: 70 },
-        { date: 'S5 (Recent)', fullDate: '2026-09-28', topic: 'Graph Shortest Paths', score: 42, gap: 58, mastered: false, subject: 'DSA', benchmark: 70 },
+        { date: 'S1 (Sep 18)', fullDate: '2026-09-18', topic: 'Preamble', score: 85, gap: 15, mastered: true, subject: 'Indian Polity', benchmark: 70 },
+        { date: 'S2 (Sep 20)', fullDate: '2026-09-20', topic: 'Revolt of 1857', score: 78, gap: 22, mastered: true, subject: 'Modern Indian History', benchmark: 70 },
+        { date: 'S3 (Sep 22)', fullDate: '2026-09-22', topic: 'Repo Rate & CRR', score: 48, gap: 52, mastered: false, subject: 'Indian Economy', benchmark: 70 },
+        { date: 'S4 (Sep 24)', fullDate: '2026-09-24', topic: 'Monsoon Patterns', score: 38, gap: 62, mastered: false, subject: 'Geography', benchmark: 70 },
+        { date: 'S5 (Recent)', fullDate: '2026-09-28', topic: 'Number Systems', score: 42, gap: 58, mastered: false, subject: 'Quantitative Aptitude', benchmark: 70 },
       ];
     }
     return history.map((item, idx) => {
@@ -1171,7 +1171,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
             Knowledge Gaps Heatmap: Topics You Struggle With Most
           </h3>
           <p className="text-xs text-slate-400 max-w-3xl">
-            Interactive Recharts heatmap analyzing your <strong className="text-slate-200">learning history, flagged weak topics, and quiz performance</strong> across <strong className="text-slate-200">DSA, Government Exams, Python, Calculus, Java, and Generative AI</strong>. Click any heatmap cell or struggle bar to launch a targeted Socratic remediation drill.
+            Interactive Recharts heatmap analyzing your <strong className="text-slate-200">learning history, flagged weak topics, and quiz performance</strong> across <strong className="text-slate-200">Indian Polity, History, Economy, Geography, Aptitude, and Professional Skills</strong>. Click any heatmap cell or struggle bar to launch a targeted Socratic remediation drill.
           </p>
         </div>
 
@@ -1279,7 +1279,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
               <span aria-hidden="true" className="text-slate-600">·</span>
               <span className="text-rose-400 font-semibold flex items-center gap-1">
                 <Flame className="w-3.5 h-3.5 fill-rose-400 text-rose-500" />
-                <span>#1 Priority: {profile.weakTopics?.[0] || (topStruggledTopics[0] ? `${topStruggledTopics[0].subject} (${topStruggledTopics[0].subCategory})` : 'Calculus Limits')}</span>
+                <span>#1 Priority: {profile.weakTopics?.[0] || (topStruggledTopics[0] ? `${topStruggledTopics[0].subject} (${topStruggledTopics[0].subCategory})` : 'Indian Polity (Fundamental Rights)')}</span>
               </span>
               <span aria-hidden="true" className="text-slate-600">·</span>
               <span className="text-slate-400 font-mono tabular-nums">
@@ -1307,9 +1307,9 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
             type="button"
             onClick={() => {
               const topTarget = topStruggledTopics[0];
-              const topicName = topTarget ? `${topTarget.subject} - ${topTarget.subCategory}` : profile.weakTopics?.[0] || 'Calculus Limits';
+              const topicName = topTarget ? `${topTarget.subject} - ${topTarget.subCategory}` : profile.weakTopics?.[0] || 'Indian Polity';
               onNavigateToChat(
-                `Tutor, based on my Knowledge Gaps analysis, my #1 struggle is ${topicName}. Please prioritize this topic and guide me step-by-step with Socratic questions to master the core invariants.`
+                `Tutor, based on my Knowledge Gaps analysis, my #1 struggle is ${topicName}. Please prioritize this topic and guide me step-by-step with Socratic questions to master the core concepts.`
               );
             }}
             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 transition cursor-pointer flex items-center gap-1.5"
@@ -1354,14 +1354,14 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setSelectedSubjectFilter('dsa_gov_focus')}
+            onClick={() => setSelectedSubjectFilter('upsc_ssc_focus')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-              selectedSubjectFilter === 'dsa_gov_focus'
+              selectedSubjectFilter === 'upsc_ssc_focus'
                 ? 'bg-slate-800 text-white font-semibold shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            DSA &amp; Gov Exams
+            UPSC &amp; SSC Focus
           </button>
           {SUBJECTS_ORDER.map((subj) => (
             <button

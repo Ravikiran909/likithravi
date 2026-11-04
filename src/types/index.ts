@@ -136,12 +136,13 @@ export interface StudentProfile {
     completedAt: string;
   }[];
   joinedPeerRoomIds?: string[];
+  completedSyllabusTopics?: string[];
 }
 
 export interface DailyMicroGoal {
   id: string;
   title: string;
-  category: 'math' | 'flashcards' | 'quiz' | 'coding' | 'reading' | 'custom';
+  category: 'math' | 'flashcards' | 'quiz' | 'logic' | 'skills' | 'reading' | 'custom';
   subject: string;
   currentCount: number;
   targetCount: number;
@@ -207,17 +208,8 @@ export interface LearningResource {
   id: string;
   title: string;
   subject:
-    | 'Python'
-    | 'Java'
-    | 'C'
-    | 'C++'
-    | 'C#'
-    | 'R'
-    | 'DSA'
     | 'Government Exams'
-    | 'Mathematics'
-    | 'Generative AI'
-    | 'AI Agents'
+    | 'Professional Skills'
     | 'General';
   type: 'youtube_video' | 'youtube_playlist' | 'free_course' | 'interactive_tutorial';
   provider: string;
@@ -339,7 +331,7 @@ export interface QuizQuestion {
   subject: string;
   topic: string;
   questionText: string;
-  type: 'mcq' | 'true_false' | 'numerical' | 'short_answer' | 'code';
+  type: 'mcq' | 'true_false' | 'numerical' | 'short_answer';
   options?: string[]; // e.g. ["A) O(n)", "B) O(log n)", ...]
   correctAnswer: string; // "B" or "O(log n)"
   explanation: string;

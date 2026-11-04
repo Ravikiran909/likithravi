@@ -126,7 +126,7 @@ export async function extractTextFromPdfFile(file: File): Promise<{
 }
 
 /**
- * Extracts plain text from text-based files (.txt, .md, .py, .java, .json, .csv)
+ * Extracts plain text from text-based files (.txt, .md, .json, .csv)
  */
 export async function extractTextFromGenericFile(file: File): Promise<{
   text: string;

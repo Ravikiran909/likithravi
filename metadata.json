@@ -1,6 +1,6 @@
 {
-  "name": "WhatsApp AI Learning Agent",
-  "description": "Production-ready WhatsApp AI Tutor & Learning Agent with personalized tutoring, adaptive quizzes, study planner, RAG knowledge base, and student/admin dashboards.",
+  "name": "India GovExam Prep Hub",
+  "description": "Comprehensive Government Exam Preparation platform for UPSC, SSC, IBPS, and State PSCs with progress tracking, mock interviews, and curated learning resources.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -7,7 +7,7 @@ import {
   Target,
   Layers,
   Brain,
-  Code2,
+  Briefcase,
   BookOpen,
   Calculator,
   Sparkles,
@@ -42,45 +42,45 @@ interface MicroGoalTemplate {
 
 const PRESET_TEMPLATES: MicroGoalTemplate[] = [
   {
-    title: 'Solve 5 Math Problems',
-    category: 'math',
-    subject: 'Calculus',
+    title: 'Solve 5 Reasoning Problems',
+    category: 'quiz',
+    subject: 'Logical Reasoning',
     targetCount: 5,
     unit: 'problems',
     minutesReward: 15,
     xpReward: 50,
   },
   {
-    title: 'Review 2 Flashcards',
+    title: 'Review 5 Polity Articles',
     category: 'flashcards',
-    subject: 'Python',
-    targetCount: 2,
-    unit: 'flashcards',
+    subject: 'Indian Polity',
+    targetCount: 5,
+    unit: 'articles',
     minutesReward: 10,
     xpReward: 30,
   },
   {
-    title: 'Complete 3 DSA Practice Questions',
-    category: 'coding',
-    subject: 'DSA',
+    title: 'Complete 3 History Questions',
+    category: 'quiz',
+    subject: 'Indian History',
     targetCount: 3,
     unit: 'questions',
     minutesReward: 20,
     xpReward: 60,
   },
   {
-    title: 'Pass 1 Adaptive Topic Quiz',
+    title: 'Pass 1 General Studies Quiz',
     category: 'quiz',
-    subject: 'Government Exams',
+    subject: 'General Studies',
     targetCount: 1,
     unit: 'quiz',
     minutesReward: 15,
     xpReward: 45,
   },
   {
-    title: 'Read 2 Study Notes Summaries',
+    title: 'Read 2 Current Affairs Summaries',
     category: 'reading',
-    subject: 'Generative AI',
+    subject: 'General Awareness',
     targetCount: 2,
     unit: 'summaries',
     minutesReward: 10,
@@ -90,10 +90,10 @@ const PRESET_TEMPLATES: MicroGoalTemplate[] = [
 
 const getDefaultMicroGoals = (todayStr: string): DailyMicroGoal[] => [
   {
-    id: 'mg_math_5',
-    title: 'Solve 5 Math Problems',
-    category: 'math',
-    subject: 'Calculus',
+    id: 'mg_reasoning_5',
+    title: 'Solve 5 Reasoning Problems',
+    category: 'quiz',
+    subject: 'Logical Reasoning',
     currentCount: 3,
     targetCount: 5,
     unit: 'problems',
@@ -103,23 +103,23 @@ const getDefaultMicroGoals = (todayStr: string): DailyMicroGoal[] => [
     dateStr: todayStr,
   },
   {
-    id: 'mg_flashcards_2',
-    title: 'Review 2 Flashcards',
+    id: 'mg_polity_5',
+    title: 'Review 5 Polity Articles',
     category: 'flashcards',
-    subject: 'Python',
-    currentCount: 1,
-    targetCount: 2,
-    unit: 'flashcards',
+    subject: 'Indian Polity',
+    currentCount: 2,
+    targetCount: 5,
+    unit: 'articles',
     minutesReward: 10,
     xpReward: 30,
     completed: false,
     dateStr: todayStr,
   },
   {
-    id: 'mg_dsa_3',
-    title: 'Complete 3 DSA Practice Questions',
-    category: 'coding',
-    subject: 'DSA',
+    id: 'mg_history_3',
+    title: 'Complete 3 History Questions',
+    category: 'quiz',
+    subject: 'Indian History',
     currentCount: 3,
     targetCount: 3,
     unit: 'questions',
@@ -130,10 +130,10 @@ const getDefaultMicroGoals = (todayStr: string): DailyMicroGoal[] => [
     completedAt: new Date().toISOString(),
   },
   {
-    id: 'mg_quiz_1',
-    title: 'Finish 1 Adaptive Topic Quiz',
+    id: 'mg_gs_1',
+    title: 'Finish 1 General Studies Quiz',
     category: 'quiz',
-    subject: 'Government Exams',
+    subject: 'General Studies',
     currentCount: 0,
     targetCount: 1,
     unit: 'quiz',
@@ -177,8 +177,8 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
   // Add / Create new micro-goal form state
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>('');
-  const [newCategory, setNewCategory] = useState<DailyMicroGoal['category']>('math');
-  const [newSubject, setNewSubject] = useState<string>(profile.subjects?.[0] || 'Calculus');
+  const [newCategory, setNewCategory] = useState<DailyMicroGoal['category']>('logic');
+  const [newSubject, setNewSubject] = useState<string>(profile.subjects?.[0] || 'Indian Polity');
   const [newTargetCount, setNewTargetCount] = useState<number>(5);
   const [newUnit, setNewUnit] = useState<string>('problems');
 
@@ -284,7 +284,7 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
       const nowCompleted = nextCount >= g.targetCount;
       const justFinished = nowCompleted && !g.completed;
 
-      if (delta > 0 && (g.category === 'math' || g.category === 'coding' || g.category === 'quiz')) {
+      if (delta > 0 && (g.category === 'logic' || g.category === 'skills' || g.category === 'quiz')) {
         questionsAdded = delta;
       }
 
@@ -497,12 +497,12 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
 
   const getCategoryIcon = (category: DailyMicroGoal['category']) => {
     switch (category) {
-      case 'math':
+      case 'logic':
         return <Calculator className="w-4 h-4 text-emerald-400" />;
       case 'flashcards':
         return <Layers className="w-4 h-4 text-amber-400" />;
-      case 'coding':
-        return <Code2 className="w-4 h-4 text-sky-400" />;
+      case 'skills':
+        return <Briefcase className="w-4 h-4 text-sky-400" />;
       case 'quiz':
         return <Brain className="w-4 h-4 text-indigo-400" />;
       case 'reading':
@@ -621,10 +621,10 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-label="Overall daily micro-goals completion progress"
-          className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5"
+          className="w-full h-3 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 p-0.5"
         >
           <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-sky-400 transition-all duration-500 ease-out"
+            className="h-full rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-sky-400 transition-all duration-500 ease-out"
             style={{ width: `${stats.overallPercentage}%` }}
           />
         </div>
@@ -697,18 +697,18 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
                 onChange={(e) => {
                   const cat = e.target.value as DailyMicroGoal['category'];
                   setNewCategory(cat);
-                  if (cat === 'math') setNewUnit('problems');
+                  if (cat === 'logic') setNewUnit('problems');
                   else if (cat === 'flashcards') setNewUnit('flashcards');
-                  else if (cat === 'coding') setNewUnit('questions');
+                  else if (cat === 'skills') setNewUnit('questions');
                   else if (cat === 'quiz') setNewUnit('quizzes');
                   else if (cat === 'reading') setNewUnit('summaries');
                   else setNewUnit('tasks');
                 }}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               >
-                <option value="math">Math Problems</option>
+                <option value="logic">Logical Reasoning</option>
                 <option value="flashcards">Flashcards</option>
-                <option value="coding">Coding / DSA</option>
+                <option value="skills">Professional Skills</option>
                 <option value="quiz">Adaptive Quiz</option>
                 <option value="reading">Reading / Notes</option>
                 <option value="custom">Custom Task</option>
@@ -722,12 +722,12 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
                 onChange={(e) => setNewSubject(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               >
-                <option value="Calculus">Calculus</option>
-                <option value="Python">Python</option>
-                <option value="DSA">DSA</option>
+                <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                <option value="Indian Polity">Indian Polity</option>
+                <option value="Indian History">Indian History</option>
                 <option value="Government Exams">Government Exams</option>
-                <option value="Java">Java</option>
-                <option value="Generative AI">Generative AI</option>
+                <option value="General Awareness">General Awareness</option>
+                <option value="Professional Skills">Professional Skills</option>
               </select>
             </div>
 
@@ -916,10 +916,10 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-label={`${goal.title} progress bar`}
-                  className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800"
+                  className="w-full h-2.5 bg-slate-900 rounded-xl overflow-hidden border border-slate-800"
                 >
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ease-out ${getProgressBarColor(
+                    className={`h-full rounded-xl transition-all duration-500 ease-out ${getProgressBarColor(
                       pct,
                       goal.completed
                     )}`}
@@ -972,7 +972,7 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
                     <span>Open Flashcards</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
-                ) : goal.category === 'quiz' || goal.category === 'math' || goal.category === 'coding' ? (
+                ) : goal.category === 'quiz' || goal.category === 'logic' || goal.category === 'skills' ? (
                   onNavigateToQuiz && (
                     <button
                       type="button"

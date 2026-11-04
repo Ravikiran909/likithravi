@@ -30,7 +30,7 @@ interface DailyQuizStreakCounterProps {
 
 interface StreakLightningQuestion {
   id: string;
-  subject: 'DSA' | 'Government Exams' | 'Python' | 'Mathematics';
+  subject: 'UPSC CSE' | 'Government Exams' | 'Indian Polity' | 'Quantitative Aptitude';
   topic: string;
   question: string;
   options: string[];
@@ -41,12 +41,12 @@ interface StreakLightningQuestion {
 const STREAK_LIGHTNING_QUESTIONS: StreakLightningQuestion[] = [
   {
     id: 'slq_1',
-    subject: 'DSA',
-    topic: 'Dynamic Programming — Memoization',
-    question: 'What is the time complexity of computing the N-th Fibonacci number using top-down DP (memoization)?',
-    options: ['O(2^N)', 'O(N)', 'O(N log N)', 'O(N^2)'],
-    correctIndex: 1,
-    explanation: 'Each state fib(k) for k = 0..N is computed once and cached in O(1) lookup time, yielding O(N) time complexity.',
+    subject: 'Indian Polity',
+    topic: 'Parliament — Budgetary Process',
+    question: 'Which of the following describes the power of Rajya Sabha regarding a Money Bill?',
+    options: ['Can reject it', 'Can amend it', 'Can only make recommendations', 'Can withhold it indefinitely'],
+    correctIndex: 2,
+    explanation: 'Article 110 states that Rajya Sabha can only make recommendations on a Money Bill within 14 days; it cannot reject or amend it.',
   },
   {
     id: 'slq_2',
@@ -59,30 +59,30 @@ const STREAK_LIGHTNING_QUESTIONS: StreakLightningQuestion[] = [
   },
   {
     id: 'slq_3',
-    subject: 'DSA',
-    topic: 'Graph Algorithms — Dijkstra',
-    question: 'Which data structure is used in standard Dijkstra’s algorithm to efficiently extract the vertex with the minimum tentative distance?',
-    options: ['FIFO Queue', 'LIFO Stack', 'Min-Priority Queue (Binary Heap)', 'Disjoint Set Union'],
-    correctIndex: 2,
-    explanation: 'A Min-Priority Queue extracts the minimum-distance vertex in O(log V) time, giving O((V + E) log V) overall complexity.',
+    subject: 'UPSC CSE',
+    topic: 'Modern History — Revolt of 1857',
+    question: 'Who was the British Governor-General during the Great Revolt of 1857?',
+    options: ['Lord Dalhousie', 'Lord Canning', 'Lord Bentinck', 'Lord Lytton'],
+    correctIndex: 1,
+    explanation: 'Lord Canning was the Governor-General during the 1857 revolt and became the first Viceroy after the 1858 Act.',
   },
   {
     id: 'slq_4',
     subject: 'Government Exams',
-    topic: 'Quantitative Aptitude — Compound Interest',
-    question: 'At 10% per annum compound interest, what is the effective percentage increase on a principal after 2 years?',
-    options: ['20%', '20.5%', '21%', '22%'],
+    topic: 'Geography — Indian Rivers',
+    question: 'Which river is known as the "Dakshina Ganga"?',
+    options: ['Krishna', 'Cauvery', 'Godavari', 'Mahanadi'],
     correctIndex: 2,
-    explanation: 'Using successive percentage formula: a + b + (a×b)/100 = 10 + 10 + (100/100) = 21%.',
+    explanation: 'The Godavari is the second longest river in India after the Ganga and is often referred to as Dakshina Ganga due to its size and importance.',
   },
   {
     id: 'slq_5',
-    subject: 'Python',
-    topic: 'Closures & Lexical Scope',
-    question: 'Which keyword in Python 3 allows a nested inner function to rebind a variable defined in its enclosing non-global scope?',
-    options: ['global', 'nonlocal', 'extern', 'static'],
+    subject: 'UPSC CSE',
+    topic: 'Indian Economy — Five Year Plans',
+    question: 'Which Five Year Plan in India was based on the Mahalanobis Model?',
+    options: ['First Plan', 'Second Plan', 'Third Plan', 'Fourth Plan'],
     correctIndex: 1,
-    explanation: 'The `nonlocal` keyword binds variables to the nearest enclosing function scope rather than creating a new local variable.',
+    explanation: 'The Second Five Year Plan (1956-1961) was based on the Mahalanobis Model, which emphasized heavy industries and capital goods.',
   },
 ];
 

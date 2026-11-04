@@ -52,45 +52,45 @@ export interface SubTopicMasteryPoint {
 }
 
 const CURRICULUM_SUBTOPICS: Record<string, string[]> = {
-  Python: [
-    'Syntax & Variables',
-    'Functions & Scope',
-    'List Comprehensions',
-    'OOP & Classes',
-    'Decorators & Closures',
-    'Recursion & Call Stack',
+  'Indian Polity': [
+    'Constitutional Framework',
+    'Fundamental Rights',
+    'Union & State Executive',
+    'Judiciary & Writs',
+    'Local Government (Panchayats)',
+    'Constitutional Bodies',
   ],
-  DSA: [
-    'Arrays & Hash Maps',
-    'Binary Search',
-    'Two Pointers',
-    'Binary Trees & BST',
-    'Graph Algorithms',
-    'Dynamic Programming',
+  'Modern History': [
+    'Revolt of 1857',
+    'Social & Religious Reforms',
+    'INC Foundations',
+    'Gandhian Era (1915-47)',
+    'Peasant & Tribal Movements',
+    'Post-Independence Consolidation',
   ],
-  Calculus: [
-    'Limits & Continuity',
-    'Derivatives & Chain Rule',
-    'Implicit Differentiation',
-    'Definite Integrals',
-    'Integration by Parts',
-    'Differential Equations',
+  'Indian Economy': [
+    'National Income Accounting',
+    'Monetary Policy & RBI',
+    'Fiscal Policy & Budget',
+    'Inflation & WPI/CPI',
+    'Banking & Financial Markets',
+    'Economic Reforms (1991)',
   ],
-  Java: [
-    'JVM & Memory Model',
-    'OOP & Interfaces',
-    'Collections Framework',
-    'Generics & Streams',
-    'Exception Handling',
-    'Multithreading & Locks',
+  Geography: [
+    'Physical Geography of India',
+    'River Systems & Lakes',
+    'Climate & Monsoons',
+    'Agriculture & Soil Types',
+    'Mineral & Energy Resources',
+    'World Physical Geography',
   ],
-  'Machine Learning': [
-    'Linear & Logistic Reg.',
-    'Gradient Descent',
-    'Decision Trees & RF',
-    'Neural Nets & Backprop',
-    'Regularization & Overfit',
-    'Transformers & Attention',
+  'General Science': [
+    'Physics (Mechanics/Optics)',
+    'Chemistry (Matter/Elements)',
+    'Biology (Human Systems)',
+    'Ecology & Environment',
+    'Space & Defense Tech',
+    'Health & Nutrition',
   ],
 };
 
@@ -248,7 +248,7 @@ export const SubTopicMasteryHeatmapChart: React.FC<SubTopicMasteryHeatmapChartPr
 
   const subjectsList = useMemo(() => {
     const base = Array.from(
-      new Set([...(profile.subjects || []), 'Python', 'DSA', 'Calculus', 'Java', 'Machine Learning'])
+      new Set([...(profile.subjects || []), 'Indian Polity', 'Modern History', 'Indian Economy', 'Geography', 'General Science'])
     );
     return base.slice(0, 5);
   }, [profile.subjects]);

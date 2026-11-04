@@ -160,12 +160,12 @@ export const SmartStudyReminderFcm: React.FC<SmartStudyReminderFcmProps> = ({
         },
         data: {
           userId: profile.userId,
-          subject: payload.data?.subject || profile.subjects[0] || 'Python',
+          subject: payload.data?.subject || profile.subjects[0] || 'Indian Polity',
           weakTopic: payload.data?.weakTopic || profile.weakTopics?.[0] || 'Core Concepts',
           preferredStudyTime: profile.preferredStudyTime || '07:00 PM',
           streak: String(profile.streak || 1),
           tag: 'fcm-foreground',
-          actionCommand: `/smart-quiz ${profile.weakTopics?.[0] || 'Python'}`,
+          actionCommand: `/smart-quiz ${profile.weakTopics?.[0] || 'Indian Polity'}`,
         },
         deliveredAt: new Date().toISOString(),
         triggerSource: 'scheduled_preferred_time',
@@ -440,7 +440,7 @@ export const SmartStudyReminderFcm: React.FC<SmartStudyReminderFcmProps> = ({
     };
   }, [preferredStudyTime, nowTick]);
 
-  const primarySubject = profile.subjects?.[0] || 'Python';
+  const primarySubject = profile.subjects?.[0] || 'Indian Polity';
   const targetWeakTopic = profile.weakTopics?.[0] || `${primarySubject} Core Concepts`;
 
   return (

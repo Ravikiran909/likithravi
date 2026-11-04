@@ -35,11 +35,11 @@ export const FlashcardDeckGenerator: React.FC<FlashcardDeckGeneratorProps> = ({
   const initialWeakTopics =
     profile.weakTopics && profile.weakTopics.length > 0
       ? profile.weakTopics
-      : ['Recursion edge cases', 'Calculus (Integration)', 'Binary Search boundary conditions'];
+      : ['Preamble & Salient Features', 'Fundamental Rights', 'Monetary Policy & RBI'];
 
-  const [selectedTopic, setSelectedTopic] = useState<string>(initialWeakTopics[0] || 'Recursion edge cases');
+  const [selectedTopic, setSelectedTopic] = useState<string>(initialWeakTopics[0] || 'Preamble & Salient Features');
   const [customTopic, setCustomTopic] = useState<string>('');
-  const [selectedSubject, setSelectedSubject] = useState<string>(profile.subjects?.[0] || 'Python');
+  const [selectedSubject, setSelectedSubject] = useState<string>(profile.subjects?.[0] || 'Indian Polity');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [currentDeck, setCurrentDeck] = useState<FlashcardDeck | null>(null);
 

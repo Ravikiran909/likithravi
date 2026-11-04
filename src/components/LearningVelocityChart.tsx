@@ -73,10 +73,10 @@ const TOPIC_PALETTES = [
 ];
 
 const DEFAULT_WEAK_TOPICS = [
-  'Calculus (Integration)',
-  'Recursion edge cases',
-  'Dynamic Programming',
-  'SQL Query Optimization',
+  'Indian Polity (Articles)',
+  'Modern History Timeline',
+  'Economic Survey Concepts',
+  'Quant: Speed & Distance',
 ];
 
 export const LearningVelocityChart: React.FC<LearningVelocityChartProps> = ({
@@ -600,7 +600,7 @@ export const LearningVelocityChart: React.FC<LearningVelocityChartProps> = ({
               type="text"
               value={newTopicInput}
               onChange={(e) => setNewTopicInput(e.target.value)}
-              placeholder="e.g. Graph BFS & DFS"
+              placeholder="e.g. Indian Polity"
               className="bg-transparent text-xs text-white placeholder-slate-500 outline-none w-36"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAddCustomWeakTopic();

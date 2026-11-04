@@ -68,13 +68,12 @@ import { HighLevelThinkingModels } from './HighLevelThinkingModels.tsx';
 import { SubTopicMasteryHeatmapChart } from './SubTopicMasteryHeatmapChart.tsx';
 import { AchievementBadgesShowcase } from './AchievementBadgesShowcase.tsx';
 import { StudentAchievements } from './StudentAchievements.tsx';
-import { DsaAndGovExamHub } from './DsaAndGovExamHub.tsx';
+import { GovExamPrepHub } from './GovExamPrepHub.tsx';
 import { StudySessionPlanner } from './StudySessionPlanner.tsx';
 import { DailyQuizStreakCounter } from './DailyQuizStreakCounter.tsx';
 import { DailyStudyGoal } from './DailyStudyGoal.tsx';
 import { DailyMicroGoalsWidget } from './DailyMicroGoalsWidget.tsx';
-import { IndiaPlacementPrepHub } from './IndiaPlacementPrepHub.tsx';
-import { MockInterviewModule } from './MockInterviewModule.tsx';
+
 import { PeerStudyGroupModule } from './PeerStudyGroupModule.tsx';
 import { DailyQuiz } from './DailyQuiz.tsx';
 import { GovernmentExamApp } from './GovernmentExamApp.tsx';
@@ -103,7 +102,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'gov_exams' | 'velocity' | 'knowledge_gaps' | 'placements' | 'mock_interview' | 'peer_groups' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'gov_exams' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -181,16 +180,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const safeSubjects =
     Array.isArray(profile.subjects) && profile.subjects.length > 0
       ? profile.subjects
-      : ['Python', 'DSA', 'Calculus'];
+      : ['UPSC CSE', 'SSC CGL', 'General Awareness'];
   const [customLogTopic, setCustomLogTopic] = useState<string>(
-    safeSubjects[0] || 'Python Practice'
+    safeSubjects[0] || 'Government Exams'
   );
   const [activityLogsToday, setActivityLogsToday] = useState<
     { id: string; label: string; minutes: number; time: string }[]
   >([
     {
       id: 'init_log_1',
-      label: `${safeSubjects[0] || 'Python'} Socratic Review`,
+      label: `${safeSubjects[0] || 'Polity'} Socratic Review`,
       minutes: 25,
       time: 'Earlier today',
     },
@@ -585,12 +584,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               aria-checked={deepFocusActive}
               aria-label="Toggle Deep Focus Mode"
               onClick={() => handleToggleDeepFocus()}
-              className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer focus:outline-none ${
+              className={`w-11 h-6 flex items-center rounded-xl p-1 transition-colors duration-300 cursor-pointer focus:outline-none ${
                 deepFocusActive ? 'bg-amber-500' : 'bg-slate-700'
               }`}
             >
               <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${
+                className={`bg-white w-4 h-4 rounded-xl shadow-md transform transition-transform duration-300 ${
                   deepFocusActive ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
@@ -609,7 +608,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               >
                 {isExportingNotes ? (
                   <>
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-xl animate-spin" />
                     <span>Compiling Study Guide...</span>
                   </>
                 ) : exportNotesSuccess ? (
@@ -633,7 +632,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               >
                 {isGeneratingPdf ? (
                   <>
-                    <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-emerald-400 border-t-transparent rounded-xl animate-spin" />
                     <span>Generating PDF...</span>
                   </>
                 ) : pdfSuccess ? (
@@ -688,7 +687,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <Zap className="w-3.5 h-3.5 text-indigo-300" />
                   <span>Learning Velocity</span>
                   {profile.weakTopics && profile.weakTopics.length > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-indigo-500/30 text-indigo-200 text-[10px] font-bold">
+                    <span className="px-1.5 py-0.2 rounded-xl bg-indigo-500/30 text-indigo-200 text-[10px] font-bold">
                       {profile.weakTopics.length}
                     </span>
                   )}
@@ -702,33 +701,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <BarChart2 className="w-3.5 h-3.5 text-rose-300" />
                   <span>Knowledge Gaps</span>
                 </button>
-                <button
-                  onClick={() => setActiveTab('placements')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                    activeTab === 'placements' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Briefcase className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>India Placements</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('mock_interview')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                    activeTab === 'mock_interview' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Mic className="w-3.5 h-3.5 text-indigo-300" />
-                  <span>Mock Interview</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('peer_groups')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                    activeTab === 'peer_groups' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>Peer Study Rooms</span>
-                </button>
+
               </>
             )}
             <button
@@ -760,7 +733,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
               <span>Study Materials</span>
               {profile.pinnedDocumentIds && profile.pinnedDocumentIds.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-bold text-[9px] flex items-center space-x-0.5">
+                <span className="px-1.5 py-0.2 rounded-xl bg-amber-400 text-slate-950 font-bold text-[9px] flex items-center space-x-0.5">
                   <Pin className="w-2.5 h-2.5 fill-slate-950" />
                   <span>{profile.pinnedDocumentIds.length}</span>
                 </span>
@@ -817,7 +790,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <Layers className="w-3.5 h-3.5 text-amber-300" />
               <span>Flashcards</span>
               {profile.weakTopics && profile.weakTopics.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-bold text-[9px]">
+                <span className="px-1.5 py-0.2 rounded-xl bg-amber-400 text-slate-950 font-bold text-[9px]">
                   {profile.weakTopics.length}
                 </span>
               )}
@@ -831,7 +804,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <Brain className="w-3.5 h-3.5 text-amber-300" />
               <span>Adaptive Quiz</span>
               {profile.weakTopics && profile.weakTopics.length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-xl bg-amber-400 animate-pulse" />
               )}
             </button>
             {!deepFocusActive && (
@@ -844,7 +817,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <Award className="w-3.5 h-3.5 text-amber-300" />
                 <span>Badges</span>
                 {profile.earnedBadges && profile.earnedBadges.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-bold text-[9px]">
+                  <span className="px-1.5 py-0.2 rounded-xl bg-amber-400 text-slate-950 font-bold text-[9px]">
                     {profile.earnedBadges.length}
                   </span>
                 )}
@@ -906,7 +879,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400">
                       Deep Work Focus Mode Active
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30">
+                    <span className="px-2 py-0.5 rounded-xl text-[10px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30">
                       Distraction-Free Workspace
                     </span>
                   </div>
@@ -1004,31 +977,31 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
           {/* Daily Learning Mode Card (Requirement #12) */}
           <div className="bg-gradient-to-r from-emerald-900/60 via-slate-900 to-teal-900/40 border border-emerald-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-xl blur-3xl pointer-events-none" />
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="space-y-2 max-w-2xl">
-                <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-xl text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Daily Learning Mode Active</span>
                 </div>
                 <h2 className="text-xl font-bold text-white">
-                  Today's Session: Python Functions & Scoping Rules
+                  Today's Session: Indian Polity Articles & Rights
                 </h2>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  ⏱️ Estimated time: 45 mins • Goals: Understand parameters, practice 3 problems, and complete a mini quiz to maintain your {profile.streak}-day streak!
+                  ⏱️ Estimated time: 45 mins • Goals: Revise Articles 14-18, practice 3 problems, and complete a mini quiz to maintain your {profile.streak}-day streak!
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => onNavigateToChat('Teach me Python Functions and Scope')}
+                  onClick={() => onNavigateToChat('Explain Indian Polity Articles and Rights')}
                   className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition active:scale-95"
                 >
                   <Play className="w-4 h-4 fill-slate-950" />
                   <span>Start Session on WhatsApp</span>
                 </button>
                 <button
-                  onClick={() => onNavigateToChat('/quiz Python')}
+                  onClick={() => onNavigateToChat('/quiz GS')}
                   className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-white font-medium px-4 py-2.5 rounded-xl border border-slate-700 transition"
                 >
                   <span>Quick Quiz</span>
@@ -1069,7 +1042,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
           {/* Daily Learning Goal Progress Ring Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-xl blur-3xl pointer-events-none" />
 
             <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">
               {/* Animated Circular Progress Ring */}
@@ -1107,7 +1080,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       </div>
                       <h3 className="text-base font-bold text-white">Daily Learning Goal</h3>
                       <span
-                        className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border transition ${
+                        className={`text-[10px] px-2.5 py-0.5 rounded-xl font-bold border transition ${
                           isGoalAchieved
                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                             : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
@@ -1203,16 +1176,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     <span>{targetMinutes} mins ({targetHours}h) target</span>
                   </div>
 
-                  <div className="w-full h-3.5 bg-slate-950 rounded-full p-0.5 border border-slate-800 overflow-hidden relative">
+                  <div className="w-full h-3.5 bg-slate-950 rounded-xl p-0.5 border border-slate-800 overflow-hidden relative">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 relative ${
+                      className={`h-full rounded-xl transition-all duration-500 relative ${
                         isGoalAchieved
                           ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-md shadow-emerald-500/20'
                           : 'bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-400 shadow-md shadow-indigo-500/20'
                       }`}
                       style={{ width: `${goalProgressPercent}%` }}
                     >
-                      <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
+                      <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl" />
                     </div>
                   </div>
                 </div>
@@ -1277,7 +1250,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       {activityLogsToday.slice(0, 2).map((entry) => (
                         <span
                           key={entry.id}
-                          className="px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 text-slate-300 whitespace-nowrap"
+                          className="px-2 py-0.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 whitespace-nowrap"
                         >
                           +{entry.minutes}m {entry.label}
                         </span>
@@ -1309,7 +1282,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <div className="text-3xl font-bold text-white flex items-baseline justify-between">
                 <span>{profile.streak} Days</span>
                 {profile.streak >= 3 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                  <span className="text-xs px-2 py-0.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
                     🔥 3+ Active
                   </span>
                 )}
@@ -1371,9 +1344,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   </span>
                   <span className="text-slate-400 font-semibold">{goalProgressPercent}%</span>
                 </div>
-                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-slate-800 rounded-xl overflow-hidden">
                   <div
-                    className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                    className="h-full bg-indigo-500 rounded-xl transition-all duration-300"
                     style={{ width: `${goalProgressPercent}%` }}
                   />
                 </div>
@@ -1457,7 +1430,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onNavigateToQuiz={() => setActiveTab('quiz')}
               />
 
-              {/* Study Session Planner: Calendar Time-Blocking for DSA & Government Exams + Upcoming Event View */}
+              {/* Study Session Planner: Calendar Time-Blocking for Government Exams + Upcoming Event View */}
               <StudySessionPlanner
                 profile={profile}
                 onProfileUpdate={onProfileUpdate}
@@ -1466,8 +1439,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onLogStudyMinutes={handleAddStudyMinutes}
               />
 
-              {/* DSA Study Materials & Government Exams Preparation Documents, Classes & Notifications */}
-              <DsaAndGovExamHub
+              {/* Government Exams Preparation Documents, Classes & Notifications */}
+              <GovExamPrepHub
                 profile={profile}
                 onProfileUpdate={onProfileUpdate}
                 onNavigateToChat={onNavigateToChat}
@@ -1510,7 +1483,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
                         Curriculum Roadmap
                       </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="px-2 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                         Rural Offline Ready
                       </span>
                     </div>
@@ -1518,7 +1491,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       Track Step-by-Step Milestones & Earn Badges
                     </h4>
                     <p className="text-xs text-slate-300 mt-0.5">
-                      Structured checklists for Generative AI, AI Agents, Python, Java, C, C++, C#, R, DSA, and Calculus. Mark off milestones as you learn.
+                      Structured checklists for Indian Polity, History, Economy, Geography, Quantitative Aptitude, and Professional Skills. Mark off milestones as you learn.
                     </p>
                   </div>
                 </div>
@@ -1616,49 +1589,49 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-white">Python Programming</span>
+                        <span className="font-medium text-white">Indian Polity</span>
                         <span className="text-emerald-400 font-semibold">82%</span>
                       </div>
-                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '82%' }} />
+                      <div className="w-full h-2.5 bg-slate-800 rounded-xl overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-xl" style={{ width: '82%' }} />
                       </div>
                     </div>
 
                     <div>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-white">Java & Object-Oriented</span>
+                        <span className="font-medium text-white">Modern Indian History</span>
                         <span className="text-emerald-400 font-semibold">74%</span>
                       </div>
-                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '74%' }} />
+                      <div className="w-full h-2.5 bg-slate-800 rounded-xl overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-xl" style={{ width: '74%' }} />
                       </div>
                     </div>
 
                     <div>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-white">Data Structures & Algorithms</span>
+                        <span className="font-medium text-white">Indian Economy</span>
                         <span className="text-amber-400 font-semibold">61%</span>
                       </div>
-                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-500 rounded-full" style={{ width: '61%' }} />
+                      <div className="w-full h-2.5 bg-slate-800 rounded-xl overflow-hidden">
+                        <div className="h-full bg-amber-500 rounded-xl" style={{ width: '61%' }} />
                       </div>
                     </div>
 
                     <div>
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-white">Calculus & Mathematics</span>
+                        <span className="font-medium text-white">Geography & Environment</span>
                         <span className="text-rose-400 font-semibold">45%</span>
                       </div>
-                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-rose-500 rounded-full" style={{ width: '45%' }} />
+                      <div className="w-full h-2.5 bg-slate-800 rounded-xl overflow-hidden">
+                        <div className="h-full bg-rose-500 rounded-xl" style={{ width: '45%' }} />
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Calculus requires priority revision</span>
+                    <span className="text-slate-400">Geography requires priority revision</span>
                     <button
-                      onClick={() => onNavigateToChat('Revise Calculus limits and integrals')}
+                      onClick={() => onNavigateToChat('Revise Indian Physical Geography and Climate')}
                       className="text-emerald-400 hover:text-emerald-300 font-medium flex items-center space-x-1"
                     >
                       <span>Revise Now</span>
@@ -1772,7 +1745,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         Active Recall Memory Engine
                       </span>
                       {profile.weakTopics && profile.weakTopics.length > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                        <span className="text-[10px] px-2 py-0.5 rounded-xl bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
                           {profile.weakTopics.length} Weak Areas Detected
                         </span>
                       )}
@@ -1817,7 +1790,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         RAG Knowledge Base & Study Notes
                       </span>
                       {profile.pinnedDocumentIds && profile.pinnedDocumentIds.length > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 flex items-center space-x-1">
+                        <span className="text-[10px] px-2 py-0.5 rounded-xl bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 flex items-center space-x-1">
                           <Pin className="w-2.5 h-2.5 fill-amber-300" />
                           <span>{profile.pinnedDocumentIds.length} Pinned for Chat</span>
                         </span>
@@ -1858,7 +1831,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Study Planner & Exam Radar</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                      <span className="text-[10px] px-2 py-0.5 rounded-xl bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
                         {profile.examDates?.length || 0} Upcoming Exams
                       </span>
                     </div>
@@ -1897,7 +1870,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       <h4 className="text-sm font-bold text-white">
                         Download Learning Progress Summary (PDF)
                       </h4>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
+                      <span className="text-[10px] px-2 py-0.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
                         Official Report
                       </span>
                     </div>
@@ -1917,7 +1890,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   >
                     {isExportingNotes ? (
                       <>
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-xl animate-spin" />
                         <span>Exporting Notes...</span>
                       </>
                     ) : exportNotesSuccess ? (
@@ -1941,7 +1914,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   >
                     {isGeneratingPdf ? (
                       <>
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-xl animate-spin" />
                         <span>Generating PDF...</span>
                       </>
                     ) : pdfSuccess ? (
@@ -1966,8 +1939,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onNavigateToQuiz={() => setActiveTab('quiz')}
               />
 
-              {/* Multi-Company India Placement Preparation Hub */}
-              <IndiaPlacementPrepHub
+              {/* Multi-Exam Government Preparation Hub */}
+              <GovExamPrepHub
                 profile={profile}
                 onProfileUpdate={onProfileUpdate}
                 onNavigateToChat={onNavigateToChat}
@@ -1975,13 +1948,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onLogStudyMinutes={handleAddStudyMinutes}
               />
 
-              {/* Company Role-Play Technical Mock Interview Studio */}
-              <MockInterviewModule
-                profile={profile}
-                onProfileUpdate={onProfileUpdate}
-                onNavigateToChat={onNavigateToChat}
-                onLogStudyMinutes={handleAddStudyMinutes}
-              />
+
 
               {/* Peer Study Group Rooms (Subject & Skill Matched + Shared Docs & Voice Chat) */}
               <PeerStudyGroupModule
@@ -2055,23 +2022,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {/* India Multi-Company Placement Preparation Tab */}
-      {activeTab === 'placements' && (
+      {/* Dedicated Government Exam Preparation Hub Tab */}
+      {activeTab === 'gov_exams_hub' && (
         <div className="space-y-6">
-          <IndiaPlacementPrepHub
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-          <MockInterviewModule
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-          <DsaAndGovExamHub
+          <GovExamPrepHub
             profile={profile}
             onProfileUpdate={onProfileUpdate}
             onNavigateToChat={onNavigateToChat}
@@ -2082,23 +2036,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       )}
 
       {/* Role-Play Company Mock Interview Tab */}
-      {activeTab === 'mock_interview' && (
-        <div className="space-y-6">
-          <MockInterviewModule
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-          <IndiaPlacementPrepHub
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-        </div>
-      )}
+
 
       {/* Peer Study Group Rooms Tab */}
       {activeTab === 'peer_groups' && (
@@ -2154,7 +2092,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {/* RAG Knowledge Base Study Materials & Pinned Documents Tab */}
       {activeTab === 'materials' && (
         <div className="space-y-6">
-          <DsaAndGovExamHub
+          <GovExamPrepHub
             profile={profile}
             onProfileUpdate={onProfileUpdate}
             onNavigateToChat={onNavigateToChat}
@@ -2179,7 +2117,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {/* Free Courses & YouTube Videos Tab */}
       {activeTab === 'courses' && (
         <div className="space-y-6">
-          <DsaAndGovExamHub
+          <GovExamPrepHub
             profile={profile}
             onProfileUpdate={onProfileUpdate}
             onNavigateToChat={onNavigateToChat}
@@ -2546,12 +2484,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setDailyReminderEnabled(!dailyReminderEnabled)}
-                  className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 focus:outline-none ${
+                  className={`w-12 h-6 flex items-center rounded-xl p-1 transition-colors duration-300 focus:outline-none ${
                     dailyReminderEnabled ? 'bg-emerald-500' : 'bg-slate-700'
                   }`}
                 >
                   <div
-                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${
+                    className={`bg-white w-4 h-4 rounded-xl shadow-md transform transition-transform duration-300 ${
                       dailyReminderEnabled ? 'translate-x-6' : 'translate-x-0'
                     }`}
                   />

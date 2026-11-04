@@ -218,11 +218,11 @@ export function generateStudentProgressPdf(
       status: profile.totalQuestionsAnswered >= 100 ? 'UNLOCKED' : 'IN PROGRESS',
     },
     {
-      name: 'Math Master',
-      desc: 'Achieve advanced proficiency in Calculus limits, derivatives, or algebra.',
-      unlocked: profile.overallProgress >= 70 || profile.subjects.includes('Calculus'),
+      name: 'Aptitude Master',
+      desc: 'Achieve advanced proficiency in Quantitative Aptitude, Ratio & Proportions.',
+      unlocked: profile.overallProgress >= 70 || profile.subjects.includes('Quantitative Aptitude'),
       progress: `${Math.min(profile.overallProgress, 70)}% / 70% Mastery`,
-      status: (profile.overallProgress >= 70 || profile.subjects.includes('Calculus')) ? 'UNLOCKED' : 'IN PROGRESS',
+      status: (profile.overallProgress >= 70 || profile.subjects.includes('Quantitative Aptitude')) ? 'UNLOCKED' : 'IN PROGRESS',
     },
     {
       name: 'Consistent Scholar',
@@ -349,8 +349,8 @@ export function generateStudentProgressPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(51, 65, 85);
-  const strongStr = profile.strongTopics.length > 0 ? profile.strongTopics.slice(0, 3).join(', ') : 'Calculus Limits, Python Loops';
-  const weakStr = profile.weakTopics.length > 0 ? profile.weakTopics.slice(0, 3).join(', ') : 'Python Recursion, Differential Equations';
+  const strongStr = profile.strongTopics.length > 0 ? profile.strongTopics.slice(0, 3).join(', ') : 'Indian Polity, History Basics';
+  const weakStr = profile.weakTopics.length > 0 ? profile.weakTopics.slice(0, 3).join(', ') : 'Monsoon Patterns, Indian Economy';
 
   doc.text(`• Strong Mastery: ${strongStr}`, rightX + 4, currentY + 12);
   doc.text(`• Priority Focus: ${weakStr}`, rightX + 4, currentY + 17);
@@ -681,20 +681,20 @@ export function generateExportNotesStudyGuidePdf(
       ? profile.learningHistory
       : [
           {
-            topic: 'Python Functions, Scoping & Recursion',
-            subject: 'Python',
+            topic: 'Preamble & Fundamental Rights',
+            subject: 'Indian Polity',
             date: new Date().toISOString().split('T')[0],
             mastered: true,
           },
           {
-            topic: 'Binary Search & Time Complexity Analysis',
-            subject: 'DSA',
+            topic: 'Revolt of 1857: Leadership',
+            subject: 'Modern Indian History',
             date: new Date().toISOString().split('T')[0],
             mastered: true,
           },
           {
-            topic: profile.weakTopics?.[0] || 'Integration by Parts & Substitution',
-            subject: profile.subjects?.[0] || 'Calculus',
+            topic: profile.weakTopics?.[0] || 'Repo Rate & Monetary Policy',
+            subject: profile.subjects?.[0] || 'Indian Economy',
             date: new Date().toISOString().split('T')[0],
             mastered: false,
           },
@@ -741,7 +741,7 @@ export function generateExportNotesStudyGuidePdf(
   const strongStr =
     profile.strongTopics && profile.strongTopics.length > 0
       ? profile.strongTopics.join(', ')
-      : 'Python Functions, Basic Derivatives, Arrays & Loops';
+      : 'Indian Polity, Modern History, General Awareness';
   doc.text(doc.splitTextToSize(strongStr, halfW - 6).slice(0, 2), margin + 3, currentY + 10);
 
   doc.setFillColor(255, 241, 242);
@@ -757,7 +757,7 @@ export function generateExportNotesStudyGuidePdf(
   const weakStr =
     profile.weakTopics && profile.weakTopics.length > 0
       ? profile.weakTopics.join(', ')
-      : 'Recursion edge cases, Integration by Parts';
+      : 'Monsoon Mechanism, Monetary Policy Tools';
   doc.text(doc.splitTextToSize(weakStr, halfW - 6).slice(0, 2), margin + halfW + 7, currentY + 10);
 
   currentY += 24;

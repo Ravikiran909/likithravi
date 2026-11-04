@@ -38,7 +38,7 @@ interface PeerRoomResource {
   id: string;
   title: string;
   subject: string;
-  type: 'rag_doc' | 'cheatsheet' | 'code_template';
+  type: 'rag_doc' | 'cheatsheet' | 'exam_blueprint';
   summary: string;
   pinnedBy: string;
   pinnedAt: string;
@@ -93,7 +93,7 @@ export const PeerStudyGroupModule: React.FC<PeerStudyGroupModuleProps> = ({
 }) => {
   const [rooms, setRooms] = useState<PeerStudyRoomState[]>([]);
   const [ragDocs, setRagDocs] = useState<{ id: string; title: string; subject: string; summary: string }[]>([]);
-  const [selectedRoomId, setSelectedRoomId] = useState<string>('room_dsa_inter');
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('room_polity_upsc');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
   const [skillFilter, setSkillFilter] = useState<string>('all');
   const [matchMyProfileOnly, setMatchMyProfileOnly] = useState<boolean>(false);
@@ -118,12 +118,12 @@ export const PeerStudyGroupModule: React.FC<PeerStudyGroupModuleProps> = ({
   // Create New Study Room Modal State
   const [showCreateRoom, setShowCreateRoom] = useState<boolean>(false);
   const [newRoomName, setNewRoomName] = useState<string>('');
-  const [newRoomSubject, setNewRoomSubject] = useState<string>(profile.subjects?.[0] || 'DSA');
+  const [newRoomSubject, setNewRoomSubject] = useState<string>(profile.subjects?.[0] || 'Indian Polity');
   const [newRoomSkill, setNewRoomSkill] = useState<'beginner' | 'intermediate' | 'advanced' | 'expert'>(
     profile.currentSkillLevel || 'intermediate'
   );
   const [newRoomTopic, setNewRoomTopic] = useState<string>(
-    profile.weakTopics?.[0] || 'Dynamic Programming & Graph Traversal'
+    profile.weakTopics?.[0] || 'Fundamental Rights & Constitutional Amendments'
   );
 
   useEffect(() => {
@@ -459,7 +459,7 @@ export const PeerStudyGroupModule: React.FC<PeerStudyGroupModuleProps> = ({
               Peer Study Group & Virtual Rooms Hub
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
-              Find and join virtual study rooms matched to your subjects ({(profile.subjects || ['Python', 'DSA']).join(', ')}) and skill level (<strong className="text-emerald-300 capitalize">{profile.currentSkillLevel}</strong>), co-edit shared study documents in real time, and collaborate over live voice chat.
+              Find and join virtual study rooms matched to your subjects ({(profile.subjects || ['Indian Polity', 'History']).join(', ')}) and skill level (<strong className="text-emerald-300 capitalize">{profile.currentSkillLevel}</strong>), co-edit shared study documents in real time, and collaborate over live voice chat.
             </p>
           </div>
         </div>
@@ -515,7 +515,7 @@ export const PeerStudyGroupModule: React.FC<PeerStudyGroupModuleProps> = ({
             type="text"
             value={newRoomName}
             onChange={(e) => setNewRoomName(e.target.value)}
-            placeholder="Room Name (e.g., Graph Algorithms Sprint)"
+            placeholder="Room Name (e.g., 1857 Revolt Deep Dive)"
             className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
             required
           />
@@ -524,7 +524,7 @@ export const PeerStudyGroupModule: React.FC<PeerStudyGroupModuleProps> = ({
             onChange={(e) => setNewRoomSubject(e.target.value)}
             className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
           >
-            {Array.from(new Set([...(profile.subjects || []), 'DSA', 'Python', 'Calculus', 'Java'])).map(
+            {Array.from(new Set([...(profile.subjects || []), 'Indian Polity', 'Modern History', 'Indian Economy', 'Geography'])).map(
               (sub) => (
                 <option key={sub} value={sub}>
                   Subject: {sub}
@@ -567,7 +567,7 @@ export const PeerStudyGroupModule: React.FC<PeerStudyGroupModuleProps> = ({
             <Filter className="w-3.5 h-3.5 text-emerald-400" />
             <span>Subject:</span>
           </span>
-          {['all', 'DSA', 'Python', 'Calculus', 'Java'].map((sub) => (
+          {['all', 'Polity', 'History', 'Economy', 'Geography'].map((sub) => (
             <button
               key={sub}
               type="button"

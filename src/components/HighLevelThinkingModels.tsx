@@ -73,7 +73,7 @@ const THINKING_FRAMEWORKS: FrameworkOption[] = [
     name: 'First-Principles Deconstruction',
     badge: 'Axiomatic Reasoning',
     tagline: 'Break complex topics down to irreducible truths and rebuild from scratch.',
-    cognitiveGoal: 'Eliminates rote memorization by deriving formulas & algorithms from base axioms.',
+    cognitiveGoal: 'Eliminates rote memorization by deriving historical patterns and legal frameworks from base principles.',
     accentColor: 'from-indigo-500/20 to-violet-500/10 border-indigo-500/40 text-indigo-300',
     icon: <Cpu className="w-4 h-4 text-indigo-400" />,
   },
@@ -91,7 +91,7 @@ const THINKING_FRAMEWORKS: FrameworkOption[] = [
     name: 'Socratic Counter-Example & Inquiry',
     badge: 'Critical Interrogation',
     tagline: 'Stress-test your hypothesis with adversarial edge cases and boundary conditions.',
-    cognitiveGoal: 'Trains rigorous proof thinking and boundary-case debugging.',
+    cognitiveGoal: 'Trains rigorous logical thinking and multi-dimensional analysis.',
     accentColor: 'from-amber-500/20 to-orange-500/10 border-amber-500/40 text-amber-300',
     icon: <Compass className="w-4 h-4 text-amber-400" />,
   },
@@ -99,8 +99,8 @@ const THINKING_FRAMEWORKS: FrameworkOption[] = [
     id: 'systems_second_order',
     name: 'Second-Order & Systems Thinking',
     badge: 'Causal Loops',
-    tagline: 'Analyze downstream cascading effects, bottleneck trade-offs, and feedback loops.',
-    cognitiveGoal: 'Develops architectural judgment for time/space complexity and system design.',
+    tagline: 'Analyze downstream cascading effects, policy trade-offs, and feedback loops.',
+    cognitiveGoal: 'Develops administrative judgment for policy impact and socio-economic systems.',
     accentColor: 'from-sky-500/20 to-cyan-500/10 border-sky-500/40 text-sky-300',
     icon: <GitBranch className="w-4 h-4 text-sky-400" />,
   },
@@ -109,7 +109,7 @@ const THINKING_FRAMEWORKS: FrameworkOption[] = [
     name: "Bloom's Higher-Order Synthesis",
     badge: 'Evaluate & Create',
     tagline: 'Ascend from recall to paradigm comparison, critique, and novel solution design.',
-    cognitiveGoal: 'Prepares students for advanced research, competitive exams, and open-ended design.',
+    cognitiveGoal: 'Prepares students for advanced analytical writing and ethics-based decision making.',
     accentColor: 'from-fuchsia-500/20 to-pink-500/10 border-fuchsia-500/40 text-fuchsia-300',
     icon: <Layers className="w-4 h-4 text-fuchsia-400" />,
   },
@@ -117,8 +117,8 @@ const THINKING_FRAMEWORKS: FrameworkOption[] = [
     id: 'inversion_premortem',
     name: 'Inversion & Failure Pre-Mortem',
     badge: 'Backward Reasoning',
-    tagline: 'Solve problems backward by identifying every way a proof or algorithm can fail first.',
-    cognitiveGoal: 'Prevents off-by-one errors, infinite recursion, and invalid mathematical assumptions.',
+    tagline: 'Solve problems backward by identifying every way a policy or logic can fail first.',
+    cognitiveGoal: 'Prevents logical fallacies, administrative oversights, and invalid assumptions.',
     accentColor: 'from-rose-500/20 to-orange-500/10 border-rose-500/40 text-rose-300',
     icon: <ShieldAlert className="w-4 h-4 text-rose-400" />,
   },
@@ -133,9 +133,9 @@ export const HighLevelThinkingModels: React.FC<HighLevelThinkingModelsProps> = (
   const defaultTopic =
     profile.weakTopics && profile.weakTopics.length > 0
       ? profile.weakTopics[0]
-      : 'Recursion & Dynamic Programming State Transitions';
+      : 'Indian Polity & Constitutional Framework';
   const defaultSubject =
-    profile.subjects && profile.subjects.length > 0 ? profile.subjects[0] : 'DSA';
+    profile.subjects && profile.subjects.length > 0 ? profile.subjects[0] : 'Polity';
 
   const [selectedFrameworkId, setSelectedFrameworkId] = useState<string>('first_principles');
   const [subject, setSubject] = useState<string>(defaultSubject);
@@ -290,11 +290,11 @@ export const HighLevelThinkingModels: React.FC<HighLevelThinkingModelsProps> = (
   const quickTopics = Array.from(
     new Set([
       ...(profile.weakTopics || []),
-      'Recursion & Call Stack Invariants',
-      'Dynamic Programming Optimal Substructure',
-      'Calculus Limits & Epsilon-Delta Proofs',
-      'Deadlocks & Concurrency Race Conditions',
-      'Backpropagation & Gradient Vanishing',
+      'Fundamental Rights vs DPSP',
+      'Monetary Policy Transmission Mechanism',
+      'Non-Cooperation Movement Dynamics',
+      'Judicial Activism & PIL',
+      'Fiscal Deficit & Debt Sustainability',
     ])
   ).slice(0, 6);
 
@@ -448,13 +448,13 @@ export const HighLevelThinkingModels: React.FC<HighLevelThinkingModelsProps> = (
               {Array.from(
                 new Set([
                   ...(profile.subjects || []),
-                  'DSA',
-                  'Python',
-                  'Calculus',
-                  'Java',
-                  'Machine Learning',
-                  'Physics',
-                  'System Design',
+                  'Indian Polity',
+                  'Modern History',
+                  'Indian Economy',
+                  'Geography',
+                  'General Science',
+                  'Current Affairs',
+                  'Ethics & Aptitude',
                 ])
               ).map((sub) => (
                 <option key={sub} value={sub}>
@@ -472,7 +472,7 @@ export const HighLevelThinkingModels: React.FC<HighLevelThinkingModelsProps> = (
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g., Dynamic Programming Memoization vs Tabulation"
+              placeholder="e.g., Difference between Writ of Mandamus and Quo Warranto"
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
             />
           </div>
@@ -508,7 +508,7 @@ export const HighLevelThinkingModels: React.FC<HighLevelThinkingModelsProps> = (
             type="text"
             value={studentHypothesis}
             onChange={(e) => setStudentHypothesis(e.target.value)}
-            placeholder="e.g., 'I think recursion is always slower than iteration because of function calls...'"
+            placeholder="e.g., 'I think the 1857 revolt failed primarily due to a lack of unified leadership...'"
             className="w-full bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>

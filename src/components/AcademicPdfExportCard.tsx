@@ -31,7 +31,7 @@ export const AcademicPdfExportCard: React.FC<AcademicPdfExportCardProps> = ({
   recommendations = [],
 }) => {
   const [institutionName, setInstitutionName] = useState<string>(
-    'Department of Computer Science & Engineering'
+    'Department of Competitive Examinations & General Studies'
   );
   const [academicTerm, setAcademicTerm] = useState<string>('Fall Semester 2026');
   const [advisorName, setAdvisorName] = useState<string>('Prof. Vikram Sen (Academic Mentor)');
@@ -337,7 +337,7 @@ export const AcademicPdfExportCard: React.FC<AcademicPdfExportCardProps> = ({
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
               <div className="font-bold text-emerald-400 mb-1">Mastered Topics Verified:</div>
               <div className="text-slate-300">
-                {(profile.strongTopics || []).join(', ') || 'Python Functions, Control Flow'}
+                {(profile.strongTopics || []).join(', ') || 'Indian Polity (Fundamental Rights), Modern History'}
               </div>
             </div>
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">

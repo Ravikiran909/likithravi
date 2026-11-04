@@ -52,7 +52,7 @@ export const DeepFocusSessionTracker: React.FC<DeepFocusSessionTrackerProps> = (
   const [secondsLeft, setSecondsLeft] = useState<number>(PRESET_SECONDS.pomodoro_25);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [selectedSubject, setSelectedSubject] = useState<string>(
-    profile.subjects[0] || 'Python'
+    profile.subjects[0] || 'Indian Polity'
   );
 
   // Option to lock other browser tabs during the session

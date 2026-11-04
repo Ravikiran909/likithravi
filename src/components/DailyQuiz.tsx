@@ -53,7 +53,7 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
   const studentWeakTopics =
     profile.weakTopics && profile.weakTopics.length > 0
       ? profile.weakTopics
-      : ['Recursion in Python', 'Limits in Calculus', 'Dynamic Programming', 'SQL Joins', 'Binary Search'];
+      : ['Indian Polity Articles', 'Modern History Chronology', 'Repo Rate & SLR', 'Successive Percentage', 'River Systems of India'];
 
   // State
   const [selectedTopics, setSelectedTopics] = useState<string[]>(studentWeakTopics);
@@ -159,82 +159,82 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
       const fallbacks: QuizQuestion[] = [
         {
           id: `fallback_q1_${Date.now()}`,
-          subject: 'Python',
-          topic: selectedTopics[0] || 'Recursion in Python',
-          questionText: 'In recursive algorithms, what is the fundamental purpose of the "base case"?',
+          subject: 'Indian Polity',
+          topic: selectedTopics[0] || 'Indian Polity Articles',
+          questionText: 'Under which Article of the Indian Constitution can the President grant pardon to a person convicted of an offense?',
           type: 'mcq',
           options: [
-            'A) To allocate additional call stack memory for recursion',
-            'B) To terminate the recursive chain and prevent infinite stack overflow',
-            'C) To compile bytecode into native machine instructions',
-            'D) To initialize default function arguments',
+            'A) Article 52',
+            'B) Article 72',
+            'C) Article 123',
+            'D) Article 161',
           ],
           correctAnswer: 'B',
-          explanation: 'The base case provides a terminal stopping condition. Without it, call stack frames accumulate until RecursionError is raised.',
+          explanation: 'Article 72 of the Constitution empowers the President of India to grant pardons, reprieves, respites or remissions of punishment.',
           difficulty: selectedDifficulty,
         },
         {
           id: `fallback_q2_${Date.now()}`,
-          subject: 'Mathematics',
-          topic: selectedTopics[1] || selectedTopics[0] || 'Limits in Calculus',
-          questionText: 'What is the limit of sin(x) / x as x approaches 0?',
+          subject: 'Modern Indian History',
+          topic: selectedTopics[1] || selectedTopics[0] || 'Modern History Chronology',
+          questionText: 'Who among the following was the founder of the Brahmo Samaj?',
           type: 'mcq',
           options: [
-            'A) 0',
-            'B) 1',
-            'C) Infinity',
-            'D) Undefined',
+            'A) Swami Vivekananda',
+            'B) Raja Ram Mohan Roy',
+            'C) Dayananda Saraswati',
+            'D) Ishwar Chandra Vidyasagar',
           ],
           correctAnswer: 'B',
-          explanation: 'By L\'Hôpital\'s Rule (or geometric proof via Squeeze Theorem), lim(x→0) sin(x)/x = cos(0)/1 = 1.',
+          explanation: 'Raja Ram Mohan Roy founded the Brahmo Samaj in 1828 to promote monotheism and social reform.',
           difficulty: selectedDifficulty,
         },
         {
           id: `fallback_q3_${Date.now()}`,
-          subject: 'Algorithms',
-          topic: selectedTopics[2] || selectedTopics[0] || 'Dynamic Programming',
-          questionText: 'Which two fundamental properties must a problem satisfy to be solvable via Dynamic Programming?',
+          subject: 'Indian Economy',
+          topic: selectedTopics[2] || selectedTopics[0] || 'Repo Rate & SLR',
+          questionText: 'What happens to the money supply in the market if the RBI increases the Cash Reserve Ratio (CRR)?',
           type: 'mcq',
           options: [
-            'A) Greedy choice property and polynomial degree',
-            'B) Optimal substructure and overlapping subproblems',
-            'C) Unbounded search space and deterministic hashing',
-            'D) FIFO scheduling and depth-first exploration',
+            'A) It increases',
+            'B) It decreases',
+            'C) It remains constant',
+            'D) It first increases then decreases',
           ],
           correctAnswer: 'B',
-          explanation: 'Dynamic Programming requires both Optimal Substructure (optimal solution composed of optimal sub-solutions) and Overlapping Subproblems (subproblems recur frequently).',
+          explanation: 'An increase in CRR means banks have to keep more cash with RBI, reducing their capacity to lend, thereby decreasing the money supply.',
           difficulty: selectedDifficulty,
         },
         {
           id: `fallback_q4_${Date.now()}`,
-          subject: 'Databases',
-          topic: selectedTopics[3] || selectedTopics[0] || 'SQL Joins',
-          questionText: 'Which join type returns all records from the LEFT table, and the matched records from the RIGHT table (filling NULL if unmatched)?',
+          subject: 'Geography',
+          topic: selectedTopics[3] || selectedTopics[0] || 'River Systems of India',
+          questionText: 'Which of the following rivers is also known as the "Dakshin Ganga"?',
           type: 'mcq',
           options: [
-            'A) INNER JOIN',
-            'B) LEFT OUTER JOIN',
-            'C) CROSS JOIN',
-            'D) FULL OUTER JOIN excluding match',
+            'A) Krishna',
+            'B) Kaveri',
+            'C) Godavari',
+            'D) Mahanadi',
           ],
-          correctAnswer: 'B',
-          explanation: 'A LEFT JOIN keeps every row from the left table unconditionally and pairs matching rows from the right table, populating NULLs where unmatched.',
+          correctAnswer: 'C',
+          explanation: 'The Godavari is the largest peninsular river and is often referred to as the Dakshin Ganga because of its size and importance.',
           difficulty: selectedDifficulty,
         },
         {
           id: `fallback_q5_${Date.now()}`,
-          subject: 'Algorithms',
-          topic: selectedTopics[4] || selectedTopics[0] || 'Binary Search',
-          questionText: 'In languages with fixed integer bit widths (such as Java or C++), why is `mid = low + (high - low) / 2` preferred over `mid = (low + high) / 2`?',
+          subject: 'Quantitative Aptitude',
+          topic: selectedTopics[4] || selectedTopics[0] || 'Successive Percentage',
+          questionText: 'If the price of a product increases by 10% and then decreases by 10%, what is the net change in price?',
           type: 'mcq',
           options: [
-            'A) It executes on hardware registers with 2x lower latency',
-            'B) It avoids 32-bit signed integer overflow when low + high exceeds 2^31 - 1',
-            'C) It always rounds down towards negative infinity',
-            'D) It permits logarithmic branching on unsorted arrays',
+            'A) No change',
+            'B) 1% increase',
+            'C) 1% decrease',
+            'D) 2% decrease',
           ],
-          correctAnswer: 'B',
-          explanation: 'When low and high are both large positive integers, (low + high) can exceed Integer.MAX_VALUE, producing overflow and negative indices. The alternate form avoids this cleanly.',
+          correctAnswer: 'C',
+          explanation: 'Using the successive percentage formula: (x + y + xy/100)%, we get: (10 - 10 + (10)(-10)/100)% = -1%. So, it is a 1% decrease.',
           difficulty: selectedDifficulty,
         },
       ];
@@ -470,7 +470,7 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
                   value={newTopicInput}
                   onChange={(e) => setNewTopicInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddNewWeakTopic()}
-                  placeholder="e.g. Dijkstra's Algorithm, SQL Joins, Integration by Parts..."
+                  placeholder="e.g. Fundamental Rights, Revolt of 1857, Monetary Policy..."
                   className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                 />
                 <button

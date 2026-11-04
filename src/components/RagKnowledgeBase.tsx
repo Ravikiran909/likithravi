@@ -38,7 +38,7 @@ export const RagKnowledgeBase: React.FC<RagKnowledgeBaseProps> = ({ onDocumentAd
 
   // Form State
   const [title, setTitle] = useState('');
-  const [subject, setSubject] = useState('Python');
+  const [subject, setSubject] = useState('Indian Polity');
   const [category, setCategory] = useState('Textbook Extract');
   const [content, setContent] = useState('');
   const [tutorDirective, setTutorDirective] = useState('');
@@ -66,8 +66,8 @@ export const RagKnowledgeBase: React.FC<RagKnowledgeBaseProps> = ({ onDocumentAd
   const [searching, setSearching] = useState(false);
 
   // Tutor Simulator State
-  const [testQuestion, setTestQuestion] = useState('How does Python GIL affect multithreading?');
-  const [testSubject, setTestSubject] = useState('Python');
+  const [testQuestion, setTestQuestion] = useState('What are the fundamental differences between Fundamental Rights and Directive Principles?');
+  const [testSubject, setTestSubject] = useState('Indian Polity');
   const [tutorResponse, setTutorResponse] = useState<string | null>(null);
   const [testingTutor, setTestingTutor] = useState(false);
   const [matchedTestChunks, setMatchedTestChunks] = useState<DocumentChunk[]>([]);
@@ -180,102 +180,100 @@ export const RagKnowledgeBase: React.FC<RagKnowledgeBaseProps> = ({ onDocumentAd
     }
   };
 
-  const handleApplySampleTemplate = (type: 'python' | 'calculus' | 'dsa' | 'java') => {
-    if (type === 'python') {
-      setTitle('Python Memory Model & GIL Architecture');
-      setSubject('Python');
+  const handleApplySampleTemplate = (type: 'polity' | 'history' | 'economy' | 'geography') => {
+    if (type === 'polity') {
+      setTitle('Indian Constitution: Fundamental Rights & Duties');
+      setSubject('Indian Polity');
       setCategory('Course Notes');
-      setTutorDirective('Emphasize that the Global Interpreter Lock (GIL) limits true multi-core CPU parallelism in CPython.');
-      const sample = `Python Global Interpreter Lock (GIL) and Concurrency Notes:
-In CPython, the Global Interpreter Lock (GIL) is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecodes at once.
+      setTutorDirective('Focus on the distinction between Article 19 and Article 21, and the concept of "reasonable restrictions".');
+      const sample = `Indian Polity - Fundamental Rights (Part III):
+The Constitution of India grants seven fundamental rights to its citizens. These include:
+1. Right to Equality (Articles 14-18)
+2. Right to Freedom (Articles 19-22)
+3. Right against Exploitation (Articles 23-24)
+4. Right to Freedom of Religion (Articles 25-28)
+5. Cultural and Educational Rights (Articles 29-30)
+6. Right to Constitutional Remedies (Article 32)
 
-Key Rules for Students:
-1. I/O-bound tasks (network requests, disk reading) release the GIL while waiting, so multi-threading works efficiently.
-2. CPU-bound calculations (number crunching, image processing) cannot run on multiple CPU cores via threading; use the multiprocessing module or ProcessPoolExecutor instead.
-3. Memory Management: Python uses reference counting combined with a cyclic garbage collector. When reference count drops to 0, memory is immediately deallocated.
+Key Insight for Aspirants:
+Fundamental Rights are justiciable, meaning they can be enforced by the courts. In case of violation, a citizen can directly approach the Supreme Court under Article 32 or High Courts under Article 226 for the issuance of Writs.
 
 Common Exam Trap:
-Using ThreadPoolExecutor for heavy sorting or matrix multiplication will NOT speed up execution in standard Python due to GIL contention.`;
+Confusing "Suspension of Fundamental Rights" during National Emergency. Note that Articles 20 and 21 cannot be suspended even during an emergency.`;
       setContent(sample);
       triggerChunkPreview(sample);
       setExtractedFileStats({
-        filename: 'python_gil_guide.pdf',
+        filename: 'polity_fundamental_rights.pdf',
+        sizeKb: 4,
+        wordCount: sample.split(/\s+/).length,
+      });
+    } else if (type === 'history') {
+      setTitle('1857 Revolt: Causes & Impact');
+      setSubject('Modern History');
+      setCategory('Textbook Extract');
+      setTutorDirective('Highlight the socio-religious causes and the immediate trigger of the Greased Cartridges.');
+      const sample = `Modern Indian History - The Revolt of 1857:
+Often termed as the "First War of Independence", the 1857 revolt was a major uprising against the rule of the British East India Company.
+
+Key Centers and Leaders:
+- Delhi: Bahadur Shah Zafar (Symbolic) & Bakht Khan
+- Kanpur: Nana Saheb & Tantia Tope
+- Lucknow: Begum Hazrat Mahal
+- Jhansi: Rani Lakshmibai
+
+Impact on British Rule:
+1. End of Company Rule: Administration was transferred to the British Crown via the Government of India Act 1858.
+2. Reorganization of Army: The ratio of Indian to British soldiers was reduced to prevent future mutinies.`;
+      setContent(sample);
+      triggerChunkPreview(sample);
+      setExtractedFileStats({
+        filename: 'modern_history_1857.pdf',
         sizeKb: 3,
         wordCount: sample.split(/\s+/).length,
       });
-    } else if (type === 'calculus') {
-      setTitle('Definite & Indefinite Integration Mastery');
-      setSubject('Calculus');
+    } else if (type === 'economy') {
+      setTitle('Monetary Policy & RBI Instruments');
+      setSubject('Indian Economy');
       setCategory('Formula Sheet');
-      setTutorDirective('Always remind student to verify integration bounds and remember the +C constant for indefinite integrals.');
-      const sample = `Calculus Theorem & Integration Patterns:
-Fundamental Theorem of Calculus (FTC):
-If f is continuous on [a, b] and F is an antiderivative of f, then Integral from a to b of f(x) dx = F(b) - F(a).
+      setTutorDirective('Explain how Repo Rate and Reverse Repo Rate are used to control inflation in the Indian market.');
+      const sample = `Indian Economy - RBI Monetary Policy:
+The Reserve Bank of India (RBI) uses various quantitative and qualitative tools to manage liquidity and inflation.
 
-Integration by Parts Formula:
-Integral of u dv = u*v - Integral of v du.
-Mnemonic Rule (LIATE):
-L - Logarithmic functions (ln x)
-I - Inverse trigonometric functions (arctan x)
-A - Algebraic functions (x^2, 3x)
-T - Trigonometric functions (sin x, cos x)
-E - Exponential functions (e^x)
+Quantitative Tools:
+- Repo Rate: The rate at which RBI lends money to commercial banks.
+- Reverse Repo Rate: The rate at which RBI borrows money from commercial banks.
+- Cash Reserve Ratio (CRR): The percentage of total deposits that banks must keep with RBI in cash.
+- Statutory Liquidity Ratio (SLR): The percentage of total deposits that banks must maintain in the form of gold, cash, or other approved securities.
 
-Standard Limits:
-lim(x->0) [sin(x) / x] = 1.
-lim(x->0) [(e^x - 1) / x] = 1.`;
+Current Trend:
+An increase in Repo Rate is usually a sign of contractionary monetary policy intended to curb high inflation by making borrowing more expensive.`;
       setContent(sample);
       triggerChunkPreview(sample);
       setExtractedFileStats({
-        filename: 'calculus_integration_theorems.pdf',
-        sizeKb: 2,
-        wordCount: sample.split(/\s+/).length,
-      });
-    } else if (type === 'dsa') {
-      setTitle('Binary Search Invariants & Tree Traversals');
-      setSubject('DSA');
-      setCategory('Textbook Extract');
-      setTutorDirective('Ensure the student uses mid = low + (high - low) / 2 to prevent integer overflow.');
-      const sample = `Binary Search Algorithm Invariant & Correctness:
-Algorithm:
-Given a sorted array A[0...n-1] and key K:
-low = 0, high = n - 1
-while low <= high:
-    mid = low + ((high - low) >> 1)
-    if A[mid] == K: return mid
-    elif A[mid] < K: low = mid + 1
-    else: high = mid - 1
-return -1
-
-Binary Tree Traversals:
-- Inorder: Left -> Root -> Right (Yields sorted order in a Binary Search Tree)
-- Preorder: Root -> Left -> Right (Used for serialization and tree cloning)
-- Postorder: Left -> Right -> Root (Used for tree deletion and bottom-up dynamic programming on trees)`;
-      setContent(sample);
-      triggerChunkPreview(sample);
-      setExtractedFileStats({
-        filename: 'dsa_binary_search_trees.pdf',
+        filename: 'economy_monetary_policy.pdf',
         sizeKb: 3,
         wordCount: sample.split(/\s+/).length,
       });
     } else {
-      setTitle('Java Memory Model & OOP Polymorphism');
-      setSubject('Java');
+      setTitle('Physical Geography: Himalayan River Systems');
+      setSubject('Geography');
       setCategory('Course Notes');
-      setTutorDirective('Explain that method overriding is dynamic runtime polymorphism while overloading is compile-time static polymorphism.');
-      const sample = `Java OOP Architecture & JVM Memory:
-1. Polymorphism:
-- Compile-time (Static): Method Overloading (same name, different parameter signature in same class).
-- Runtime (Dynamic): Method Overriding (@Override annotation, resolved via virtual method tables in JVM).
+      setTutorDirective('Differentiate between the Indus, Ganga, and Brahmaputra basins with focus on their major tributaries.');
+      const sample = `Geography - The Ganga River System:
+The Ganga is India's largest river basin, originating from the Gangotri Glacier as the Bhagirathi.
 
-2. JVM Memory Segments:
-- Stack: Stores primitive local variables and method call stack frames. Fast allocation, thread-private.
-- Heap: Stores all object instances and class member fields. Shared across threads, managed by Garbage Collector.
-- Metaspace: Stores class definitions, method metadata, and bytecodes.`;
+Major Left-Bank Tributaries:
+- Ramganga, Gomti, Ghaghara, Gandak, Kosi.
+
+Major Right-Bank Tributaries:
+- Yamuna (largest), Son.
+
+Strategic Importance:
+The Indo-Gangetic plain is one of the most fertile and densely populated regions in the world, supporting the livelihoods of millions.`;
       setContent(sample);
       triggerChunkPreview(sample);
       setExtractedFileStats({
-        filename: 'java_jvm_memory_oop.pdf',
+        filename: 'geography_river_systems.pdf',
         sizeKb: 2,
         wordCount: sample.split(/\s+/).length,
       });
@@ -562,31 +560,31 @@ Binary Tree Traversals:
               <span className="text-[11px] text-slate-400 font-medium">Quick Curriculum Templates:</span>
               <button
                 type="button"
-                onClick={() => handleApplySampleTemplate('python')}
+                onClick={() => handleApplySampleTemplate('polity')}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs border border-slate-700 transition"
               >
-                🐍 Python GIL & Scope
+                ⚖️ Indian Polity
               </button>
               <button
                 type="button"
-                onClick={() => handleApplySampleTemplate('calculus')}
+                onClick={() => handleApplySampleTemplate('history')}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs border border-slate-700 transition"
               >
-                ∫ Calculus Integration
+                📜 Modern History
               </button>
               <button
                 type="button"
-                onClick={() => handleApplySampleTemplate('dsa')}
+                onClick={() => handleApplySampleTemplate('economy')}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs border border-slate-700 transition"
               >
-                🌲 DSA Binary Search
+                📈 Indian Economy
               </button>
               <button
                 type="button"
-                onClick={() => handleApplySampleTemplate('java')}
+                onClick={() => handleApplySampleTemplate('geography')}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs border border-slate-700 transition"
               >
-                ☕ Java Memory Model
+                🌍 Geography
               </button>
             </div>
 
@@ -673,12 +671,12 @@ Binary Tree Traversals:
                     onChange={(e) => setSubject(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 transition"
                   >
-                    <option value="Python">Python</option>
-                    <option value="Calculus">Calculus</option>
-                    <option value="DSA">DSA</option>
-                    <option value="Java">Java</option>
-                    <option value="Machine Learning">Machine Learning</option>
-                    <option value="Physics">Physics</option>
+                    <option value="Indian Polity">Indian Polity</option>
+                    <option value="Modern History">Modern History</option>
+                    <option value="Indian Economy">Indian Economy</option>
+                    <option value="Geography">Geography</option>
+                    <option value="General Science">General Science</option>
+                    <option value="Current Affairs">Current Affairs</option>
                     <option value="General">General Curriculum</option>
                   </select>
                 </div>
@@ -840,7 +838,7 @@ Binary Tree Traversals:
               <Filter className="w-4 h-4 text-slate-400" />
               <span className="text-xs font-semibold text-slate-300">Filter by Subject:</span>
               <div className="flex flex-wrap gap-1.5">
-                {['All', 'Python', 'Calculus', 'DSA', 'Java', 'Machine Learning'].map((sub) => (
+                {['All', 'Indian Polity', 'Modern History', 'Indian Economy', 'Geography', 'Current Affairs'].map((sub) => (
                   <button
                     key={sub}
                     onClick={() => setSelectedSubjectFilter(sub)}
@@ -968,11 +966,11 @@ Binary Tree Traversals:
                   onChange={(e) => setTestSubject(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 transition"
                 >
-                  <option value="Python">Python</option>
-                  <option value="Calculus">Calculus</option>
-                  <option value="DSA">DSA</option>
-                  <option value="Java">Java</option>
-                  <option value="Machine Learning">Machine Learning</option>
+                  <option value="Indian Polity">Indian Polity</option>
+                  <option value="Modern History">Modern History</option>
+                  <option value="Indian Economy">Indian Economy</option>
+                  <option value="Geography">Geography</option>
+                  <option value="Current Affairs">Current Affairs</option>
                 </select>
               </div>
 
@@ -985,7 +983,7 @@ Binary Tree Traversals:
                   required
                   value={testQuestion}
                   onChange={(e) => setTestQuestion(e.target.value)}
-                  placeholder="e.g. Can you explain how the GIL works in Python multithreading?"
+                  placeholder="e.g. Can you explain the difference between Fundamental Rights and DPSP?"
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>

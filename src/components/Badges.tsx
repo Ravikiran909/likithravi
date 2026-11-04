@@ -308,7 +308,7 @@ export const Badges: React.FC<BadgesProps> = ({
           'Broaden your horizons by actively learning across multiple distinct curriculum subjects.',
         category: 'curriculum',
         iconName: 'BookOpen',
-        requirement: 'Study across 2+ distinct subjects (e.g. Python & Calculus)',
+        requirement: 'Study across 2+ distinct subjects (e.g. Indian Polity & Modern History)',
         isUnlocked:
           Boolean(profile.subjects && profile.subjects.length >= 2) ||
           existingEarned.has('knowledge-explorer'),

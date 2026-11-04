@@ -60,12 +60,12 @@ export const KnowledgeGraphD3: React.FC<KnowledgeGraphD3Props> = ({ documents })
     };
 
     // Subject Root Nodes
-    const subjects = ['Python', 'Data Structures', 'Calculus', 'Machine Learning'];
+    const subjects = ['Indian Polity', 'Modern History', 'Indian Economy', 'Geography'];
     const subjectColors: Record<string, string> = {
-      Python: '#10b981', // emerald
-      'Data Structures': '#06b6d4', // cyan
-      Calculus: '#f59e0b', // amber
-      'Machine Learning': '#8b5cf6', // purple
+      'Indian Polity': '#10b981', // emerald
+      'Modern History': '#06b6d4', // cyan
+      'Indian Economy': '#f59e0b', // amber
+      Geography: '#8b5cf6', // purple
     };
 
     subjects.forEach((subj) => {
@@ -82,7 +82,7 @@ export const KnowledgeGraphD3: React.FC<KnowledgeGraphD3Props> = ({ documents })
 
     // Ingested Documents
     documents.forEach((doc) => {
-      const docSubj = doc.subject || 'Python';
+      const docSubj = doc.subject || 'Indian Polity';
       const docId = `doc_${doc.id}`;
       addNode({
         id: docId,
@@ -105,17 +105,17 @@ export const KnowledgeGraphD3: React.FC<KnowledgeGraphD3Props> = ({ documents })
 
     // Curated Academic Knowledge Topics & Connections
     const topicRelations = [
-      { id: 'c_recursion', name: 'Recursion & Base Cases', subject: 'Python', parentDoc: 'doc_1', related: ['c_callstack', 'c_trees'] },
-      { id: 'c_callstack', name: 'Call Stack & Stack Overflow', subject: 'Python', parentDoc: 'doc_1', related: ['c_memory'] },
-      { id: 'c_gil', name: 'Python GIL & Threads', subject: 'Python', parentDoc: 'doc_1', related: ['c_concurrency'] },
-      { id: 'c_concurrency', name: 'Multiprocessing & Async', subject: 'Python', parentDoc: 'doc_1', related: ['c_gil'] },
-      { id: 'c_bigo', name: 'Big-O Time Complexity', subject: 'Data Structures', parentDoc: 'doc_2', related: ['c_binsearch', 'c_sort'] },
-      { id: 'c_binsearch', name: 'Binary Search (O(log n))', subject: 'Data Structures', parentDoc: 'doc_2', related: ['c_bigo', 'c_trees'] },
-      { id: 'c_trees', name: 'Binary Search Trees (BST)', subject: 'Data Structures', parentDoc: 'doc_2', related: ['c_recursion'] },
-      { id: 'c_derivatives', name: 'Derivatives & Power Rule', subject: 'Calculus', parentDoc: 'doc_3', related: ['c_integration', 'c_limits'] },
-      { id: 'c_limits', name: 'Limits & Continuity', subject: 'Calculus', parentDoc: 'doc_3', related: ['c_derivatives'] },
-      { id: 'c_integration', name: 'Integration & Area Under Curve', subject: 'Calculus', parentDoc: 'doc_3', related: ['c_derivatives'] },
-      { id: 'c_gradient', name: 'Gradient Descent & Loss', subject: 'Machine Learning', parentDoc: 'doc_4', related: ['c_derivatives'] },
+      { id: 'c_articles', name: 'Constitutional Articles', subject: 'Indian Polity', parentDoc: 'doc_1', related: ['c_rights', 'c_amendment'] },
+      { id: 'c_rights', name: 'Fundamental Rights', subject: 'Indian Polity', parentDoc: 'doc_1', related: ['c_articles', 'c_dpsp'] },
+      { id: 'c_dpsp', name: 'Directive Principles', subject: 'Indian Polity', parentDoc: 'doc_1', related: ['c_rights'] },
+      { id: 'c_amendment', name: 'Amendment Process', subject: 'Indian Polity', parentDoc: 'doc_1', related: ['c_articles'] },
+      { id: 'c_1857', name: 'Revolt of 1857', subject: 'Modern History', parentDoc: 'doc_2', related: ['c_congress', 'c_reforms'] },
+      { id: 'c_congress', name: 'INC Foundation (1885)', subject: 'Modern History', parentDoc: 'doc_2', related: ['c_1857', 'c_gandhi'] },
+      { id: 'c_gandhi', name: 'Gandhian Era', subject: 'Modern History', parentDoc: 'doc_2', related: ['c_congress'] },
+      { id: 'c_monetary', name: 'RBI Monetary Policy', subject: 'Indian Economy', parentDoc: 'doc_3', related: ['c_inflation', 'c_budget'] },
+      { id: 'c_inflation', name: 'Inflation Targeting', subject: 'Indian Economy', parentDoc: 'doc_3', related: ['c_monetary'] },
+      { id: 'c_budget', name: 'Union Budget Process', subject: 'Indian Economy', parentDoc: 'doc_3', related: ['c_monetary'] },
+      { id: 'c_monsoon', name: 'Indian Monsoon Mechanism', subject: 'Geography', parentDoc: 'doc_4', related: ['c_rivers'] },
     ];
 
     topicRelations.forEach((t) => {
@@ -343,10 +343,10 @@ export const KnowledgeGraphD3: React.FC<KnowledgeGraphD3Props> = ({ documents })
             className="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded-xl px-2.5 py-1.5 focus:outline-none"
           >
             <option value="All">All Subjects</option>
-            <option value="Python">Python</option>
-            <option value="Data Structures">Data Structures</option>
-            <option value="Calculus">Calculus</option>
-            <option value="Machine Learning">Machine Learning</option>
+            <option value="Indian Polity">Indian Polity</option>
+            <option value="Modern History">Modern History</option>
+            <option value="Indian Economy">Indian Economy</option>
+            <option value="Geography">Geography</option>
           </select>
 
           {/* Zoom & Reset Button */}

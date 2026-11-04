@@ -99,24 +99,24 @@ const STATUS_CONFIG: Record<
 
 const DEFAULT_GAPS = [
   {
-    topic: 'Recursion edge cases',
-    obs: 'Confused base condition with return value propagation in tree traversal recursion.',
-    drill: 'Walk through Fibonacci and binary tree path-sum call stacks step by step.',
+    topic: 'Modern Indian History (1857-1947)',
+    obs: 'Confused the chronological order of the Non-Cooperation Movement and the Khilafat Movement.',
+    drill: 'Create a timeline of events from 1915 to 1930 with key leaders involved.',
   },
   {
-    topic: 'Calculus (Integration by Parts)',
-    obs: 'Misidentified algebraic vs trigonometric priority in the LIATE integration rule.',
-    drill: 'Practice 4 standard u·dv substitution problems with polynomial exponents.',
+    topic: 'Indian Polity (Fundamental Rights)',
+    obs: 'Struggled to differentiate between the Writ of Mandamus and Certiorari in the mock quiz.',
+    drill: 'Review Article 32 and Article 226; solve 10 previous year questions on Writs.',
   },
   {
-    topic: 'Dynamic Programming (Memoization)',
-    obs: 'Attempted greedy choice where overlapping subproblems required 2D state cache.',
-    drill: 'Convert top-down recursive Fibonacci into 1D memoized array.',
+    topic: 'Indian Economy (Inflation)',
+    obs: 'Miscalculated the impact of repo rate hikes on the Wholesale Price Index (WPI).',
+    drill: 'Study the relationship between RBI monetary policy and consumer demand.',
   },
   {
-    topic: 'SQL Query Optimization',
-    obs: 'Missed composite index column order causing full table scan on join query.',
-    drill: 'Analyze EXPLAIN plan on multi-column WHERE clauses.',
+    topic: 'Geography (Indian River Systems)',
+    obs: 'Missed identifying the left-bank tributaries of the Ganga in the map-based exercise.',
+    drill: 'Draw a map of the Ganga river system and label all major tributaries.',
   },
 ];
 
@@ -137,7 +137,7 @@ export const CalendarKnowledgeGapHeatmap: React.FC<CalendarKnowledgeGapHeatmapPr
     const weakTopics =
       profile.weakTopics && profile.weakTopics.length > 0
         ? profile.weakTopics
-        : ['Recursion edge cases', 'Calculus (Integration)', 'Dynamic Programming'];
+        : ['Indian Polity', 'Modern History', 'General Science', 'Indian Economy'];
 
     const targetMinutes = (profile.studyHoursPerDay || 2) * 60;
     const currentStreak = Math.max(1, profile.streak || 7);

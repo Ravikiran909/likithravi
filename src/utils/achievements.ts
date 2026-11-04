@@ -52,27 +52,27 @@ export function calculateLearningAchievements(
   const weakLower = (profile.weakTopics || []).map((w) => w.toLowerCase());
   const historyMastered = (profile.learningHistory || []).filter((h) => h.mastered);
 
-  const hasCalculusMastery =
-    strongLower.some((s) => /calculus|integration|derivative|limit/i.test(s)) ||
-    historyMastered.some((h) => /calculus/i.test(h.subject) || /calculus|integral|limit/i.test(h.topic)) ||
-    (!weakLower.some((w) => /calculus/i.test(w)) && (profile.overallProgress || 0) >= 85);
+  const hasPolityMastery =
+    strongLower.some((s) => /polity|constitution|fundamental rights|parliament/i.test(s)) ||
+    historyMastered.some((h) => /polity/i.test(h.subject) || /polity|constitution|rights/i.test(h.topic)) ||
+    (!weakLower.some((w) => /polity/i.test(w)) && (profile.overallProgress || 0) >= 85);
 
-  const hasPythonMastery =
-    strongLower.some((s) => /python/i.test(s)) ||
-    historyMastered.some((h) => /python/i.test(h.subject)) ||
+  const hasHistoryMastery =
+    strongLower.some((s) => /history|freedom struggle|gandhian/i.test(s)) ||
+    historyMastered.some((h) => /history/i.test(h.subject)) ||
     (profile.overallProgress || 0) >= 75;
 
-  const hasDsaMastery =
-    strongLower.some((s) => /dsa|binary|tree|graph|dynamic programming|recursion/i.test(s)) ||
-    historyMastered.some((h) => /dsa/i.test(h.subject));
+  const hasEconomyMastery =
+    strongLower.some((s) => /economy|banking|rbi|budget/i.test(s)) ||
+    historyMastered.some((h) => /economy/i.test(h.subject));
 
   // Find completed courses matching subjects
   const completedCourses = courses.filter((c) => completedIds.includes(c.id));
-  const hasCompletedGenAI = completedCourses.some(
-    (c) => c.subject === 'Generative AI' || c.keyTopics.some((t) => /genai|llm|transformer|gpt/i.test(t))
+  const hasCompletedGovExams = completedCourses.some(
+    (c) => c.subject === 'Government Exams' || c.keyTopics.some((t) => /upsc|ssc|banking/i.test(t))
   );
-  const hasCompletedAgents = completedCourses.some(
-    (c) => c.subject === 'AI Agents' || c.keyTopics.some((t) => /agent|react|langgraph|crewai/i.test(t))
+  const hasCompletedSkills = completedCourses.some(
+    (c) => c.subject === 'Professional Skills' || c.keyTopics.some((t) => /thinking|communication|leadership/i.test(t))
   );
 
   // 1. Study Streak Milestone Badges
@@ -83,7 +83,7 @@ export function calculateLearningAchievements(
       category: 'streak',
       tier: 'Bronze',
       icon: '🔥',
-      description: 'Study 3 consecutive days on WhatsApp to jumpstart your daily learning habit.',
+      description: 'Study 3 consecutive days to jumpstart your daily learning habit.',
       requirementDescription: 'Maintain a 3-day study streak',
       currentValue: Math.min(streak, 3),
       targetValue: 3,
@@ -249,57 +249,57 @@ export function calculateLearningAchievements(
     },
   ];
 
-  // 3. Subject Mastery Badges (including 'Mastery in Calculus')
-  const calcProgress = isStoredOrUnlocked('badge_mastery_calculus', hasCalculusMastery)
+  // 3. Subject Mastery Badges
+  const polityProgress = isStoredOrUnlocked('badge_mastery_polity', hasPolityMastery)
     ? 100
     : Math.min(95, Math.max(45, profile.overallProgress || 60));
 
   const masteryBadges: AchievementBadge[] = [
     {
-      id: 'badge_mastery_calculus',
-      title: 'Mastery in Calculus',
+      id: 'badge_mastery_polity',
+      title: 'Mastery in Indian Polity',
       category: 'subject_mastery',
       tier: 'Gold',
-      icon: '∫',
-      description: 'Demonstrate mastery in Calculus limits, derivatives, and integration by parts.',
-      requirementDescription: 'Master Calculus sub-topics & pass Calculus quizzes (80%+)',
-      currentValue: isStoredOrUnlocked('badge_mastery_calculus', hasCalculusMastery) ? 100 : calcProgress,
+      icon: '⚖️',
+      description: 'Demonstrate mastery in Indian Constitution, Fundamental Rights, and Parliamentary procedures.',
+      requirementDescription: 'Master Polity sub-topics & pass Polity quizzes (80%+)',
+      currentValue: isStoredOrUnlocked('badge_mastery_polity', hasPolityMastery) ? 100 : polityProgress,
       targetValue: 100,
-      unlocked: isStoredOrUnlocked('badge_mastery_calculus', hasCalculusMastery),
-      progressPercent: isStoredOrUnlocked('badge_mastery_calculus', hasCalculusMastery) ? 100 : calcProgress,
-      unlockedAt: earnedMap.get('badge_mastery_calculus'),
+      unlocked: isStoredOrUnlocked('badge_mastery_polity', hasPolityMastery),
+      progressPercent: isStoredOrUnlocked('badge_mastery_polity', hasPolityMastery) ? 100 : polityProgress,
+      unlockedAt: earnedMap.get('badge_mastery_polity'),
       rarity: 'Epic',
       glowColor: 'from-rose-500/20 to-amber-500/20 border-rose-500/40 text-rose-300',
     },
     {
-      id: 'badge_mastery_python',
-      title: 'Mastery in Python',
+      id: 'badge_mastery_history',
+      title: 'Mastery in Modern History',
       category: 'subject_mastery',
       tier: 'Silver',
-      icon: '🐍',
-      description: 'Achieve high proficiency in Python functions, scoping, OOP, and recursion.',
-      requirementDescription: 'Master Python core modules (80%+)',
-      currentValue: isStoredOrUnlocked('badge_mastery_python', hasPythonMastery) ? 100 : 75,
+      icon: '📜',
+      description: 'Achieve high proficiency in the Indian Freedom Struggle and constitutional developments.',
+      requirementDescription: 'Master History core modules (80%+)',
+      currentValue: isStoredOrUnlocked('badge_mastery_history', hasHistoryMastery) ? 100 : 75,
       targetValue: 100,
-      unlocked: isStoredOrUnlocked('badge_mastery_python', hasPythonMastery),
-      progressPercent: isStoredOrUnlocked('badge_mastery_python', hasPythonMastery) ? 100 : 75,
-      unlockedAt: earnedMap.get('badge_mastery_python'),
+      unlocked: isStoredOrUnlocked('badge_mastery_history', hasHistoryMastery),
+      progressPercent: isStoredOrUnlocked('badge_mastery_history', hasHistoryMastery) ? 100 : 75,
+      unlockedAt: earnedMap.get('badge_mastery_history'),
       rarity: 'Rare',
       glowColor: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-300',
     },
     {
-      id: 'badge_mastery_dsa',
-      title: 'Mastery in DSA & Algorithms',
+      id: 'badge_mastery_economy',
+      title: 'Mastery in Indian Economy',
       category: 'subject_mastery',
       tier: 'Platinum',
-      icon: '🧬',
-      description: 'Conquer Binary Search, Trees, Graph traversals, and Dynamic Programming invariants.',
-      requirementDescription: 'Master DSA topics & maintain 80%+ quiz accuracy',
-      currentValue: isStoredOrUnlocked('badge_mastery_dsa', hasDsaMastery) ? 100 : Math.min(90, accuracy),
+      icon: '📊',
+      description: 'Conquer Banking, Monetary Policy, Public Finance, and Economic Infrastructure concepts.',
+      requirementDescription: 'Master Economy topics & maintain 80%+ quiz accuracy',
+      currentValue: isStoredOrUnlocked('badge_mastery_economy', hasEconomyMastery) ? 100 : Math.min(90, accuracy),
       targetValue: 100,
-      unlocked: isStoredOrUnlocked('badge_mastery_dsa', hasDsaMastery),
-      progressPercent: isStoredOrUnlocked('badge_mastery_dsa', hasDsaMastery) ? 100 : Math.min(90, accuracy),
-      unlockedAt: earnedMap.get('badge_mastery_dsa'),
+      unlocked: isStoredOrUnlocked('badge_mastery_economy', hasEconomyMastery),
+      progressPercent: isStoredOrUnlocked('badge_mastery_economy', hasEconomyMastery) ? 100 : Math.min(90, accuracy),
+      unlockedAt: earnedMap.get('badge_mastery_economy'),
       rarity: 'Legendary',
       glowColor: 'from-indigo-500/20 to-violet-500/20 border-indigo-500/40 text-indigo-300',
     },
@@ -313,7 +313,7 @@ export function calculateLearningAchievements(
       category: 'course_completion',
       tier: 'Bronze',
       icon: '🎓',
-      description: 'Complete your first verified programming or academic course.',
+      description: 'Complete your first verified government exam or professional skills course.',
       requirementDescription: 'Complete 1 course',
       currentValue: Math.min(completedCount, 1),
       targetValue: 1,
@@ -324,38 +324,39 @@ export function calculateLearningAchievements(
       glowColor: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-300',
     },
     {
-      id: 'badge_course_genai',
-      title: 'GenAI Trailblazer',
+      id: 'badge_course_gov_exams',
+      title: 'Exam Strategist',
       category: 'course_completion',
       tier: 'Silver',
-      icon: '✨',
-      description: 'Complete a verified course in Generative AI, LLMs, or prompt engineering.',
-      requirementDescription: 'Complete 1 Generative AI course',
-      currentValue: isStoredOrUnlocked('badge_course_genai', hasCompletedGenAI) ? 1 : 0,
+      icon: '🎯',
+      description: 'Complete a verified course in UPSC, SSC, or Banking preparations.',
+      requirementDescription: 'Complete 1 Government Exam course',
+      currentValue: isStoredOrUnlocked('badge_course_gov_exams', hasCompletedGovExams) ? 1 : 0,
       targetValue: 1,
-      unlocked: isStoredOrUnlocked('badge_course_genai', hasCompletedGenAI),
-      progressPercent: isStoredOrUnlocked('badge_course_genai', hasCompletedGenAI) ? 100 : 0,
-      unlockedAt: earnedMap.get('badge_course_genai'),
+      unlocked: isStoredOrUnlocked('badge_course_gov_exams', hasCompletedGovExams),
+      progressPercent: isStoredOrUnlocked('badge_course_gov_exams', hasCompletedGovExams) ? 100 : 0,
+      unlockedAt: earnedMap.get('badge_course_gov_exams'),
       rarity: 'Rare',
       glowColor: 'from-indigo-500/20 to-purple-500/20 border-indigo-500/40 text-indigo-300',
     },
     {
-      id: 'badge_course_agents',
-      title: 'Agent Architect',
+      id: 'badge_course_skills',
+      title: 'Professional Pro',
       category: 'course_completion',
       tier: 'Gold',
-      icon: '🤖',
-      description: 'Master autonomous ReAct cycles, tool calling, and multi-agent coordination.',
-      requirementDescription: 'Complete 1 AI Agents course',
-      currentValue: isStoredOrUnlocked('badge_course_agents', hasCompletedAgents) ? 1 : 0,
+      icon: '💼',
+      description: 'Master critical thinking, business communication, or leadership modules.',
+      requirementDescription: 'Complete 1 Professional Skills course',
+      currentValue: isStoredOrUnlocked('badge_course_skills', hasCompletedSkills) ? 1 : 0,
       targetValue: 1,
-      unlocked: isStoredOrUnlocked('badge_course_agents', hasCompletedAgents),
-      progressPercent: isStoredOrUnlocked('badge_course_agents', hasCompletedAgents) ? 100 : 0,
-      unlockedAt: earnedMap.get('badge_course_agents'),
+      unlocked: isStoredOrUnlocked('badge_course_skills', hasCompletedSkills),
+      progressPercent: isStoredOrUnlocked('badge_course_skills', hasCompletedSkills) ? 100 : 0,
+      unlockedAt: earnedMap.get('badge_course_skills'),
       rarity: 'Epic',
       glowColor: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/40 text-cyan-300',
     },
   ];
+
 
   const allBadges = [...streakBadges, ...questionBadges, ...masteryBadges, ...courseBadges];
   const unlockedCount = allBadges.filter((b) => b.unlocked).length;
