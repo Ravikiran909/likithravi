@@ -210,6 +210,9 @@ export interface LearningResource {
   subject:
     | 'Government Exams'
     | 'Professional Skills'
+    | 'Technical Skills'
+    | 'AI & Data Science'
+    | 'Programming'
     | 'General';
   type: 'youtube_video' | 'youtube_playlist' | 'free_course' | 'interactive_tutorial';
   provider: string;

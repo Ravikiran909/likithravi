@@ -382,6 +382,17 @@ class DatabaseStore {
       chunkCount: 3,
       summary: 'Transformer multi-head attention, context window management, few-shot prompt patterns, and dense vector embeddings.',
     };
+    const docPromptEng: DocumentRecord = {
+      id: 'doc_prompt_engineering',
+      title: 'Advanced Prompt Engineering: Patterns & Best Practices',
+      subject: 'Prompt Engineering',
+      category: 'Technical Guide',
+      originalFilename: 'prompt_engineering_mastery.pdf',
+      fileSizeKb: 310,
+      uploadedAt: new Date().toISOString(),
+      chunkCount: 3,
+      summary: 'Mastering Chain-of-Thought, Few-Shot prompting, ReAct patterns, and prompt optimization for production LLMs.',
+    };
     const docAgents: DocumentRecord = {
       id: 'doc_agents_handbook',
       title: 'Autonomous AI Agents: ReAct Loops, Tool Calling & Multi-Agent Swarms',
@@ -458,6 +469,7 @@ class DatabaseStore {
     this.documents.set(docR.id, docR);
     this.documents.set(docCalculus.id, docCalculus);
     this.documents.set(docGenAI.id, docGenAI);
+    this.documents.set(docPromptEng.id, docPromptEng);
     this.documents.set(docAgents.id, docAgents);
     this.documents.set(docDsaLinear.id, docDsaLinear);
     this.documents.set(docDsaTreesGraphsDp.id, docDsaTreesGraphsDp);
@@ -760,6 +772,37 @@ class DatabaseStore {
         content:
           'Multi-Agent Collaboration & State Graphs: Frameworks like LangGraph, CrewAI, and AutoGen enable multi-agent systems where agents specialize in roles (Researcher, Critic, Coder, Reviewer). State graphs maintain shared memory, checkpoints, error reflection, and human-in-the-loop approvals before executing irreversible actions.',
         keywords: ['Multi-Agent', 'LangGraph', 'CrewAI', 'AutoGen', 'Human in the loop', 'State Graphs'],
+      },
+      // Prompt Engineering Chunks
+      {
+        id: 'chunk_pe_1',
+        documentId: 'doc_prompt_engineering',
+        documentTitle: 'Advanced Prompt Engineering: Patterns & Best Practices',
+        subject: 'Prompt Engineering',
+        chunkIndex: 1,
+        content:
+          'Chain-of-Thought (CoT) Prompting: This technique encourages LLMs to generate a series of intermediate reasoning steps before providing the final answer. By using prompts like "Let\'s think step by step", complex multi-step reasoning problems in math or logic can be solved more accurately as the model decomposes the task into manageable logical increments.',
+        keywords: ['Chain-of-Thought', 'CoT', 'Reasoning', 'Step-by-step', 'Logical Decomposition'],
+      },
+      {
+        id: 'chunk_pe_2',
+        documentId: 'doc_prompt_engineering',
+        documentTitle: 'Advanced Prompt Engineering: Patterns & Best Practices',
+        subject: 'Prompt Engineering',
+        chunkIndex: 2,
+        content:
+          'Few-Shot & Many-Shot In-Context Learning: Few-shot prompting involves providing a few examples of input-output pairs within the prompt to guide the model on style, format, and task logic. With larger context windows, "Many-Shot" (hundreds of examples) can significantly improve performance on niche tasks without needing fine-tuning.',
+        keywords: ['Few-Shot', 'In-Context Learning', 'Example-based Prompting', 'Task Alignment'],
+      },
+      {
+        id: 'chunk_pe_3',
+        documentId: 'doc_prompt_engineering',
+        documentTitle: 'Advanced Prompt Engineering: Patterns & Best Practices',
+        subject: 'Prompt Engineering',
+        chunkIndex: 3,
+        content:
+          'Prompt Delimiters & Structured Output: Using clear delimiters (e.g., XML tags <context></context>, triple backticks ```, or JSON schemas) helps LLMs distinguish between instructions, user inputs, and reference material. Requesting structured output (JSON/YAML) ensures the model response can be programmatically parsed by downstream tools.',
+        keywords: ['Delimiters', 'Structured Output', 'JSON Schema', 'Instruction Following', 'Prompt Formatting'],
       }
     );
 

@@ -9,6 +9,7 @@ import { OfflineIndicator } from './components/OfflineIndicator.tsx';
 import { AppLockOverlay } from './components/AppLockOverlay.tsx';
 import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.tsx';
 import { GovernmentExamApp } from './components/GovernmentExamApp.tsx';
+import { FreeCoursesAndVideos } from './components/FreeCoursesAndVideos.tsx';
 import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
 import { GraduationCap } from 'lucide-react';
@@ -121,7 +122,7 @@ const normalizeStudentProfile = (
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams'>('gov_exams');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams' | 'skill_up'>('gov_exams');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile>(
     normalizeStudentProfile(null)
@@ -369,6 +370,19 @@ export default function App() {
             />
           </div>
         )}
+
+        {activeTab === 'skill_up' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <FreeCoursesAndVideos
+              profile={selectedProfile}
+              onProfileUpdate={handleProfileUpdate}
+              onNavigateToChat={(text) => {
+                if (text) setPendingChatPrompt(text);
+                setActiveTab('simulator');
+              }}
+            />
+          </div>
+        )}
       </main>
 
       <footer
@@ -378,7 +392,7 @@ export default function App() {
       >
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            Government Exam AI Preparation Command Center • Personalized UPSC, SSC & Banking Tutor
+            India Exam & Skill Command Center • Personalized UPSC, SSC, Banking & Technical Tutor
           </span>
           <span className="text-slate-500">
             Hardened Firestore Security • Gemini 3.8 Flash • Socratic Pedagogy

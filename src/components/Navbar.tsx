@@ -20,8 +20,8 @@ import {
 import { StudentProfile, SUPPORTED_LANGUAGES } from '../types/index.ts';
 
 interface NavbarProps {
-  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams';
-  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams') => void;
+  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams' | 'skill_up';
+  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams' | 'skill_up') => void;
   selectedProfile: StudentProfile | null;
   isWhatsAppConfigured: boolean;
   focusMode?: boolean;
@@ -70,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-400 bg-clip-text text-transparent">
-                  Prep Command Center
+                  Skill & Exam Command
                 </span>
                 {focusMode ? (
                   <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
@@ -86,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <p className="text-xs text-slate-400 hidden sm:block">
                 {focusMode
                   ? 'Distraction-Free Deep Study session in progress'
-                  : 'Official Govt Exam Socratic AI Tutor • WhatsApp Cloud API Bridged'}
+                  : 'Official Govt Exam & Technical Socratic AI Tutor'}
               </p>
             </div>
           </div>
@@ -102,7 +102,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Building2 className="w-4 h-4 text-amber-400" />
-              <span>Exam Tracks</span>
+              <span>Govt Exams</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('skill_up')}
+              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer relative ${
+                activeTab === 'skill_up'
+                  ? 'bg-gradient-to-r from-indigo-600 to-blue-500 text-white shadow-md shadow-blue-600/40 ring-1 ring-indigo-400'
+                  : 'text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/40 border border-indigo-500/30'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <span>Skill Up</span>
             </button>
 
             <button

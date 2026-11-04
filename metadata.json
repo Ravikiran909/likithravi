@@ -1,6 +1,6 @@
 {
-  "name": "India GovExam Prep Hub",
-  "description": "Comprehensive Government Exam Preparation platform for UPSC, SSC, IBPS, and State PSCs with progress tracking, mock interviews, and curated learning resources.",
+  "name": "India Exam & Skill Command Center",
+  "description": "Unified platform for Government Exam preparation (UPSC, SSC, Banking) and Technical Skill-Up for companies (GenAI, Agentic AI, Programming) with RAG-powered study materials and Socratic AI Tutor.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

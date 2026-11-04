@@ -407,6 +407,76 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         accent: 'emerald',
         iconName: 'award',
       },
+      // 12. TECH SKILL-UP: 'AI Architect'
+      {
+        id: 'milestone_ai_architect',
+        title: 'AI Architect',
+        badgeCode: 'BDG-TECH-AI',
+        milestoneLabel: 'AI & Data Science Mastery',
+        category: 'topic_mastery',
+        tier: 'Diamond',
+        xpPoints: 850,
+        description:
+          'Awarded for mastering advanced Artificial Intelligence concepts including Generative AI, LLM Architecture, and Agentic Workflows.',
+        requirementSummary: 'Master 2 AI or Data Science topics',
+        currentValue: masteredTopics.filter(t => 
+          t.toLowerCase().includes('ai') || 
+          t.toLowerCase().includes('generative') || 
+          t.toLowerCase().includes('agent') ||
+          t.toLowerCase().includes('prompt')
+        ).length,
+        targetValue: 2,
+        unit: 'topics',
+        unlocked: isUnlocked('milestone_ai_architect', masteredTopics.filter(t => 
+          t.toLowerCase().includes('ai') || 
+          t.toLowerCase().includes('generative') || 
+          t.toLowerCase().includes('agent') ||
+          t.toLowerCase().includes('prompt')
+        ).length >= 2),
+        awardedAt: getAwardDate('milestone_ai_architect', isUnlocked('milestone_ai_architect', masteredTopics.filter(t => 
+          t.toLowerCase().includes('ai') || 
+          t.toLowerCase().includes('generative') || 
+          t.toLowerCase().includes('agent') ||
+          t.toLowerCase().includes('prompt')
+        ).length >= 2)),
+        accent: 'sky',
+        iconName: 'zap',
+      },
+      // 13. TECH SKILL-UP: 'Code Centurion'
+      {
+        id: 'milestone_code_centurion',
+        title: 'Code Centurion',
+        badgeCode: 'BDG-TECH-PROG',
+        milestoneLabel: 'Programming Mastery',
+        category: 'topic_mastery',
+        tier: 'Gold',
+        xpPoints: 600,
+        description:
+          'Awarded for mastering core programming languages and software engineering patterns (Python, Java, DSA).',
+        requirementSummary: 'Master 2 Programming or DSA topics',
+        currentValue: masteredTopics.filter(t => 
+          t.toLowerCase().includes('python') || 
+          t.toLowerCase().includes('java') || 
+          t.toLowerCase().includes('dsa') ||
+          t.toLowerCase().includes('algorithm')
+        ).length,
+        targetValue: 2,
+        unit: 'topics',
+        unlocked: isUnlocked('milestone_code_centurion', masteredTopics.filter(t => 
+          t.toLowerCase().includes('python') || 
+          t.toLowerCase().includes('java') || 
+          t.toLowerCase().includes('dsa') ||
+          t.toLowerCase().includes('algorithm')
+        ).length >= 2),
+        awardedAt: getAwardDate('milestone_code_centurion', isUnlocked('milestone_code_centurion', masteredTopics.filter(t => 
+          t.toLowerCase().includes('python') || 
+          t.toLowerCase().includes('java') || 
+          t.toLowerCase().includes('dsa') ||
+          t.toLowerCase().includes('algorithm')
+        ).length >= 2)),
+        accent: 'indigo',
+        iconName: 'trophy',
+      },
     ];
   }, [
     currentStreak,

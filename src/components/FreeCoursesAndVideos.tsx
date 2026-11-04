@@ -129,7 +129,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
     fetchResourcesAndRatings();
   }, []);
 
-  const subjectsList = ['all', 'Government Exams', 'Indian Polity', 'Indian History', 'Economy', 'Geography', 'Mathematics', 'Professional Skills'];
+  const subjectsList = ['all', 'AI & Data Science', 'Programming', 'Government Exams', 'Indian Polity', 'Indian History', 'Economy', 'Geography', 'Mathematics', 'Professional Skills'];
 
   // Filtered resources
   const filteredResources = useMemo(() => {
@@ -279,6 +279,8 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                   : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
               }`}
             >
+              {sub === 'AI & Data Science' && <span>🤖</span>}
+              {sub === 'Programming' && <span>💻</span>}
               {sub === 'Government Exams' && <span>🏛️</span>}
               {sub === 'Indian Polity' && <span>📜</span>}
               {sub === 'Indian History' && <span>🏺</span>}

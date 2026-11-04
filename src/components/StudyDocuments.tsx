@@ -329,6 +329,8 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
 
   const subjectsList = [
     'all',
+    'AI & Data Science',
+    'Programming',
     'UPSC CSE',
     'SSC CGL',
     'Indian Polity',
@@ -865,6 +867,8 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                     : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
                 }`}
               >
+                {sub === 'AI & Data Science' && <span>🤖</span>}
+                {sub === 'Programming' && <span>💻</span>}
                 {sub === 'UPSC CSE' && <span>🏛️</span>}
                 {sub === 'SSC CGL' && <span>📜</span>}
                 {sub === 'Indian Polity' && <span>⚖️</span>}
