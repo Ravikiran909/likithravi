@@ -331,12 +331,12 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
     'all',
     'AI & Data Science',
     'Programming',
-    'UPSC CSE',
-    'SSC CGL',
+    'App Development',
     'Indian Polity',
     'Modern Indian History',
     'Indian Economy',
     'Geography',
+    'Mathematics',
     'Quantitative Aptitude',
     'Professional Skills',
   ];
@@ -869,12 +869,12 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
               >
                 {sub === 'AI & Data Science' && <span>🤖</span>}
                 {sub === 'Programming' && <span>💻</span>}
-                {sub === 'UPSC CSE' && <span>🏛️</span>}
-                {sub === 'SSC CGL' && <span>📜</span>}
+                {sub === 'App Development' && <span>📱</span>}
                 {sub === 'Indian Polity' && <span>⚖️</span>}
                 {sub === 'Modern Indian History' && <span>🕒</span>}
                 {sub === 'Indian Economy' && <span>💹</span>}
                 {sub === 'Geography' && <span>🌍</span>}
+                {sub === 'Mathematics' && <span>📐</span>}
                 {sub === 'Quantitative Aptitude' && <span>🔢</span>}
                 {sub === 'Professional Skills' && <span>💼</span>}
                 <span>{sub === 'all' ? 'All Subjects' : sub}</span>

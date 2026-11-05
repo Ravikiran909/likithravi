@@ -213,6 +213,12 @@ export interface LearningResource {
     | 'Technical Skills'
     | 'AI & Data Science'
     | 'Programming'
+    | 'App Development'
+    | 'Mathematics'
+    | 'Indian History'
+    | 'Geography'
+    | 'Indian Polity'
+    | 'Economy'
     | 'General';
   type: 'youtube_video' | 'youtube_playlist' | 'free_course' | 'interactive_tutorial';
   provider: string;
