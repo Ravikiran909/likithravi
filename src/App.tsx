@@ -8,7 +8,7 @@ import { StudyDocuments } from './components/StudyDocuments.tsx';
 import { OfflineIndicator } from './components/OfflineIndicator.tsx';
 import { AppLockOverlay } from './components/AppLockOverlay.tsx';
 import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.tsx';
-import { GovernmentExamApp } from './components/GovernmentExamApp.tsx';
+import { CurriculumCenter } from './components/CurriculumCenter.tsx';
 import { FreeCoursesAndVideos } from './components/FreeCoursesAndVideos.tsx';
 import { StudentLoginDashboard } from './components/StudentLoginDashboard.tsx';
 import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
@@ -36,33 +36,33 @@ const normalizeStudentProfile = (
     ...(raw || {}),
     id: raw?.id || base.id || `prof_${userId}`,
     userId,
-    name: raw?.name || base.name || 'Government Exam Aspirant',
+    name: raw?.name || base.name || 'Active Learner',
     whatsappNumber: raw?.whatsappNumber || base.whatsappNumber || '+91 98450 11223',
     preferredLanguage: raw?.preferredLanguage || base.preferredLanguage || 'en',
-    educationLevel: raw?.educationLevel || base.educationLevel || 'competitive_exam',
+    educationLevel: raw?.educationLevel || base.educationLevel || 'college_university',
     subjects:
       Array.isArray(raw?.subjects) && raw.subjects.length > 0
         ? raw.subjects
         : Array.isArray(base.subjects) && base.subjects.length > 0
         ? base.subjects
-        : ['Indian Polity', 'UPSC & SSC CGL', 'Modern Indian History', 'Indian Economy', 'Quantitative Aptitude', 'Current Affairs'],
+        : ['Mathematics', 'Programming', 'App Development', 'Science', 'English'],
     currentSkillLevel: raw?.currentSkillLevel || base.currentSkillLevel || 'intermediate',
     learningGoals:
       Array.isArray(raw?.learningGoals) && raw.learningGoals.length > 0
         ? raw.learningGoals
         : Array.isArray(base.learningGoals) && base.learningGoals.length > 0
         ? base.learningGoals
-        : ['Crack UPSC Civil Services & SSC CGL', 'Master Indian Polity (Articles & Schedules)', 'Daily Government Exam Mock Tests'],
+        : ['Master Full-Stack Development', 'Excel in Academic Semester Exams', 'Build Real-World Projects'],
     weakTopics: Array.isArray(raw?.weakTopics)
       ? raw.weakTopics
       : Array.isArray(base.weakTopics)
       ? base.weakTopics
-      : ['Indian Polity (Constitutional Amendments)', 'Indian Economy (Monetary Policy & Inflation)', 'CSAT & Quantitative Aptitude'],
+      : ['Data Structures & Algorithms', 'Engineering Mathematics', 'Technical Writing'],
     strongTopics: Array.isArray(raw?.strongTopics)
       ? raw.strongTopics
       : Array.isArray(base.strongTopics)
       ? base.strongTopics
-      : ['Modern Indian History', 'General Science', 'Logical Reasoning'],
+      : ['Logical Reasoning', 'Creative Writing', 'Modern History'],
     studyHoursPerDay:
       typeof raw?.studyHoursPerDay === 'number' && raw.studyHoursPerDay > 0
         ? raw.studyHoursPerDay
@@ -127,7 +127,7 @@ const normalizeStudentProfile = (
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams' | 'skill_up'>('gov_exams');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'curriculum' | 'skill_up'>('skill_up');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile>(
     normalizeStudentProfile(null)
@@ -439,9 +439,9 @@ export default function App() {
 
         {activeTab === 'admin' && <AdminDashboard />}
 
-        {activeTab === 'gov_exams' && (
+        {activeTab === 'curriculum' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <GovernmentExamApp
+            <CurriculumCenter
               profile={selectedProfile}
               onProfileUpdate={handleProfileUpdate}
               onNavigateToChat={(text) => {
@@ -483,7 +483,7 @@ export default function App() {
       >
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            India Exam & Skill Command Center • Personalized UPSC, SSC, Banking & Technical Tutor
+            Universal Learning Command Center • Personalized Academic, Technical & Competitive Exam Tutor
           </span>
           <span className="text-slate-500">
             Hardened Firestore Security • Gemini 3.8 Flash • Socratic Pedagogy

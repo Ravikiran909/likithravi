@@ -30,7 +30,7 @@ export interface StudentProfile {
   name: string;
   whatsappNumber: string;
   preferredLanguage: string; // e.g. 'en', 'hi', 'kn', 'ta', 'te', 'es', 'fr', 'de', 'ja', 'ar', etc.
-  educationLevel: 'school' | 'college' | 'competitive_exam' | 'professional' | 'competitive' | 'engineering';
+  educationLevel: 'school' | 'college' | 'college_university' | 'competitive_exam' | 'professional' | 'competitive' | 'engineering';
   subjects: string[];
   currentSkillLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   learningGoals: string[];
@@ -215,6 +215,7 @@ export interface LearningResource {
     | 'Programming'
     | 'App Development'
     | 'Mathematics'
+    | 'Version Control'
     | 'Indian History'
     | 'Geography'
     | 'Indian Polity'

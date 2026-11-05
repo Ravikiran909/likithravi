@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { StudentProfile, QuizQuestion } from '../types/index.ts';
 
-interface GovernmentExamAppProps {
+interface CurriculumCenterProps {
   profile: StudentProfile;
   onProfileUpdate: (updated: StudentProfile) => void;
   onNavigateToChat: (prefilledText?: string) => void;
@@ -43,7 +43,7 @@ export interface GovExamTrack {
   name: string;
   shortCode: string;
   conductingBody: string;
-  category: 'Civil Services' | 'SSC & Railways' | 'Banking & Insurance' | 'Defence' | 'State PSC';
+  category: 'Civil Services' | 'SSC & Railways' | 'Banking & Insurance' | 'Defence' | 'State PSC' | 'Engineering' | 'Computer Science' | 'K-12 Academics';
   badgeColor: string;
   nextExamDate: string;
   daysRemaining: number;
@@ -227,6 +227,54 @@ const GOV_EXAM_TRACKS: GovExamTrack[] = [
     ],
     officialCutoffLastYear: '124 / 300 (CDS Written)',
   },
+  {
+    id: 'engineering_btech',
+    name: 'B.Tech Engineering Foundation (All Streams)',
+    shortCode: 'Engineering',
+    conductingBody: 'AICTE / University Boards',
+    category: 'Engineering',
+    badgeColor: 'from-cyan-600 to-blue-600',
+    nextExamDate: '2026-05-15',
+    daysRemaining: 171,
+    stages: ['Semester Fundamentals', 'Mid-Term Evaluations', 'Final Semester Exams', 'Technical Lab Viva'],
+    totalVacanciesEst: 'Academic Degree',
+    syllabusSubjects: ['Engineering Mathematics', 'Physics for Engineers', 'Programming Fundamentals (C/C++)', 'Basic Electrical Engineering'],
+    subTopics: [
+      'Linear Algebra & Matrices',
+      'Calculus: Derivatives & Integrals',
+      'Differential Equations',
+      'Logic Gates & Digital Circuits',
+      'Thermodynamics Basics',
+      'C Programming: Pointers & Memory',
+      'English for Technical Communication',
+      'Engineering Graphics & CAD',
+    ],
+    officialCutoffLastYear: '6.5+ CGPA (Target)',
+  },
+  {
+    id: 'cs_coding_mastery',
+    name: 'Computer Science & Software Engineering Mastery',
+    shortCode: 'CS & Coding',
+    conductingBody: 'Industry Standards / Open Source',
+    category: 'Computer Science',
+    badgeColor: 'from-slate-700 to-slate-900',
+    nextExamDate: 'Ongoing',
+    daysRemaining: 0,
+    stages: ['Logic Building', 'Data Structures & Algorithms', 'System Design', 'Project Portfolios'],
+    totalVacanciesEst: 'Global Career Path',
+    syllabusSubjects: ['Data Structures & Algorithms', 'Full-Stack Development', 'System Design', 'Cloud Computing'],
+    subTopics: [
+      'Arrays, Linked Lists & Trees',
+      'Big O Complexity Analysis',
+      'React & Frontend Frameworks',
+      'Node.js & Backend Architecture',
+      'SQL & NoSQL Databases',
+      'Git & Version Control Mastery',
+      'CI/CD Pipelines',
+      'System Scalability Fundamentals',
+    ],
+    officialCutoffLastYear: 'FAANG/MAANG Level',
+  },
 ];
 
 const DAILY_CURRENT_AFFAIRS: CurrentAffairsItem[] = [
@@ -408,7 +456,7 @@ const GOV_MOCK_QUESTIONS: QuizQuestion[] = [
   },
 ];
 
-export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
+export const CurriculumCenter: React.FC<CurriculumCenterProps> = ({
   profile,
   onProfileUpdate,
   onNavigateToChat,
@@ -569,20 +617,20 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-xl text-xs font-black tracking-wider uppercase bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 flex items-center space-x-1.5 shadow-sm">
                 <Building2 className="w-3.5 h-3.5 text-amber-400" />
-                <span>All-India Government Exam Prep App</span>
+                <span>Universal Learning & Curriculum Command Center</span>
               </span>
               <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
                 <Sparkles className="w-3 h-3 text-emerald-400" />
-                <span>Negative Marking Simulator Active</span>
+                <span>AI Socratic Tutoring Active</span>
               </span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Civil Services, SSC, Banking, Railways & State PSC Command Center
+              Academic, Technical & Competitive Exam Command Center
             </h1>
 
             <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Targeted curriculum, Daily Current Affairs from The Hindu & PIB, Indian Polity Constitution Vault, and Official Negative-Marking Mock Tests tailored for UPSC CSE, SSC CGL, IBPS PO, RRB NTPC, and State PSCs.
+              Targeted curriculum for University Exams, Software Engineering, and All-India Competitive Exams. Featuring Daily Current Affairs, Technical Code Vaults, and Official Simulation Tests.
             </p>
           </div>
 
@@ -685,7 +733,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-                <span>Select Your Target Government Examination</span>
+                <span>Select Your Target Curriculum or Examination</span>
               </h2>
               <p className="text-xs text-slate-400 mt-1">
                 Explore official exam timelines, syllabus stages, vacancies, and historical cut-offs
@@ -698,7 +746,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search UPSC, SSC, IBPS, Railways..."
+                placeholder="Search Subjects, B.Tech, Coding, UPSC, SSC..."
                 className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -928,7 +976,7 @@ export const GovernmentExamApp: React.FC<GovernmentExamAppProps> = ({
                   Real Exam Simulation
                 </span>
                 <h3 className="text-2xl font-bold text-white mt-2">
-                  All-India Government Exam Prelims Mock Test
+                  Universal Simulation & Mock Test Center
                 </h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
                   Targeting {selectedTrack.name}. Tested under official negative-marking rules.

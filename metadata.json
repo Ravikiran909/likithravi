@@ -1,6 +1,6 @@
 {
-  "name": "India Exam & Skill Command Center",
-  "description": "Unified platform for Government Exam preparation and Technical Skill-Up with RAG-powered Socratic AI Tutor and Secure Student Login Dashboard for cloud sync.",
+  "name": "Universal Learning Command Center",
+  "description": "Unified platform for Academic, Technical, and Competitive Exam preparation with RAG-powered Socratic AI Tutor and Secure Student Login Dashboard.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

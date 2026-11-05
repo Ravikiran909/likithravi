@@ -636,5 +636,21 @@ export const CURATED_LEARNING_RESOURCES: LearningResource[] = [
     keyTopics: ['Union Budget Breakdown', 'Economic Survey Highlights', 'Fiscal Policy', 'Government Schemes', 'GDP Projections'],
     isFreeVerified: true,
   },
+  {
+    id: 'res_prog_git_github_mastery',
+    title: 'Git & GitHub for Developers: Version Control & Collaboration Masterclass',
+    subject: 'Version Control',
+    type: 'free_course',
+    provider: 'FreeCodeCamp / GitHub Education',
+    url: 'https://www.youtube.com/watch?v=RGOj5yH7evk',
+    embedUrl: 'https://www.youtube.com/embed/RGOj5yH7evk',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1556075798-4825dfaf486e?w=500&auto=format&fit=crop&q=80',
+    duration: '10 Hours',
+    difficulty: 'Beginner',
+    description: 'Master the essential tools for modern software development. Learn Git fundamentals (add, commit, push, pull), branching, merging, pull requests, and how to collaborate effectively on GitHub.',
+    keyTopics: ['Git CLI Fundamentals', 'Branching & Merging', 'GitHub Workflows', 'Pull Requests', 'Merge Conflicts'],
+    isFreeVerified: true,
+    featured: true,
+  },
 ];
 

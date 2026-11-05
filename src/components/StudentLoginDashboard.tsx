@@ -58,21 +58,21 @@ export const StudentLoginDashboard: React.FC<StudentLoginDashboardProps> = ({
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-400 bg-clip-text text-transparent">
-                Skill & Exam Command
+                Learning Command
               </h1>
               <p className="text-emerald-400 font-bold text-sm uppercase tracking-widest">
-                Official Socratic AI Learning Platform
+                Universal Socratic AI Learning Platform
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
             <h2 className="text-4xl sm:text-5xl font-extrabold text-white leading-tight">
-              Master Your Exams. <br />
+              Master Your Skills. <br />
               <span className="text-emerald-400">Own Your Future.</span>
             </h2>
             <p className="text-slate-400 text-lg max-w-lg leading-relaxed font-medium">
-              Join thousands of aspirants preparing for UPSC, SSC, Banking, and high-demand Technical Skills with our unified RAG-powered Socratic AI Tutor.
+              Join thousands of students mastering Academic subjects, Coding, and Competitive Exams with our unified RAG-powered Socratic AI Tutor.
             </p>
           </div>
 
@@ -96,13 +96,13 @@ export const StudentLoginDashboard: React.FC<StudentLoginDashboardProps> = ({
           {/* Platform Stats Teaser */}
           <div className="flex items-center space-x-6 pt-4 border-t border-slate-800/50">
             <div>
-              <div className="text-2xl font-black text-white">145k+</div>
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Students Active</div>
+              <div className="text-2xl font-black text-white">185k+</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Active Learners</div>
             </div>
             <div className="w-px h-10 bg-slate-800" />
             <div>
-              <div className="text-2xl font-black text-white">12k+</div>
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Mock Tests Daily</div>
+              <div className="text-2xl font-black text-white">25k+</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Sessions Daily</div>
             </div>
             <div className="w-px h-10 bg-slate-800" />
             <div>
@@ -147,7 +147,7 @@ export const StudentLoginDashboard: React.FC<StudentLoginDashboardProps> = ({
                 disabled={loading}
                 className="w-full flex items-center justify-center space-x-2 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm transition shadow-xl shadow-emerald-600/20 active:scale-[0.98] disabled:opacity-50"
               >
-                <span>Enter Prep Command Center</span>
+                <span>Enter Command Center</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -179,7 +179,7 @@ export const StudentLoginDashboard: React.FC<StudentLoginDashboardProps> = ({
       <div className="mt-12 text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center space-x-4 relative z-10">
         <span className="flex items-center space-x-1">
           <Globe className="w-3 h-3 text-slate-600" />
-          <span>India Prep Infrastructure</span>
+          <span>Universal Learning Infrastructure</span>
         </span>
         <span className="w-1 h-1 rounded-full bg-slate-700" />
         <span>Socratic AI V3.0</span>

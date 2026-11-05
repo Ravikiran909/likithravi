@@ -129,7 +129,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
     fetchResourcesAndRatings();
   }, []);
 
-  const subjectsList = ['all', 'AI & Data Science', 'Programming', 'App Development', 'Government Exams', 'Indian Polity', 'Indian History', 'Economy', 'Geography', 'Mathematics', 'Professional Skills'];
+  const subjectsList = ['all', 'AI & Data Science', 'Programming', 'Version Control', 'App Development', 'Government Exams', 'Indian Polity', 'Indian History', 'Economy', 'Geography', 'Mathematics', 'Professional Skills'];
 
   // Filtered resources
   const filteredResources = useMemo(() => {
@@ -184,7 +184,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
                 Curated YouTube Videos & Free University Courses
               </h3>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-                Master Indian Polity, History, Economy, Geography, Quantitative Aptitude, and Professional Skills with world-class free courses from official sources and top educators.
+                Master Computer Science, Engineering Mathematics, Programming, Academic subjects, and Competitive Exams with world-class free courses from official sources and top educators.
               </p>
             </div>
           </div>
@@ -281,8 +281,9 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
             >
               {sub === 'AI & Data Science' && <span>🤖</span>}
               {sub === 'Programming' && <span>💻</span>}
+              {sub === 'Version Control' && <span>🐙</span>}
               {sub === 'App Development' && <span>📱</span>}
-              {sub === 'Government Exams' && <span>🏛️</span>}
+              {sub === 'Government Exams' && <span>🏆</span>}
               {sub === 'Indian Polity' && <span>📜</span>}
               {sub === 'Indian History' && <span>🏺</span>}
               {sub === 'Economy' && <span>📈</span>}
@@ -290,7 +291,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
               {sub === 'Mathematics' && <span>📐</span>}
               {sub === 'Professional Skills' && <span>💼</span>}
 
-              <span>{sub === 'all' ? 'All Topics' : sub}</span>
+              <span>{sub === 'all' ? 'All Topics' : (sub === 'Government Exams' ? 'Competitive Exams' : sub)}</span>
             </button>
           ))}
         </div>

@@ -76,7 +76,7 @@ import { DailyMicroGoalsWidget } from './DailyMicroGoalsWidget.tsx';
 
 import { PeerStudyGroupModule } from './PeerStudyGroupModule.tsx';
 import { DailyQuiz } from './DailyQuiz.tsx';
-import { GovernmentExamApp } from './GovernmentExamApp.tsx';
+import { CurriculumCenter } from './CurriculumCenter.tsx';
 import { calculateLearningRank } from '../utils/learningRank.ts';
 import {
   generateStudentProgressPdf,
@@ -102,7 +102,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'gov_exams' | 'gov_exams_hub' | 'peer_groups' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'curriculum_hub' | 'peer_groups' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -182,7 +182,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       ? profile.subjects
       : ['UPSC CSE', 'SSC CGL', 'General Awareness'];
   const [customLogTopic, setCustomLogTopic] = useState<string>(
-    safeSubjects[0] || 'Government Exams'
+    safeSubjects[0] || 'Curriculums'
   );
   const [activityLogsToday, setActivityLogsToday] = useState<
     { id: string; label: string; minutes: number; time: string }[]
@@ -666,15 +666,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               {deepFocusActive ? 'Focus Workspace' : 'Overview'}
             </button>
             <button
-              onClick={() => setActiveTab('gov_exams')}
+              onClick={() => setActiveTab('curriculum')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
-                activeTab === 'gov_exams'
+                activeTab === 'curriculum'
                   ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30 ring-1 ring-amber-400/50'
                   : 'text-amber-400 hover:text-amber-300 hover:bg-slate-800'
               }`}
             >
               <Building2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>Govt Exam Prep App</span>
+              <span>Curriculum Prep App</span>
             </button>
             {!deepFocusActive && (
               <>
@@ -1430,7 +1430,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onNavigateToQuiz={() => setActiveTab('quiz')}
               />
 
-              {/* Study Session Planner: Calendar Time-Blocking for Government Exams + Upcoming Event View */}
+              {/* Study Session Planner: Calendar Time-Blocking for Curriculums + Upcoming Event View */}
               <StudySessionPlanner
                 profile={profile}
                 onProfileUpdate={onProfileUpdate}
@@ -1439,7 +1439,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onLogStudyMinutes={handleAddStudyMinutes}
               />
 
-              {/* Government Exams Preparation Documents, Classes & Notifications */}
+              {/* Curriculums Preparation Documents, Classes & Notifications */}
               <GovExamPrepHub
                 profile={profile}
                 onProfileUpdate={onProfileUpdate}
@@ -1962,9 +1962,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {/* Dedicated Government Exam Preparation App Tab */}
-      {activeTab === 'gov_exams' && (
-        <GovernmentExamApp
+      {/* Dedicated Curriculum Preparation App Tab */}
+      {activeTab === 'curriculum' && (
+        <CurriculumCenter
           profile={profile}
           onProfileUpdate={onProfileUpdate}
           onNavigateToChat={onNavigateToChat}
@@ -2022,8 +2022,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {/* Dedicated Government Exam Preparation Hub Tab */}
-      {activeTab === 'gov_exams_hub' && (
+      {/* Dedicated Curriculum Preparation Hub Tab */}
+      {activeTab === 'curriculum_hub' && (
         <div className="space-y-6">
           <GovExamPrepHub
             profile={profile}

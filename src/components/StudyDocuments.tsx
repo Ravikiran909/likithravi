@@ -101,6 +101,21 @@ const SAMPLE_SEMANTIC_QUERIES = [
     subject: 'all',
   },
   {
+    label: 'Big O Complexity',
+    query: 'Explain Big O notation and compare the time complexity of Merge Sort vs Quick Sort.',
+    subject: 'all',
+  },
+  {
+    label: 'React Lifecycle Hooks',
+    query: 'What is the difference between useEffect and useLayoutEffect in React?',
+    subject: 'all',
+  },
+  {
+    label: 'Thermodynamics Laws',
+    query: 'Explain the Second Law of Thermodynamics and the concept of Entropy in engineering systems.',
+    subject: 'all',
+  },
+  {
     label: 'Percentage Successive Changes',
     query: 'How to calculate successive percentage changes in profit and loss problems?',
     subject: 'all',
@@ -332,6 +347,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
     'AI & Data Science',
     'Programming',
     'App Development',
+    'Version Control',
     'Indian Polity',
     'Modern Indian History',
     'Indian Economy',
@@ -869,6 +885,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
               >
                 {sub === 'AI & Data Science' && <span>🤖</span>}
                 {sub === 'Programming' && <span>💻</span>}
+                {sub === 'Version Control' && <span>🐙</span>}
                 {sub === 'App Development' && <span>📱</span>}
                 {sub === 'Indian Polity' && <span>⚖️</span>}
                 {sub === 'Modern Indian History' && <span>🕒</span>}

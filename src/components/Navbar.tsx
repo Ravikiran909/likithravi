@@ -20,8 +20,8 @@ import {
 import { StudentProfile, SUPPORTED_LANGUAGES } from '../types/index.ts';
 
 interface NavbarProps {
-  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams' | 'skill_up';
-  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'gov_exams' | 'skill_up') => void;
+  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'curriculum' | 'skill_up';
+  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'curriculum' | 'skill_up') => void;
   selectedProfile: StudentProfile | null;
   isWhatsAppConfigured: boolean;
   focusMode?: boolean;
@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`flex items-center space-x-3 cursor-pointer transition-opacity duration-300 ${
               focusMode ? 'opacity-80 hover:opacity-100' : ''
             }`}
-            onClick={() => setActiveTab('gov_exams')}
+            onClick={() => setActiveTab('curriculum')}
           >
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all ${
@@ -74,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-400 bg-clip-text text-transparent">
-                  Skill & Exam Command
+                  Learning Command
                 </span>
                 {focusMode ? (
                   <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
@@ -83,14 +83,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 ) : (
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    UPSC/SSC v3.0
+                    v3.8 Flash
                   </span>
                 )}
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
                 {focusMode
                   ? 'Distraction-Free Deep Study session in progress'
-                  : 'Official Govt Exam & Technical Socratic AI Tutor'}
+                  : 'Universal Academic & Technical Socratic AI Tutor'}
               </p>
             </div>
           </div>
@@ -98,15 +98,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Tab Navigation */}
           <nav className="flex items-center space-x-1 sm:space-x-1.5">
             <button
-              onClick={() => setActiveTab('gov_exams')}
+              onClick={() => setActiveTab('curriculum')}
               className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer relative ${
-                activeTab === 'gov_exams'
+                activeTab === 'curriculum'
                   ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-md shadow-orange-600/40 ring-1 ring-amber-400'
                   : 'text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 border border-amber-500/30'
               }`}
             >
               <Building2 className="w-4 h-4 text-amber-400" />
-              <span>Govt Exams</span>
+              <span>Curriculum</span>
             </button>
 
             <button
