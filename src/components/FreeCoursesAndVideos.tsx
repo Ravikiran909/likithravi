@@ -129,7 +129,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
     fetchResourcesAndRatings();
   }, []);
 
-  const subjectsList = ['all', 'AI & Data Science', 'Programming', 'Version Control', 'App Development', 'Government Exams', 'Indian Polity', 'Indian History', 'Economy', 'Geography', 'Mathematics', 'Professional Skills'];
+  const subjectsList = ['all', 'AI & Data Science', 'Programming', 'Version Control', 'App Development', 'Technical Skills', 'Government Exams', 'Indian Polity', 'Indian History', 'Economy', 'Geography', 'Mathematics', 'Professional Skills'];
 
   // Filtered resources
   const filteredResources = useMemo(() => {
@@ -138,7 +138,10 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
         selectedSubject === 'all' ||
         item.subject.toLowerCase() === selectedSubject.toLowerCase();
 
-      const matchesType = selectedType === 'all' || item.type === selectedType;
+      const matchesType = 
+        selectedType === 'all' || 
+        item.type === selectedType || 
+        (selectedType === 'youtube_video' && (item.type === 'youtube_playlist' || item.type === 'free_course'));
 
       const q = searchQuery.toLowerCase().trim();
       const matchesQuery =
@@ -283,6 +286,7 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
               {sub === 'Programming' && <span>💻</span>}
               {sub === 'Version Control' && <span>🐙</span>}
               {sub === 'App Development' && <span>📱</span>}
+              {sub === 'Technical Skills' && <span>⚙️</span>}
               {sub === 'Government Exams' && <span>🏆</span>}
               {sub === 'Indian Polity' && <span>📜</span>}
               {sub === 'Indian History' && <span>🏺</span>}
@@ -507,6 +511,33 @@ export const FreeCoursesAndVideos: React.FC<FreeCoursesAndVideosProps> = ({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Empty State when no results found */}
+      {!loading && filteredResources.length === 0 && (
+        <div className="py-20 text-center space-y-4 bg-slate-900/50 border border-slate-800 border-dashed rounded-3xl animate-in fade-in">
+          <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
+            <Search className="w-10 h-10" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-white">No videos or courses found</h3>
+            <p className="text-sm text-slate-400 max-w-sm mx-auto">
+              We couldn't find any resources for the selected filters. Try switching to "All Topics" or "All Types" to explore more content.
+            </p>
+          </div>
+          <div className="pt-4">
+            <button
+              onClick={() => {
+                setSelectedSubject('all');
+                setSelectedType('all');
+                setSearchQuery('');
+              }}
+              className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm transition shadow-lg shadow-indigo-600/30 flex items-center space-x-2 mx-auto"
+            >
+              <span>Reset Filters</span>
+            </button>
+          </div>
         </div>
       )}
 

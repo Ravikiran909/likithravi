@@ -3044,7 +3044,19 @@ app.post('/api/documents/preview-chunks', (req, res) => {
 app.get('/api/learning-resources', (req, res) => {
   try {
     const { subject, type, q } = req.query;
-    let list = [...CURATED_LEARNING_RESOURCES];
+    let list = [...CURATED_LEARNING_RESOURCES].map(r => {
+      if (!r.embedUrl && r.url.includes('youtube.com/watch?v=')) {
+        const videoId = r.url.split('v=')[1]?.split('&')[0];
+        if (videoId) return { ...r, embedUrl: `https://www.youtube.com/embed/${videoId}` };
+      } else if (!r.embedUrl && r.url.includes('youtu.be/')) {
+        const videoId = r.url.split('youtu.be/')[1]?.split('?')[0];
+        if (videoId) return { ...r, embedUrl: `https://www.youtube.com/embed/${videoId}` };
+      } else if (!r.embedUrl && r.url.includes('youtube.com/playlist?list=')) {
+        const playlistId = r.url.split('list=')[1]?.split('&')[0];
+        if (playlistId) return { ...r, embedUrl: `https://www.youtube.com/embed/videoseries?list=${playlistId}` };
+      }
+      return r;
+    });
 
     if (subject && subject !== 'all') {
       list = list.filter((r) => r.subject.toLowerCase() === String(subject).toLowerCase());
