@@ -44,8 +44,7 @@ export async function runTutorAgent(
       weakTopics: profile.weakTopics,
       preferredLanguage: profile.preferredLanguage || 'en',
     },
-    ragResult.formattedContext,
-    ragResult.recommendedCourses
+    ragResult.formattedContext
   );
 
   return response;

@@ -100,7 +100,7 @@ export const BadgesAndAchievements: React.FC<BadgesAndAchievementsProps> = ({
         emoji: '👑',
         tier: 'Diamond',
         description:
-          'Unlocked by achieving 80%+ quiz accuracy or reaching 75%+ overall curriculum mastery across active subjects.',
+          'Unlocked by achieving 80%+ quiz accuracy or reaching 75%+ overall study mastery across active subjects.',
         requirementLabel: '80%+ Quiz Accuracy or 75%+ Mastery',
         currentValue: Math.min(80, topPerfScore),
         targetValue: 80,
@@ -155,7 +155,7 @@ export const BadgesAndAchievements: React.FC<BadgesAndAchievementsProps> = ({
         emoji: '🧠',
         tier: 'Silver',
         description:
-          'Unlocked by pinning curriculum study materials or indexing Voice-to-Knowledge notes into the RAG store.',
+          'Unlocked by pinning study materials or indexing Voice-to-Knowledge notes into the RAG store.',
         requirementLabel: 'Pin or index 2+ RAG study notes',
         currentValue: Math.min(2, pinnedDocsCount),
         targetValue: 2,
@@ -172,7 +172,7 @@ export const BadgesAndAchievements: React.FC<BadgesAndAchievementsProps> = ({
         emoji: '🏆',
         tier: 'Diamond',
         description:
-          'Awarded for graduating 3 or more curriculum topics into your Mastered Topics vault.',
+          'Awarded for graduating 3 or more study topics into your Mastered Topics vault.',
         requirementLabel: '3+ topics mastered',
         currentValue: Math.min(3, Math.max(1, masteredCount)),
         targetValue: 3,

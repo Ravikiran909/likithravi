@@ -18,7 +18,6 @@ import {
   Check,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { getAllMilestoneProgress } from '../utils/offlineDb.ts';
 import { db, auth, doc, setDoc } from '../firebase.ts';
 
 export type BadgePillar = 'all' | 'streaks' | 'completed_lessons' | 'quiz_scores';
@@ -62,35 +61,24 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
   const [activeBadgeModal, setActiveBadgeModal] = useState<EarnedAchievementBadgeItem | null>(null);
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [roadmapLessonsCompleted, setRoadmapLessonsCompleted] = useState<number>(0);
 
-  useEffect(() => {
-    getAllMilestoneProgress()
-      .then((map) => {
-        const count = Object.values(map).filter((m) => m.completed).length;
-        setRoadmapLessonsCompleted(count);
-      })
-      .catch(() => {});
-  }, []);
+
 
   // Compute live metrics for the three core pillars: Streaks, Completed Lessons, and High Quiz Scores
   const streakDays = profile.streak || 0;
   const completedLessonsCount = useMemo(() => {
-    const coursesDone = profile.completedCourseIds?.length || 0;
     const historyMastered = profile.learningHistory?.filter((h) => h.mastered).length || 0;
     const strongCount = profile.strongTopics?.length || 0;
     const sessionsDone = profile.totalSessions || 0;
     return Math.max(
-      coursesDone + historyMastered + roadmapLessonsCompleted,
-      strongCount + roadmapLessonsCompleted,
-      Math.min(12, Math.floor(sessionsDone / 2) + historyMastered + coursesDone)
+      historyMastered,
+      strongCount,
+      Math.min(12, Math.floor(sessionsDone / 2) + historyMastered)
     );
   }, [
-    profile.completedCourseIds,
     profile.learningHistory,
     profile.strongTopics,
     profile.totalSessions,
-    roadmapLessonsCompleted,
   ]);
 
   const quizAccuracy = useMemo(() => {
@@ -405,11 +393,11 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
       if (badge.pillar === 'streaks' && (profile.streak || 0) < badge.targetValue) {
         patch.streak = badge.targetValue;
       } else if (badge.pillar === 'completed_lessons') {
-        const currentCourses = profile.completedCourseIds || [];
-        const needed = Math.max(0, badge.targetValue - completedLessonsCount);
-        const addedCourseIds = Array.from({ length: Math.max(1, needed) }, (_, idx) => `lesson_mod_${Date.now()}_${idx}`);
-        patch.completedCourseIds = Array.from(new Set([...currentCourses, ...addedCourseIds]));
         patch.overallProgress = Math.min(100, Math.max(profile.overallProgress || 0, 75));
+        const currentStrong = profile.strongTopics || [];
+        if (currentStrong.length < badge.targetValue) {
+          patch.strongTopics = [...currentStrong, `Mastered Topic ${Date.now()}`];
+        }
       } else if (badge.pillar === 'quiz_scores') {
         const currentTotal = Math.max(profile.totalQuestionsAnswered || 0, 10);
         const targetAcc = badge.targetValue >= 90 ? 0.92 : 0.85;

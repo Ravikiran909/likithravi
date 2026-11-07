@@ -1,4 +1,4 @@
-import { DocumentRecord, LearningResource, StudentProfile, MaterialReview } from '../types/index.ts';
+import { DocumentRecord, StudentProfile, MaterialReview } from '../types/index.ts';
 
 const DB_NAME = 'AITutorOfflineDB';
 const DB_VERSION = 1;
@@ -24,15 +24,7 @@ export function getIndexedDB(): Promise<IDBDatabase> {
         db.createObjectStore('documents', { keyPath: 'id' });
       }
 
-      // 2. Learning resources store
-      if (!db.objectStoreNames.contains('courses')) {
-        db.createObjectStore('courses', { keyPath: 'id' });
-      }
 
-      // 3. Curriculum Roadmap milestones store
-      if (!db.objectStoreNames.contains('milestones')) {
-        db.createObjectStore('milestones', { keyPath: 'id' });
-      }
 
       // 4. Pending sync queue for offline changes in rural areas
       if (!db.objectStoreNames.contains('pending_sync')) {
@@ -93,87 +85,9 @@ export async function getOfflineDocuments(): Promise<DocumentRecord[]> {
   }
 }
 
-// ----------------------------------------------------
-// Learning Resources / Courses Cache Operations
-// ----------------------------------------------------
-export async function saveOfflineCourses(courses: LearningResource[]): Promise<void> {
-  try {
-    const db = await getIndexedDB();
-    const tx = db.transaction('courses', 'readwrite');
-    const store = tx.objectStore('courses');
-    for (const course of courses) {
-      store.put(course);
-    }
-  } catch (err) {
-    console.warn('Failed to cache courses in IndexedDB:', err);
-  }
-}
 
-export async function getOfflineCourses(): Promise<LearningResource[]> {
-  try {
-    const db = await getIndexedDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction('courses', 'readonly');
-      const store = tx.objectStore('courses');
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => resolve([]);
-    });
-  } catch {
-    return [];
-  }
-}
 
-// ----------------------------------------------------
-// Curriculum Roadmap Milestones Progress Operations
-// ----------------------------------------------------
-export interface MilestoneProgressItem {
-  id: string; // milestone identifier, e.g. "py-step-1"
-  subject: string;
-  completed: boolean;
-  completedAt?: string;
-  notes?: string;
-}
 
-export async function saveMilestoneProgress(item: MilestoneProgressItem): Promise<void> {
-  try {
-    const db = await getIndexedDB();
-    const tx = db.transaction('milestones', 'readwrite');
-    const store = tx.objectStore('milestones');
-    store.put(item);
-
-    // Queue for sync when offline
-    await queueOfflineAction({
-      id: 'sync_milestone_' + item.id + '_' + Date.now(),
-      type: 'MILESTONE_TOGGLE',
-      payload: item,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.warn('Failed to save milestone progress in IndexedDB:', err);
-  }
-}
-
-export async function getAllMilestoneProgress(): Promise<Record<string, MilestoneProgressItem>> {
-  try {
-    const db = await getIndexedDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction('milestones', 'readonly');
-      const store = tx.objectStore('milestones');
-      const request = store.getAll();
-      request.onsuccess = () => {
-        const map: Record<string, MilestoneProgressItem> = {};
-        for (const item of request.result || []) {
-          map[item.id] = item;
-        }
-        resolve(map);
-      };
-      request.onerror = () => resolve({});
-    });
-  } catch {
-    return {};
-  }
-}
 
 // ----------------------------------------------------
 // Student Profile Offline Cache
@@ -264,11 +178,7 @@ export async function syncPendingOfflineActions(): Promise<{ syncedCount: number
     let syncedCount = 0;
 
     for (const action of pending) {
-      if (action.type === 'MILESTONE_TOGGLE') {
-        // Sync milestone progress to backend or Firestore
-        await removePendingOfflineAction(action.id);
-        syncedCount++;
-      } else if (action.type === 'SUBMIT_REVIEW') {
+      if (action.type === 'SUBMIT_REVIEW') {
         try {
           await fetch('/api/reviews', {
             method: 'POST',

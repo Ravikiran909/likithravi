@@ -8,10 +8,8 @@ import { StudyDocuments } from './components/StudyDocuments.tsx';
 import { OfflineIndicator } from './components/OfflineIndicator.tsx';
 import { AppLockOverlay } from './components/AppLockOverlay.tsx';
 import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.tsx';
-import { CurriculumCenter } from './components/CurriculumCenter.tsx';
-import { FreeCoursesAndVideos } from './components/FreeCoursesAndVideos.tsx';
 import { StudentLoginDashboard } from './components/StudentLoginDashboard.tsx';
-import { saveOfflineDocuments, saveOfflineCourses, saveOfflineProfile } from './utils/offlineDb.ts';
+import { saveOfflineDocuments, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
 import { GraduationCap, LogOut } from 'lucide-react';
 import {
@@ -127,7 +125,7 @@ const normalizeStudentProfile = (
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'curriculum' | 'skill_up'>('skill_up');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin'>('student');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile>(
     normalizeStudentProfile(null)
@@ -266,11 +264,9 @@ export default function App() {
       // Pre-cache learning materials in IndexedDB for offline rural use
       Promise.all([
         fetch('/api/documents').then((r) => (r.ok ? r.json() : null)),
-        fetch('/api/learning-resources').then((r) => (r.ok ? r.json() : null)),
       ])
-        .then(([docsData, coursesData]) => {
+        .then(([docsData]) => {
           if (docsData?.documents) saveOfflineDocuments(docsData.documents);
-          if (coursesData?.resources) saveOfflineCourses(coursesData.resources);
         })
         .catch(() => {});
 
@@ -438,42 +434,6 @@ export default function App() {
         )}
 
         {activeTab === 'admin' && <AdminDashboard />}
-
-        {activeTab === 'curriculum' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <CurriculumCenter
-              profile={selectedProfile}
-              onProfileUpdate={handleProfileUpdate}
-              onNavigateToChat={(text) => {
-                if (text) setPendingChatPrompt(text);
-                setActiveTab('simulator');
-              }}
-              onNavigateToQuiz={() => {
-                setActiveTab('student');
-              }}
-              onLogStudyMinutes={(mins) => {
-                handleProfileUpdate({
-                  ...selectedProfile,
-                  dailyStudyMinutesCompleted:
-                    (selectedProfile.dailyStudyMinutesCompleted || 0) + mins,
-                });
-              }}
-            />
-          </div>
-        )}
-
-        {activeTab === 'skill_up' && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <FreeCoursesAndVideos
-              profile={selectedProfile}
-              onProfileUpdate={handleProfileUpdate}
-              onNavigateToChat={(text) => {
-                if (text) setPendingChatPrompt(text);
-                setActiveTab('simulator');
-              }}
-            />
-          </div>
-        )}
       </main>
 
       <footer

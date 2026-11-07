@@ -25,10 +25,6 @@ export class RecommendationAgent {
       .slice(0, 2)
       .map((c) => `📄 *${c.documentTitle}* (${c.subject})`)
       .join('\n   ');
-    const matchedCourses = (ragMatches.recommendedCourses || [])
-      .slice(0, 2)
-      .map((c) => `🎬 *${c.title}* — _${c.provider}_ (${c.duration})\n   🔗 ${c.url}`)
-      .join('\n');
 
     const recommendations: string[] = [];
 
@@ -55,7 +51,6 @@ export class RecommendationAgent {
       `👤 *Tailored for:* ${profile.name} (${(profile.currentSkillLevel || 'intermediate').toUpperCase()})\n\n` +
       `${recommendations.join('\n\n')}\n\n` +
       (matchedDocs ? `📚 *Recommended RAG Study Notes:*\n   ${matchedDocs}\n\n` : '') +
-      (matchedCourses ? `🎓 *Curated Video Lectures:*\n${matchedCourses}\n\n` : '') +
       `🚀 *Instant Actions:*\n` +
       `• Reply *"/smart-quiz"* to launch a 5-Min Adaptive Quiz on *${primaryFocus}*\n` +
       `• Reply *"Explain ${primaryFocus}"* for a step-by-step Tutor breakdown`

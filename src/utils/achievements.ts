@@ -1,9 +1,9 @@
-import { StudentProfile, LearningResource } from '../types/index.ts';
+import { StudentProfile } from '../types/index.ts';
 
 export interface AchievementBadge {
   id: string;
   title: string;
-  category: 'streak' | 'questions_milestone' | 'subject_mastery' | 'course_completion';
+  category: 'streak' | 'questions_milestone' | 'subject_mastery';
   tier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond';
   icon: string;
   description: string;
@@ -18,14 +18,12 @@ export interface AchievementBadge {
 }
 
 export function calculateLearningAchievements(
-  profile: StudentProfile,
-  courses: LearningResource[] = []
+  profile: StudentProfile
 ): {
   allBadges: AchievementBadge[];
   streakBadges: AchievementBadge[];
   questionBadges: AchievementBadge[];
   masteryBadges: AchievementBadge[];
-  courseBadges: AchievementBadge[];
   unlockedCount: number;
   totalCount: number;
   completionRate: number;
@@ -36,8 +34,6 @@ export function calculateLearningAchievements(
   const correctAnswers = profile.correctAnswers || 0;
   const accuracy =
     totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : profile.overallProgress || 0;
-  const completedIds = profile.completedCourseIds || [];
-  const completedCount = completedIds.length;
 
   const earnedMap = new Map<string, string>();
   (profile.earnedBadges || []).forEach((eb) => {
@@ -65,15 +61,6 @@ export function calculateLearningAchievements(
   const hasEconomyMastery =
     strongLower.some((s) => /economy|banking|rbi|budget/i.test(s)) ||
     historyMastered.some((h) => /economy/i.test(h.subject));
-
-  // Find completed courses matching subjects
-  const completedCourses = courses.filter((c) => completedIds.includes(c.id));
-  const hasCompletedGovExams = completedCourses.some(
-    (c) => c.subject === 'Government Exams' || c.keyTopics.some((t) => /upsc|ssc|banking/i.test(t))
-  );
-  const hasCompletedSkills = completedCourses.some(
-    (c) => c.subject === 'Professional Skills' || c.keyTopics.some((t) => /thinking|communication|leadership/i.test(t))
-  );
 
   // 1. Study Streak Milestone Badges
   const streakBadges: AchievementBadge[] = [
@@ -115,7 +102,7 @@ export function calculateLearningAchievements(
       category: 'streak',
       tier: 'Gold',
       icon: '🛡️',
-      description: 'Conquer 14 straight days of active recall and structured curriculum study.',
+      description: 'Conquer 14 straight days of active recall and structured study.',
       requirementDescription: 'Maintain a 14-day study streak',
       currentValue: Math.min(streak, 14),
       targetValue: 14,
@@ -173,7 +160,7 @@ export function calculateLearningAchievements(
     },
   ];
 
-  // 2. Questions Answered Milestone Badges (including 'Quiz Master' and '100 Questions Answered')
+  // 2. Questions Answered Milestone Badges
   const questionBadges: AchievementBadge[] = [
     {
       id: 'badge_quiz_master',
@@ -205,7 +192,7 @@ export function calculateLearningAchievements(
       category: 'questions_milestone',
       tier: 'Silver',
       icon: '🎯',
-      description: 'Solve 50 adaptive quiz and practice questions across your curriculum subjects.',
+      description: 'Solve 50 adaptive quiz and practice questions across your study subjects.',
       requirementDescription: 'Answer 50 quiz questions',
       currentValue: Math.min(totalQuestions, 50),
       targetValue: 50,
@@ -305,60 +292,7 @@ export function calculateLearningAchievements(
     },
   ];
 
-  // 4. Course Completion Badges
-  const courseBadges: AchievementBadge[] = [
-    {
-      id: 'badge_course_first',
-      title: 'First Steps Scholar',
-      category: 'course_completion',
-      tier: 'Bronze',
-      icon: '🎓',
-      description: 'Complete your first verified government exam or professional skills course.',
-      requirementDescription: 'Complete 1 course',
-      currentValue: Math.min(completedCount, 1),
-      targetValue: 1,
-      unlocked: isStoredOrUnlocked('badge_course_first', completedCount >= 1),
-      progressPercent: isStoredOrUnlocked('badge_course_first', completedCount >= 1) ? 100 : 0,
-      unlockedAt: earnedMap.get('badge_course_first'),
-      rarity: 'Common',
-      glowColor: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/40 text-emerald-300',
-    },
-    {
-      id: 'badge_course_gov_exams',
-      title: 'Exam Strategist',
-      category: 'course_completion',
-      tier: 'Silver',
-      icon: '🎯',
-      description: 'Complete a verified course in UPSC, SSC, or Banking preparations.',
-      requirementDescription: 'Complete 1 Government Exam course',
-      currentValue: isStoredOrUnlocked('badge_course_gov_exams', hasCompletedGovExams) ? 1 : 0,
-      targetValue: 1,
-      unlocked: isStoredOrUnlocked('badge_course_gov_exams', hasCompletedGovExams),
-      progressPercent: isStoredOrUnlocked('badge_course_gov_exams', hasCompletedGovExams) ? 100 : 0,
-      unlockedAt: earnedMap.get('badge_course_gov_exams'),
-      rarity: 'Rare',
-      glowColor: 'from-indigo-500/20 to-purple-500/20 border-indigo-500/40 text-indigo-300',
-    },
-    {
-      id: 'badge_course_skills',
-      title: 'Professional Pro',
-      category: 'course_completion',
-      tier: 'Gold',
-      icon: '💼',
-      description: 'Master critical thinking, business communication, or leadership modules.',
-      requirementDescription: 'Complete 1 Professional Skills course',
-      currentValue: isStoredOrUnlocked('badge_course_skills', hasCompletedSkills) ? 1 : 0,
-      targetValue: 1,
-      unlocked: isStoredOrUnlocked('badge_course_skills', hasCompletedSkills),
-      progressPercent: isStoredOrUnlocked('badge_course_skills', hasCompletedSkills) ? 100 : 0,
-      unlockedAt: earnedMap.get('badge_course_skills'),
-      rarity: 'Epic',
-      glowColor: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/40 text-cyan-300',
-    },
-  ];
-
-
-  const allBadges = [...streakBadges, ...questionBadges, ...masteryBadges, ...courseBadges];
+  const allBadges = [...streakBadges, ...questionBadges, ...masteryBadges];
   const unlockedCount = allBadges.filter((b) => b.unlocked).length;
   const totalCount = allBadges.length;
   const completionRate = Math.round((unlockedCount / totalCount) * 100);
@@ -375,7 +309,6 @@ export function calculateLearningAchievements(
     streakBadges,
     questionBadges,
     masteryBadges,
-    courseBadges,
     unlockedCount,
     totalCount,
     completionRate,

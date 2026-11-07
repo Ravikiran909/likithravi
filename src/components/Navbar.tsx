@@ -20,8 +20,8 @@ import {
 import { StudentProfile, SUPPORTED_LANGUAGES } from '../types/index.ts';
 
 interface NavbarProps {
-  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'curriculum' | 'skill_up';
-  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin' | 'curriculum' | 'skill_up') => void;
+  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin';
+  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin') => void;
   selectedProfile: StudentProfile | null;
   isWhatsAppConfigured: boolean;
   focusMode?: boolean;
@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`flex items-center space-x-3 cursor-pointer transition-opacity duration-300 ${
               focusMode ? 'opacity-80 hover:opacity-100' : ''
             }`}
-            onClick={() => setActiveTab('curriculum')}
+            onClick={() => setActiveTab('student')}
           >
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all ${
@@ -97,29 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Tab Navigation */}
           <nav className="flex items-center space-x-1 sm:space-x-1.5">
-            <button
-              onClick={() => setActiveTab('curriculum')}
-              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer relative ${
-                activeTab === 'curriculum'
-                  ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-md shadow-orange-600/40 ring-1 ring-amber-400'
-                  : 'text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 border border-amber-500/30'
-              }`}
-            >
-              <Building2 className="w-4 h-4 text-amber-400" />
-              <span>Curriculum</span>
-            </button>
 
-            <button
-              onClick={() => setActiveTab('skill_up')}
-              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer relative ${
-                activeTab === 'skill_up'
-                  ? 'bg-gradient-to-r from-indigo-600 to-blue-500 text-white shadow-md shadow-blue-600/40 ring-1 ring-indigo-400'
-                  : 'text-indigo-400 hover:text-indigo-300 hover:bg-indigo-950/40 border border-indigo-500/30'
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-indigo-400" />
-              <span>Skill Up</span>
-            </button>
 
             <button
               onClick={() => setActiveTab('simulator')}

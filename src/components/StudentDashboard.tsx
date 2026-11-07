@@ -26,7 +26,6 @@ import {
 import { StudentProfile, StudyPlan, Recommendation } from '../types/index.ts';
 import { StudentProgressChart } from './StudentProgressChart.tsx';
 import { LearningProgressChart } from './LearningProgressChart.tsx';
-import { LearningMilestones } from './LearningMilestones.tsx';
 import { StudyPlanner } from './StudyPlanner.tsx';
 import { AdaptiveQuiz } from './AdaptiveQuiz.tsx';
 import { Badges, ProfileBadgesWidget } from './Badges.tsx';
@@ -42,8 +41,6 @@ import { PomodoroStudyTimer } from './PomodoroStudyTimer.tsx';
 import { WeeklyStudyReport } from './WeeklyStudyReport.tsx';
 import { FlashcardDeckGenerator } from './FlashcardDeckGenerator.tsx';
 import { StudyMaterialsBrowser } from './StudyMaterialsBrowser.tsx';
-import { FreeCoursesAndVideos } from './FreeCoursesAndVideos.tsx';
-import { CurriculumRoadmap } from './CurriculumRoadmap.tsx';
 import { LearningAchievementsCard } from './LearningAchievementsCard.tsx';
 import { KnowledgeGapsHeatmap } from './KnowledgeGapsHeatmap.tsx';
 import { WeeklyLearningActivityChart } from './WeeklyLearningActivityChart.tsx';
@@ -68,7 +65,6 @@ import { HighLevelThinkingModels } from './HighLevelThinkingModels.tsx';
 import { SubTopicMasteryHeatmapChart } from './SubTopicMasteryHeatmapChart.tsx';
 import { AchievementBadgesShowcase } from './AchievementBadgesShowcase.tsx';
 import { StudentAchievements } from './StudentAchievements.tsx';
-import { GovExamPrepHub } from './GovExamPrepHub.tsx';
 import { StudySessionPlanner } from './StudySessionPlanner.tsx';
 import { DailyQuizStreakCounter } from './DailyQuizStreakCounter.tsx';
 import { DailyStudyGoal } from './DailyStudyGoal.tsx';
@@ -76,7 +72,6 @@ import { DailyMicroGoalsWidget } from './DailyMicroGoalsWidget.tsx';
 
 import { PeerStudyGroupModule } from './PeerStudyGroupModule.tsx';
 import { DailyQuiz } from './DailyQuiz.tsx';
-import { CurriculumCenter } from './CurriculumCenter.tsx';
 import { calculateLearningRank } from '../utils/learningRank.ts';
 import {
   generateStudentProgressPdf,
@@ -102,7 +97,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'curriculum_hub' | 'peer_groups' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'courses' | 'roadmap' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'milestones' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'peer_groups' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'settings'>('overview');
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -665,17 +660,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             >
               {deepFocusActive ? 'Focus Workspace' : 'Overview'}
             </button>
-            <button
-              onClick={() => setActiveTab('curriculum')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer ${
-                activeTab === 'curriculum'
-                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30 ring-1 ring-amber-400/50'
-                  : 'text-amber-400 hover:text-amber-300 hover:bg-slate-800'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>Curriculum Prep App</span>
-            </button>
+
             {!deepFocusActive && (
               <>
                 <button
@@ -739,28 +724,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 </span>
               )}
             </button>
-            {!deepFocusActive && (
-              <>
-                <button
-                  onClick={() => setActiveTab('courses')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                    activeTab === 'courses' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Youtube className="w-3.5 h-3.5 text-red-400" />
-                  <span>Free Courses & Videos</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('roadmap')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
-                    activeTab === 'roadmap' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Curriculum Roadmap</span>
-                </button>
-              </>
-            )}
+
             <button
               onClick={() => setActiveTab('focus')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
@@ -842,15 +806,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 >
                   Curriculum Mastery
                 </button>
-                <button
-                  onClick={() => setActiveTab('milestones')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 ${
-                    activeTab === 'milestones' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Milestones</span>
-                </button>
+
                 <button
                   onClick={() => setActiveTab('settings')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
@@ -975,40 +931,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             onNavigateToChat={onNavigateToChat}
           />
 
-          {/* Daily Learning Mode Card (Requirement #12) */}
-          <div className="bg-gradient-to-r from-emerald-900/60 via-slate-900 to-teal-900/40 border border-emerald-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-xl blur-3xl pointer-events-none" />
-            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-2 max-w-2xl">
-                <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-xl text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Daily Learning Mode Active</span>
-                </div>
-                <h2 className="text-xl font-bold text-white">
-                  Today's Session: Indian Polity Articles & Rights
-                </h2>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  ⏱️ Estimated time: 45 mins • Goals: Revise Articles 14-18, practice 3 problems, and complete a mini quiz to maintain your {profile.streak}-day streak!
-                </p>
-              </div>
 
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => onNavigateToChat('Explain Indian Polity Articles and Rights')}
-                  className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition active:scale-95"
-                >
-                  <Play className="w-4 h-4 fill-slate-950" />
-                  <span>Start Session on WhatsApp</span>
-                </button>
-                <button
-                  onClick={() => onNavigateToChat('/quiz GS')}
-                  className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-white font-medium px-4 py-2.5 rounded-xl border border-slate-700 transition"
-                >
-                  <span>Quick Quiz</span>
-                </button>
-              </div>
-            </div>
-          </div>
+
 
           {/* Weak Topics Practice Spotlight Card */}
           {profile.weakTopics && profile.weakTopics.length > 0 && (
@@ -1390,7 +1314,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <LearningAchievementsCard
                 profile={profile}
                 onProfileUpdate={onProfileUpdate}
-                onNavigateToCourses={() => setActiveTab('courses')}
                 onNavigateToChat={onNavigateToChat}
               />
 
@@ -1419,7 +1342,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onProfileUpdate={onProfileUpdate}
                 onNavigateToChat={onNavigateToChat}
                 onNavigateToQuiz={() => setActiveTab('quiz')}
-                onNavigateToRoadmap={() => setActiveTab('roadmap')}
               />
 
               {/* Smart Study Reminder System (Firebase Cloud Messaging Push Notifications based on preferredStudyTime) */}
@@ -1439,15 +1361,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onLogStudyMinutes={handleAddStudyMinutes}
               />
 
-              {/* Curriculums Preparation Documents, Classes & Notifications */}
-              <GovExamPrepHub
-                profile={profile}
-                onProfileUpdate={onProfileUpdate}
-                onNavigateToChat={onNavigateToChat}
-                onNavigateToQuiz={() => setActiveTab('quiz')}
-                onOpenMaterialsTab={() => setActiveTab('materials')}
-                onLogStudyMinutes={handleAddStudyMinutes}
-              />
+
 
               {/* WhatsApp Daily Study Session Reminders Feature */}
               <DailyStudyReminderCard
@@ -1462,7 +1376,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onProfileUpdate={onProfileUpdate}
                 onNavigateToChat={onNavigateToChat}
                 onNavigateToQuiz={() => setActiveTab('quiz')}
-                onNavigateToLessons={() => setActiveTab('roadmap')}
                 onOpenFullVault={() => setActiveTab('badges')}
               />
 
@@ -1472,38 +1385,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onNavigateToBadges={() => setActiveTab('badges')}
               />
 
-              {/* Curriculum Roadmap Progress Banner Spotlight */}
-              <div className="bg-gradient-to-r from-indigo-950/60 via-slate-900 to-emerald-950/50 border border-indigo-500/30 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center space-x-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                        Curriculum Roadmap
-                      </span>
-                      <span className="px-2 py-0.5 rounded-xl text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        Rural Offline Ready
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-bold text-white mt-0.5">
-                      Track Step-by-Step Milestones & Earn Badges
-                    </h4>
-                    <p className="text-xs text-slate-300 mt-0.5">
-                      Structured checklists for Indian Polity, History, Economy, Geography, Quantitative Aptitude, and Professional Skills. Mark off milestones as you learn.
-                    </p>
-                  </div>
-                </div>
 
-                <button
-                  onClick={() => setActiveTab('roadmap')}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/30 transition flex items-center justify-center space-x-1.5 shrink-0 cursor-pointer"
-                >
-                  <span>Open Roadmap Checklist</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
 
               {/* 30-Day Progress & Quiz Scores Line Graph (Recharts LineChart) */}
               <ThirtyDayProgressLineChart
@@ -1524,7 +1406,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <CalendarKnowledgeGapHeatmap
                 profile={profile}
                 onNavigateToChat={onNavigateToChat}
-                onNavigateToQuiz={(topic) => {
+                onNavigateToQuiz={(topic?: string) => {
                   setActiveTab('quiz');
                 }}
                 onLogStudyMinutes={handleAddStudyMinutes}
@@ -1700,7 +1582,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <LearningAchievementsCard
                 profile={profile}
                 onProfileUpdate={onProfileUpdate}
-                onNavigateToCourses={() => setActiveTab('courses')}
                 onNavigateToChat={onNavigateToChat}
               />
 
@@ -1939,14 +1820,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onNavigateToQuiz={() => setActiveTab('quiz')}
               />
 
-              {/* Multi-Exam Government Preparation Hub */}
-              <GovExamPrepHub
-                profile={profile}
-                onProfileUpdate={onProfileUpdate}
-                onNavigateToChat={onNavigateToChat}
-                onNavigateToQuiz={() => setActiveTab('quiz')}
-                onLogStudyMinutes={handleAddStudyMinutes}
-              />
+
 
 
 
@@ -1962,16 +1836,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {/* Dedicated Curriculum Preparation App Tab */}
-      {activeTab === 'curriculum' && (
-        <CurriculumCenter
-          profile={profile}
-          onProfileUpdate={onProfileUpdate}
-          onNavigateToChat={onNavigateToChat}
-          onNavigateToQuiz={() => setActiveTab('quiz')}
-          onLogStudyMinutes={handleAddStudyMinutes}
-        />
-      )}
+
 
       {/* Dedicated Learning Velocity Tab (Recharts 30-Day Multi-Line Weak Topics Trajectory) */}
       {activeTab === 'velocity' && (
@@ -2022,18 +1887,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {/* Dedicated Curriculum Preparation Hub Tab */}
-      {activeTab === 'curriculum_hub' && (
-        <div className="space-y-6">
-          <GovExamPrepHub
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-        </div>
-      )}
+
 
       {/* Role-Play Company Mock Interview Tab */}
 
@@ -2092,13 +1946,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       {/* RAG Knowledge Base Study Materials & Pinned Documents Tab */}
       {activeTab === 'materials' && (
         <div className="space-y-6">
-          <GovExamPrepHub
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
+
           <VoiceToKnowledgeCard
             profile={profile}
             onProfileUpdate={onProfileUpdate}
@@ -2114,34 +1962,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {/* Free Courses & YouTube Videos Tab */}
-      {activeTab === 'courses' && (
-        <div className="space-y-6">
-          <GovExamPrepHub
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onOpenMaterialsTab={() => setActiveTab('materials')}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-          <FreeCoursesAndVideos
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-          />
-        </div>
-      )}
 
-      {/* Curriculum Roadmap Step-by-Step Progress Checklist Tab */}
-      {activeTab === 'roadmap' && (
-        <CurriculumRoadmap
-          profile={profile}
-          onProfileUpdate={onProfileUpdate}
-          onNavigateToChat={onNavigateToChat}
-          onNavigateToQuiz={() => setActiveTab('quiz')}
-        />
-      )}
+
+
 
       {/* Pomodoro Focus Deep Work Timer Tab */}
       {activeTab === 'focus' && (
@@ -2229,7 +2052,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             profile={profile}
             onProfileUpdate={onProfileUpdate}
             onNavigateToChat={onNavigateToChat}
-            onQuizCompleted={({ minutesEarned, questionsCount, score, topics }) => {
+            onQuizCompleted={({ minutesEarned, questionsCount, score }: any) => {
               const nowTime = new Date().toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -2263,7 +2086,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             profile={profile}
             onProfileUpdate={onProfileUpdate}
             onNavigateToChat={onNavigateToChat}
-            onQuizCompleted={({ minutesEarned, questionsCount, score, topic }) => {
+            onQuizCompleted={({ minutesEarned, questionsCount, score, topic }: any) => {
               const nowTime = new Date().toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -2293,7 +2116,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           <LearningAchievementsCard
             profile={profile}
             onProfileUpdate={onProfileUpdate}
-            onNavigateToCourses={() => setActiveTab('courses')}
             onNavigateToChat={onNavigateToChat}
           />
           <StudentAchievements
@@ -2301,14 +2123,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             onProfileUpdate={onProfileUpdate}
             onNavigateToChat={onNavigateToChat}
             onNavigateToQuiz={() => setActiveTab('quiz')}
-            onNavigateToRoadmap={() => setActiveTab('roadmap')}
           />
           <AchievementBadgesShowcase
             profile={profile}
             onProfileUpdate={onProfileUpdate}
             onNavigateToChat={onNavigateToChat}
             onNavigateToQuiz={() => setActiveTab('quiz')}
-            onNavigateToLessons={() => setActiveTab('roadmap')}
           />
           <BadgesAndAchievements
             profile={profile}
@@ -2391,28 +2211,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
       )}
 
-      {activeTab === 'milestones' && (
-        <div className="space-y-8">
-          <StudentAchievements
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToChat={onNavigateToChat}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onNavigateToRoadmap={() => setActiveTab('roadmap')}
-          />
-          <LearningAchievementsCard
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToCourses={() => setActiveTab('courses')}
-            onNavigateToChat={onNavigateToChat}
-          />
-          <LearningMilestones
-            profile={profile}
-            onNavigateToChat={onNavigateToChat}
-            onDownloadReport={generateProgressReportPdf}
-          />
-        </div>
-      )}
+
 
       {activeTab === 'settings' && (
         <div className="max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -2534,8 +2333,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       <DeepFocusOverlay
         profile={profile}
         isActive={deepFocusActive}
-        onToggleDeepFocus={(next) => handleToggleDeepFocus(next)}
-        onSessionMinutesLogged={(mins) => handleAddStudyMinutes(mins)}
+        onToggleDeepFocus={(next: boolean) => handleToggleDeepFocus(next)}
+        onSessionMinutesLogged={(mins: number) => handleAddStudyMinutes(mins)}
       />
     </div>
   );

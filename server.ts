@@ -12,7 +12,7 @@ import { quizAgent } from './server/agents/quiz_agent.ts';
 import { plannerAgent } from './server/agents/planner_agent.ts';
 import { transcribeAudio, getGeminiAI, generateContentWithRetry, generateDynamicQuiz, generateDailyWeakTopicsQuiz } from './server/gemini.ts';
 import { runTutorAgent } from './server/agents/tutor_agent.ts';
-import { CURATED_LEARNING_RESOURCES } from './server/database/learningResources.ts';
+
 import {
   startAutomatedReminderScheduler,
   checkAndSendAutomatedReminders,
@@ -643,61 +643,7 @@ app.post('/api/verification/digilocker', (req, res) => {
   }
 });
 
-app.post('/api/courses/enroll', async (req, res) => {
-  try {
-    const { userId, courseId, courseTitle, subject, provider } = req.body || {};
-    if (!courseId || !courseTitle) {
-      return res.status(400).json({ error: 'courseId and courseTitle are required' });
-    }
 
-    const targetUserId = userId || 'user_1';
-    const prof =
-      db.getProfileByUserId(targetUserId) || Array.from(db.profiles.values())[0];
-
-    if (!prof) {
-      return res.status(404).json({ error: 'Student profile not found' });
-    }
-
-    const nowIso = new Date().toISOString();
-    const enrollmentRef = `ENR-${new Date().getFullYear()}-${Math.random()
-      .toString(36)
-      .substring(2, 7)
-      .toUpperCase()}`;
-
-    const existingIds = prof.enrolledCourseIds || [];
-    const nextEnrolledIds = Array.from(new Set([...existingIds, String(courseId)]));
-
-    const newRecord = {
-      courseId: String(courseId),
-      courseTitle: String(courseTitle),
-      subject: String(subject || 'General'),
-      provider: String(provider || 'Verified Academy'),
-      enrolledAt: nowIso,
-      enrollmentRef,
-      aadhaarRef: prof.aadhaarVerification?.referenceId || 'UIDAI-VERIFIED',
-      digilockerId: prof.digilockerVerification?.digilockerId || 'DL-VERIFIED',
-      faceVerified: Boolean(prof.faceAuthEnabled),
-    };
-
-    const existingEnrollments = (prof.courseEnrollments || []).filter(
-      (e) => e.courseId !== String(courseId)
-    );
-    const nextEnrollments = [newRecord, ...existingEnrollments];
-
-    const updated = db.updateProfile(prof.userId, {
-      enrolledCourseIds: nextEnrolledIds,
-      courseEnrollments: nextEnrollments,
-    });
-
-    res.json({
-      success: true,
-      enrollment: newRecord,
-      profile: updated || prof,
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Course enrollment failed' });
-  }
-});
 
 // ----------------------------------------------------
 // 4. Curriculum & Subjects
@@ -3040,47 +2986,7 @@ app.post('/api/documents/preview-chunks', (req, res) => {
   }
 });
 
-// Fetch Curated Free Courses & YouTube Videos across Python, Java, C, C++, C#, R, etc.
-app.get('/api/learning-resources', (req, res) => {
-  try {
-    const { subject, type, q } = req.query;
-    let list = [...CURATED_LEARNING_RESOURCES].map(r => {
-      if (!r.embedUrl && r.url.includes('youtube.com/watch?v=')) {
-        const videoId = r.url.split('v=')[1]?.split('&')[0];
-        if (videoId) return { ...r, embedUrl: `https://www.youtube.com/embed/${videoId}` };
-      } else if (!r.embedUrl && r.url.includes('youtu.be/')) {
-        const videoId = r.url.split('youtu.be/')[1]?.split('?')[0];
-        if (videoId) return { ...r, embedUrl: `https://www.youtube.com/embed/${videoId}` };
-      } else if (!r.embedUrl && r.url.includes('youtube.com/playlist?list=')) {
-        const playlistId = r.url.split('list=')[1]?.split('&')[0];
-        if (playlistId) return { ...r, embedUrl: `https://www.youtube.com/embed/videoseries?list=${playlistId}` };
-      }
-      return r;
-    });
 
-    if (subject && subject !== 'all') {
-      list = list.filter((r) => r.subject.toLowerCase() === String(subject).toLowerCase());
-    }
-    if (type && type !== 'all') {
-      list = list.filter((r) => r.type === type);
-    }
-    if (q && String(q).trim()) {
-      const query = String(q).toLowerCase();
-      list = list.filter(
-        (r) =>
-          r.title.toLowerCase().includes(query) ||
-          r.description.toLowerCase().includes(query) ||
-          r.provider.toLowerCase().includes(query) ||
-          r.subject.toLowerCase().includes(query) ||
-          r.keyTopics.some((t) => t.toLowerCase().includes(query))
-      );
-    }
-
-    res.json({ success: true, count: list.length, resources: list });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // ----------------------------------------------------
 // Material Ratings & Reviews System (Documents & Courses)
@@ -3169,7 +3075,7 @@ app.post('/api/reviews', (req, res) => {
     const newReview = {
       id: 'rev_' + Math.random().toString(36).substring(2, 9),
       materialId: String(materialId),
-      materialType: (materialType === 'course' ? 'course' : 'document') as 'course' | 'document',
+      materialType: 'document' as const,
       materialTitle: materialTitle || 'Study Material',
       userId: userId || 'student_anon',
       userName: userName || 'Student',

@@ -14,11 +14,9 @@ const PRECACHE_ASSETS = [
 // Core API endpoints to cache for offline rural study
 const CACHEABLE_API_PATHS = [
   '/api/documents',
-  '/api/learning-resources',
   '/api/reviews/summary',
   '/api/reviews',
   '/api/students',
-  '/api/milestones',
 ];
 
 // Install Event: Pre-cache App Shell

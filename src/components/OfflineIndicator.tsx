@@ -77,7 +77,7 @@ export const OfflineIndicator: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-1">
-              Curriculum documents, roadmaps, and flashcards are cached for offline study.
+              Study documents and flashcards are cached for offline study.
             </p>
           </div>
           {pendingCount > 0 && (
@@ -101,7 +101,7 @@ export const OfflineIndicator: React.FC = () => {
               )}
             </div>
             <p className="text-[11px] text-slate-300 mt-0.5">
-              Synced offline milestones and study progress.
+              Synced offline study progress and achievements.
             </p>
           </div>
         </div>

@@ -12,7 +12,7 @@ import {
   Target,
   BookOpen,
 } from 'lucide-react';
-import { StudentProfile, LearningResource } from '../types/index.ts';
+import { StudentProfile } from '../types/index.ts';
 import {
   AchievementBadge,
   calculateLearningAchievements,
@@ -21,42 +21,32 @@ import {
 interface LearningAchievementsCardProps {
   profile: StudentProfile;
   onProfileUpdate: (updated: StudentProfile) => void;
-  onNavigateToCourses?: () => void;
   onNavigateToChat?: (prompt?: string) => void;
 }
 
 export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> = ({
   profile,
   onProfileUpdate,
-  onNavigateToCourses,
   onNavigateToChat,
 }) => {
-  const [courses, setCourses] = useState<LearningResource[]>([]);
+
+
   const [selectedCategory, setSelectedCategory] = useState<
-    'all' | 'streak' | 'questions_milestone' | 'subject_mastery' | 'course_completion'
+    'all' | 'streak' | 'questions_milestone' | 'subject_mastery'
   >('all');
   const [selectedBadge, setSelectedBadge] = useState<AchievementBadge | null>(null);
   const [celebrationBadge, setCelebrationBadge] = useState<AchievementBadge | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-
-  // Fetch courses to calculate course-specific achievements
-  useEffect(() => {
-    fetch('/api/learning-resources')
-      .then((res) => (res.ok ? res.json() : { resources: [] }))
-      .then((data) => setCourses(data.resources || []))
-      .catch((err) => console.warn('Could not load courses for achievements:', err));
-  }, []);
 
   const {
     allBadges,
     streakBadges,
     questionBadges,
     masteryBadges,
-    courseBadges,
     unlockedCount,
     totalCount,
     currentStreakTier,
-  } = calculateLearningAchievements(profile, courses);
+  } = calculateLearningAchievements(profile);
 
   // Automatically sync unlocked badges to user profile document (earnedBadges & achievements)
   useEffect(() => {
@@ -106,8 +96,6 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
       ? questionBadges
       : selectedCategory === 'subject_mastery'
       ? masteryBadges
-      : selectedCategory === 'course_completion'
-      ? courseBadges
       : allBadges;
 
   // Persist a newly unlocked milestone directly into the user profile document
@@ -187,7 +175,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
         onProfileUpdate(updated);
 
         // Check if any badge just got unlocked
-        const nextAchievements = calculateLearningAchievements(updated, courses);
+        const nextAchievements = calculateLearningAchievements(updated);
         const newlyUnlocked = nextAchievements.allBadges.find(
           (b) => b.unlocked && allBadges.find((sb) => sb.id === b.id && !sb.unlocked)
         );
@@ -317,17 +305,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
             <span>Subject Mastery ({masteryBadges.length})</span>
           </button>
 
-          <button
-            onClick={() => setSelectedCategory('course_completion')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
-              selectedCategory === 'course_completion'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-black'
-                : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5 text-indigo-300" />
-            <span>Courses ({courseBadges.length})</span>
-          </button>
+
         </div>
 
         {/* Quick Streak Simulation / Course Explorer */}
@@ -342,15 +320,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
             <span>+1 Day Streak</span>
           </button>
 
-          {onNavigateToCourses && (
-            <button
-              onClick={onNavigateToCourses}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
-            >
-              <span>Explore Courses</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          )}
+
         </div>
       </div>
 

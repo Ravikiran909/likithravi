@@ -1,7 +1,6 @@
 import { db } from '../database/db.ts';
-import type { DocumentRecord, DocumentChunk, LearningResource } from '../../src/types/index.ts';
+import type { DocumentRecord, DocumentChunk } from '../../src/types/index.ts';
 import { getGeminiAI, isModelInCooldown, markModelCooldown } from '../gemini.ts';
-import { CURATED_LEARNING_RESOURCES } from '../database/learningResources.ts';
 
 /**
  * Semantic Concept Clusters for Dense Vector Embedding Projection.
@@ -143,11 +142,7 @@ export interface VectorDocumentMatch {
   matchedConcepts: string[];
 }
 
-export interface VectorCourseMatch {
-  course: LearningResource;
-  similarity: number;
-  matchedConcepts: string[];
-}
+
 
 export interface SemanticVectorSearchResponse {
   query: string;
@@ -158,7 +153,6 @@ export interface SemanticVectorSearchResponse {
   totalDocumentsScanned: number;
   matchedChunks: VectorChunkMatch[];
   matchedDocuments: VectorDocumentMatch[];
-  matchedCourses: VectorCourseMatch[];
   contextString: string;
 }
 
@@ -359,7 +353,6 @@ export class RagService {
         totalDocumentsScanned: db.documents.size,
         matchedChunks: [],
         matchedDocuments: [],
-        matchedCourses: [],
         contextString: '',
       };
     }
@@ -511,31 +504,7 @@ export class RagService {
       })
       .sort((a, b) => b.maxSimilarity - a.maxSimilarity);
 
-    // Also compute vector similarity against curated LearningResources (courses)
-    const candidateCourses = subjectFilter
-      ? CURATED_LEARNING_RESOURCES.filter((r) => r.subject.toLowerCase() === subjectFilter)
-      : CURATED_LEARNING_RESOURCES;
 
-    const matchedCourses: VectorCourseMatch[] = candidateCourses
-      .map((course) => {
-        const courseText = `${course.subject} ${course.title} ${course.provider} ${course.description} ${course.keyTopics.join(' ')}`;
-        const courseVec = this.computeLocalSemanticVector(courseText);
-        const rawCos = this.cosineSimilarity(queryLocalVec, courseVec);
-        let boost = 0;
-        const cLower = courseText.toLowerCase();
-        for (const tok of qTokens) {
-          if (cLower.includes(tok)) boost += 0.08;
-        }
-        const sim = Math.min(0.98, Number((rawCos * 0.75 + Math.min(0.35, boost)).toFixed(4)));
-        return {
-          course,
-          similarity: sim,
-          matchedConcepts: this.extractMatchedConcepts(cleanQuery, courseText, course.keyTopics),
-        };
-      })
-      .filter((c) => c.similarity >= minSimilarity)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 6);
 
     const contextString = topChunks
       .map(
@@ -555,7 +524,6 @@ export class RagService {
       totalDocumentsScanned: db.documents.size,
       matchedChunks: topChunks,
       matchedDocuments,
-      matchedCourses,
       contextString,
     };
   }
@@ -635,10 +603,9 @@ export class RagService {
     chunks: DocumentChunk[];
     contextString: string;
     formattedContext: string;
-    recommendedCourses: LearningResource[];
   } {
     if (!query || !query.trim()) {
-      return { chunks: [], contextString: '', formattedContext: '', recommendedCourses: [] };
+      return { chunks: [], contextString: '', formattedContext: '' };
     }
 
     const cleanQuery = query.trim();
@@ -649,10 +616,7 @@ export class RagService {
       .split(/\s+/)
       .filter((w) => w.length > 1);
 
-    const recommendedCourses = CURATED_LEARNING_RESOURCES.filter((course) => {
-      const cText = `${course.subject} ${course.title} ${course.keyTopics.join(' ')}`.toLowerCase();
-      return qWords.some((w) => w.length > 2 && cText.includes(w));
-    }).slice(0, 2);
+
 
     const scored = db.chunks.map((chunk) => {
       if (!chunk.embedding || chunk.embedding.length !== LOCAL_VECTOR_DIM) {
@@ -701,7 +665,7 @@ export class RagService {
     if (matched.length === 0) {
       const fallbackMatched = db.searchChunks(cleanQuery, limit);
       if (fallbackMatched.length === 0) {
-        return { chunks: [], contextString: '', formattedContext: '', recommendedCourses };
+        return { chunks: [], contextString: '', formattedContext: '' };
       }
       const contextString = fallbackMatched
         .map(
@@ -713,7 +677,6 @@ export class RagService {
         chunks: fallbackMatched,
         contextString,
         formattedContext: contextString,
-        recommendedCourses,
       };
     }
 
@@ -728,7 +691,6 @@ export class RagService {
       chunks: matched,
       contextString,
       formattedContext: contextString,
-      recommendedCourses,
     };
   }
 

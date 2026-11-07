@@ -37,10 +37,11 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 const firestoreDatabaseId =
   (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId ||
-  'ai-studio-whatsappailearni-302dbf05-0a9b-4f72-8002-b0f079bc692b';
+  '(default)';
 
 let db: any;
 try {
+  // Use a more robust initialization with explicit persistence
   db = initializeFirestore(
     app,
     {
@@ -51,6 +52,7 @@ try {
     firestoreDatabaseId
   );
 } catch (e) {
+  console.warn('Firestore initialization fallback:', e);
   db = getFirestore(app, firestoreDatabaseId);
 }
 
@@ -130,30 +132,40 @@ export function handleFirestoreError(
  * Validate Connection to Firestore on initial boot
  */
 export async function testConnection(): Promise<boolean> {
+  // If browser says we are offline, don't even try the server call
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     return false;
   }
 
   try {
-    const checkPromise = getDocFromServer(doc(db, 'test', 'connection'));
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Connection check timeout')), 2500)
+    // We use a dedicated test doc that has public read rules
+    const testDocRef = doc(db, 'test', 'connection');
+    
+    // Use getDocFromServer to verify actual reachability, but with a more generous timeout
+    // and specific catch for the "offline" error which is expected in some environments.
+    const checkPromise = getDocFromServer(testDocRef);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Connection check timeout')), 5000)
     );
+    
     await Promise.race([checkPromise, timeoutPromise]);
     return true;
   } catch (error: any) {
+    const errorMsg = error?.message?.toLowerCase() || '';
     const isOffline = 
-      error?.message?.includes('the client is offline') || 
+      errorMsg.includes('offline') || 
+      errorMsg.includes('unavailable') ||
+      errorMsg.includes('timeout') ||
       error?.code === 'unavailable' ||
       error?.code === 'failed-precondition' ||
-      !navigator.onLine;
+      (typeof navigator !== 'undefined' && !navigator.onLine);
 
     if (isOffline) {
       console.warn('Firestore server reachability check fell back to local cache mode.');
       return false;
     }
     
-    // If it's a permission error or something else, it's still technically "connected" but failing
+    // For other errors (like permissions), we consider it "connected" if we got a response
     return Boolean(db && app);
   }
 }

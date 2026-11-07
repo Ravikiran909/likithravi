@@ -58,9 +58,8 @@ export function computeLeaderboardPoints(p: Partial<StudentProfile>, bonus: numb
   const correctPts = (p.correctAnswers || 0) * 20;
   const streakPts = (p.streak || 0) * 60;
   const progressPts = Math.round((p.overallProgress || 50) * 12);
-  const coursePts = (p.completedCourseIds?.length || 0) * 200;
   const focusPts = Math.round(((p.focusStats?.totalFocusMinutes || 60) / 25) * 50);
-  return sessionPts + correctPts + streakPts + progressPts + coursePts + focusPts + bonus;
+  return sessionPts + correctPts + streakPts + progressPts + focusPts + bonus;
 }
 
 export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({

@@ -27,7 +27,6 @@ interface LeaderboardEntry {
   educationLevel: string;
   streak: number;
   accuracy: number;
-  completedCourses: number;
   totalPoints: number;
   weeklyDelta: number;
   badgeTier: 'Diamond' | 'Platinum' | 'Gold' | 'Silver' | 'Bronze';
@@ -39,9 +38,8 @@ export function calculateLearningPoints(p: Partial<StudentProfile>): number {
   const streakPts = (p.streak || 0) * 50;
   const correctPts = (p.correctAnswers || 0) * 25;
   const progressPts = (p.overallProgress || 0) * 12;
-  const coursePts = (p.completedCourseIds?.length || 0) * 200;
   const focusPts = Math.round((p.focusStats?.totalFocusMinutes || 60) * 2);
-  return streakPts + correctPts + progressPts + coursePts + focusPts;
+  return streakPts + correctPts + progressPts + focusPts;
 }
 
 export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
@@ -70,7 +68,6 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         educationLevel: 'college',
         streak: 19,
         accuracy: 92,
-        completedCourses: 4,
         totalPoints: 3420,
         weeklyDelta: 410,
         badgeTier: 'Diamond',
@@ -84,7 +81,6 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         educationLevel: 'competitive_exam',
         streak: 14,
         accuracy: 88,
-        completedCourses: 3,
         totalPoints: 2890,
         weeklyDelta: 325,
         badgeTier: 'Platinum',
@@ -98,7 +94,6 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         educationLevel: 'college',
         streak: 11,
         accuracy: 85,
-        completedCourses: 3,
         totalPoints: 2540,
         weeklyDelta: 260,
         badgeTier: 'Gold',
@@ -112,7 +107,6 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         educationLevel: 'school',
         streak: 6,
         accuracy: 79,
-        completedCourses: 2,
         totalPoints: 1840,
         weeklyDelta: 190,
         badgeTier: 'Silver',
@@ -126,7 +120,6 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         educationLevel: 'professional',
         streak: 5,
         accuracy: 76,
-        completedCourses: 1,
         totalPoints: 1590,
         weeklyDelta: 145,
         badgeTier: 'Bronze',
@@ -157,7 +150,6 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
           educationLevel: p.educationLevel,
           streak: p.streak || 1,
           accuracy: acc,
-          completedCourses: p.completedCourseIds?.length || 1,
           totalPoints: pts,
           weeklyDelta: 180 + idx * 45,
           badgeTier:
@@ -193,7 +185,6 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
       educationLevel: profile.educationLevel,
       streak: profile.streak || 1,
       accuracy: myAccuracy,
-      completedCourses: profile.completedCourseIds?.length || 0,
       totalPoints: myBasePoints,
       weeklyDelta: 240 + pointBonus,
       badgeTier:
@@ -259,7 +250,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
               Study Group Standings & Total Learning Points (XP)
             </h3>
             <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
-              Earn Learning Points from daily streaks (+50 XP/day), correct quiz answers (+25 XP), completed courses (+200 XP), and Pomodoro focus sessions.
+              Earn Learning Points from daily streaks (+50 XP/day), correct quiz answers (+25 XP), and Pomodoro focus sessions.
             </p>
           </div>
         </div>
@@ -402,8 +393,6 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
                     </span>
                     <span>•</span>
                     <span className="text-emerald-400">{entry.accuracy}% quiz accuracy</span>
-                    <span>•</span>
-                    <span>{entry.completedCourses} courses</span>
                   </div>
                 </div>
               </div>

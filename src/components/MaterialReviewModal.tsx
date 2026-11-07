@@ -17,7 +17,7 @@ import { db, collection, doc, setDoc } from '../firebase.ts';
 interface MaterialReviewModalProps {
   materialId: string;
   materialTitle: string;
-  materialType: 'document' | 'course';
+  materialType: 'document';
   materialSubject: string;
   profile?: StudentProfile;
   isOpen: boolean;
@@ -108,7 +108,7 @@ export const MaterialReviewModal: React.FC<MaterialReviewModalProps> = ({
               {
                 id: String(data.review.id),
                 materialId: String(data.review.materialId || materialId),
-                materialType: data.review.materialType === 'course' ? 'course' : 'document',
+                materialType: 'document',
                 userId: String(data.review.userId || profile?.userId || 'usr_guest'),
                 userName: String(data.review.userName || profile?.name || 'Verified Student').slice(0, 95),
                 rating: Number(data.review.rating) || 5,
@@ -145,7 +145,7 @@ export const MaterialReviewModal: React.FC<MaterialReviewModalProps> = ({
                 {materialSubject}
               </span>
               <span className="text-xs text-slate-400 capitalize">
-                {materialType === 'course' ? 'Video Course' : 'Curriculum Document'}
+                Curriculum Document
               </span>
             </div>
             <h3 className="text-lg font-bold text-white mt-1 line-clamp-1">

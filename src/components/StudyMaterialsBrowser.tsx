@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { DocumentRecord, StudentProfile } from '../types/index.ts';
 import { db, doc, setDoc } from '../firebase.ts';
-import { FreeCoursesAndVideos } from './FreeCoursesAndVideos.tsx';
 import { MaterialReviewModal } from './MaterialReviewModal.tsx';
 
 interface StudyMaterialsBrowserProps {
@@ -200,51 +199,8 @@ export const StudyMaterialsBrowser: React.FC<StudyMaterialsBrowserProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Primary Sub-Tab Switcher: Documents vs Free Courses & YouTube */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl">
-          <button
-            onClick={() => setActiveSubTab('documents')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
-              activeSubTab === 'documents'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Curriculum Documents ({documents.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveSubTab('courses')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
-              activeSubTab === 'courses'
-                ? 'bg-red-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Youtube className="w-3.5 h-3.5" />
-            <span>YouTube Videos & Free Courses</span>
-          </button>
-        </div>
-
-        <div className="text-xs text-slate-400 hidden sm:block">
-          {activeSubTab === 'documents'
-            ? 'Grounds the Socratic AI Tutor & WhatsApp chat with verified notes'
-            : 'Curated courses & YouTube tutorials for Government Exams & Professional Skills'}
-        </div>
-      </div>
-
-      {/* Render Free Courses & Videos View when active */}
-      {activeSubTab === 'courses' ? (
-        <FreeCoursesAndVideos
-          profile={profile}
-          onNavigateToChat={onNavigateToChat}
-          onProfileUpdate={onProfileUpdate}
-        />
-      ) : (
-        <>
-          {/* Top Banner / Knowledge Base Header */}
-          <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/60 border border-emerald-500/30 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      {/* Top Banner / Knowledge Base Header */}
+      <div className="bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/60 border border-emerald-500/30 rounded-3xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
@@ -711,8 +667,7 @@ export const StudyMaterialsBrowser: React.FC<StudyMaterialsBrowserProps> = ({
           </div>
         </div>
       )}
-        </>
-      )}
+
 
       {/* Review Modal for Documents */}
       {reviewModalTarget && (

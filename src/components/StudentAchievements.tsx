@@ -190,7 +190,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         xpPoints: 400,
         description:
           'Awarded for achieving verified conceptual mastery in a curriculum topic through Socratic tutoring and high quiz accuracy.',
-        requirementSummary: 'Master at least 1 core curriculum topic',
+        requirementSummary: 'Master at least 1 core study topic',
         currentValue: Math.min(1, masteredTopicsCount),
         targetValue: 1,
         unit: 'topic',
@@ -371,7 +371,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         xpPoints: 500,
         description:
           'Achieved verified mastery across 3 distinct academic topics including Indian Polity & Governance.',
-        requirementSummary: 'Master 3 distinct curriculum topics',
+        requirementSummary: 'Master 3 distinct study topics',
         currentValue: Math.min(3, masteredTopicsCount),
         targetValue: 3,
         unit: 'topics',
@@ -394,7 +394,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         xpPoints: 750,
         description:
           'Mastered 5 or more core topics across General Studies, Government Exams, and Ethics subjects with high retention.',
-        requirementSummary: 'Master 5 distinct curriculum topics',
+        requirementSummary: 'Master 5 distinct study topics',
         currentValue: Math.min(5, masteredTopicsCount),
         targetValue: 5,
         unit: 'topics',

@@ -39,7 +39,7 @@ export const RagKnowledgeBase: React.FC<RagKnowledgeBaseProps> = ({ onDocumentAd
   // Form State
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('Indian Polity');
-  const [category, setCategory] = useState('Textbook Extract');
+  const [category, setCategory] = useState('Study Notes');
   const [content, setContent] = useState('');
   const [tutorDirective, setTutorDirective] = useState('');
   const [originalFilename, setOriginalFilename] = useState('');
@@ -184,7 +184,7 @@ export const RagKnowledgeBase: React.FC<RagKnowledgeBaseProps> = ({ onDocumentAd
     if (type === 'polity') {
       setTitle('Indian Constitution: Fundamental Rights & Duties');
       setSubject('Indian Polity');
-      setCategory('Course Notes');
+      setCategory('Study Notes');
       setTutorDirective('Focus on the distinction between Article 19 and Article 21, and the concept of "reasonable restrictions".');
       const sample = `Indian Polity - Fundamental Rights (Part III):
 The Constitution of India grants seven fundamental rights to its citizens. These include:
@@ -436,13 +436,13 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
           <div className="space-y-1.5 max-w-2xl">
             <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
               <Bot className="w-3.5 h-3.5 text-emerald-400" />
-              <span>RAG Knowledge Base & Curriculum Ingestion</span>
+              <span>RAG Knowledge Base & Study Material Ingestion</span>
             </div>
             <h2 className="text-xl font-bold text-white">
               AI Tutor Context & Study Materials Engine
             </h2>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Upload PDF textbooks, lecture slides, or syllabus notes to ground the WhatsApp AI Tutor with your institution's verified course content.
+              Upload PDF textbooks, lecture slides, or syllabus notes to ground the WhatsApp AI Tutor with your institution's verified study content.
             </p>
           </div>
 
@@ -524,7 +524,7 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
                   <span>Educational Document Ingestion</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Upload PDF or paste course material to customize the AI tutor's answers.
+                  Upload PDF or paste study material to customize the AI tutor's answers.
                 </p>
               </div>
 
@@ -557,7 +557,7 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
 
             {/* Quick Template Fill Buttons */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-slate-400 font-medium">Quick Curriculum Templates:</span>
+              <span className="text-[11px] text-slate-400 font-medium">Quick Study Templates:</span>
               <button
                 type="button"
                 onClick={() => handleApplySampleTemplate('polity')}
@@ -677,7 +677,7 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
                     <option value="Geography">Geography</option>
                     <option value="General Science">General Science</option>
                     <option value="Current Affairs">Current Affairs</option>
-                    <option value="General">General Curriculum</option>
+                    <option value="General">General Study Notes</option>
                   </select>
                 </div>
               </div>
@@ -694,7 +694,7 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 transition"
                   >
                     <option value="Textbook Extract">Textbook Extract</option>
-                    <option value="Course Notes">Course Notes</option>
+                    <option value="Study Notes">Study Notes</option>
                     <option value="Formula Sheet">Formula Sheet</option>
                     <option value="Cheatsheet">Cheatsheet</option>
                     <option value="Exam Reference">Past Exam Reference</option>
@@ -822,7 +822,7 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
                 When a student asks a doubt on WhatsApp (e.g. <em>"Explain the LIATE rule in integration"</em>), the RAG pipeline automatically retrieves these chunks and instructs Gemini:
               </p>
               <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-[11px] text-emerald-300 font-mono">
-                "Ground your answer in verified course notes. Cite official theorems and warn the student of common pitfalls."
+                "Ground your answer in verified study notes. Cite official theorems and warn the student of common pitfalls."
               </div>
             </div>
           </div>
@@ -952,7 +952,7 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
                 <span>Test Contextual AI Tutor Response</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Simulate a WhatsApp student question to verify how the tutor incorporates your uploaded course notes.
+                Simulate a WhatsApp student question to verify how the tutor incorporates your uploaded study notes.
               </p>
             </div>
 

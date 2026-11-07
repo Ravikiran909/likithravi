@@ -510,7 +510,7 @@ export const WeeklyGoalTracker: React.FC<WeeklyGoalTrackerProps> = ({
           </div>
         </div>
 
-        {/* High-Clarity Segmented Progress Bar with Milestone Markers */}
+        {/* High-Clarity Segmented Progress Bar with Goal Markers */}
         <div className="space-y-2">
           <div
             role="progressbar"
@@ -520,7 +520,7 @@ export const WeeklyGoalTracker: React.FC<WeeklyGoalTrackerProps> = ({
             aria-label={`Weekly study progress: ${totalHoursStudied} of ${weeklyGoalHours} hours (${progressPercent}%)`}
             className="w-full h-5 bg-slate-950 rounded-xl p-1 border border-slate-800 relative overflow-hidden"
           >
-            {/* 25%, 50%, 75% Subtle Milestone Hairlines */}
+            {/* 25%, 50%, 75% Subtle Pace Hairlines */}
             <div className="absolute inset-y-0 left-1/4 w-px bg-slate-800/80 z-10 pointer-events-none" />
             <div className="absolute inset-y-0 left-2/4 w-px bg-slate-800/80 z-10 pointer-events-none" />
             <div className="absolute inset-y-0 left-3/4 w-px bg-slate-800/80 z-10 pointer-events-none" />

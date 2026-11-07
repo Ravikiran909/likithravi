@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 import { StudentProfile, VirtualBadge } from '../types/index.ts';
 import { db, auth, doc, setDoc } from '../firebase.ts';
-import { getAllMilestoneProgress } from '../utils/offlineDb.ts';
 
 interface BadgesProps {
   profile: StudentProfile;
@@ -49,17 +48,9 @@ export const Badges: React.FC<BadgesProps> = ({
   const [selectedBadge, setSelectedBadge] = useState<(VirtualBadge & { xpReward?: number }) | null>(null);
   const [newlyAwardedBadge, setNewlyAwardedBadge] = useState<VirtualBadge | null>(null);
   const [isSyncingFirestore, setIsSyncingFirestore] = useState(false);
-  const [milestonesCount, setMilestonesCount] = useState<number>(0);
   const [copiedBadgeId, setCopiedBadgeId] = useState<string | null>(null);
 
-  useEffect(() => {
-    getAllMilestoneProgress()
-      .then((progressMap) => {
-        const completed = Object.values(progressMap).filter((m) => m.completed).length;
-        setMilestonesCount(completed);
-      })
-      .catch(() => {});
-  }, []);
+
 
   const accuracy =
     profile.totalQuestionsAnswered > 0
@@ -284,20 +275,17 @@ export const Badges: React.FC<BadgesProps> = ({
         id: 'curriculum-pioneer',
         name: 'Curriculum Pioneer',
         description:
-          'Reach advanced academic mastery with overall course progress exceeding 70%.',
-        category: 'curriculum',
+          'Reach advanced academic mastery with overall study progress exceeding 70%.',
+        category: 'mastery',
         iconName: 'Zap',
-        requirement: 'Achieve 70%+ overall curriculum progress',
+        requirement: 'Achieve 70%+ overall study progress',
         isUnlocked:
           (profile.overallProgress || 0) >= 70 || existingEarned.has('curriculum-pioneer'),
         progress: existingEarned.has('curriculum-pioneer')
           ? 70
           : Math.min(profile.overallProgress || 0, 70),
         maxProgress: 70,
-        awardedAt: checkEarnedDate(
-          'curriculum-pioneer',
-          (profile.overallProgress || 0) >= 70 || existingEarned.has('curriculum-pioneer')
-        ),
+        awardedAt: checkEarnedDate('curriculum-pioneer', (profile.overallProgress || 0) >= 70 || existingEarned.has('curriculum-pioneer')),
         badgeTier: 'diamond',
         xpReward: 350,
       },
@@ -305,8 +293,8 @@ export const Badges: React.FC<BadgesProps> = ({
         id: 'knowledge-explorer',
         name: 'Knowledge Explorer',
         description:
-          'Broaden your horizons by actively learning across multiple distinct curriculum subjects.',
-        category: 'curriculum',
+          'Broaden your horizons by actively learning across multiple distinct study subjects.',
+        category: 'mastery',
         iconName: 'BookOpen',
         requirement: 'Study across 2+ distinct subjects (e.g. Indian Polity & Modern History)',
         isUnlocked:
@@ -328,21 +316,21 @@ export const Badges: React.FC<BadgesProps> = ({
         id: 'roadmap-conqueror',
         name: 'Roadmap Conqueror',
         description:
-          'Complete curriculum roadmap milestones and structured study sessions.',
-        category: 'curriculum',
+          'Complete major study milestones and structured learning sessions.',
+        category: 'consistency',
         iconName: 'Layers',
-        requirement: 'Complete 3+ roadmap milestones or 10+ study sessions',
+        requirement: 'Complete 10+ study sessions or 3+ mastered topics',
         isUnlocked:
-          milestonesCount >= 3 ||
+          (profile.learningHistory?.filter(h => h.mastered).length || 0) >= 3 ||
           (profile.totalSessions || 0) >= 10 ||
           existingEarned.has('roadmap-conqueror'),
         progress: existingEarned.has('roadmap-conqueror')
           ? 3
-          : Math.min(Math.max(milestonesCount, Math.floor((profile.totalSessions || 0) / 3)), 3),
+          : Math.min(Math.max(profile.learningHistory?.filter(h => h.mastered).length || 0, Math.floor((profile.totalSessions || 0) / 3)), 3),
         maxProgress: 3,
         awardedAt: checkEarnedDate(
           'roadmap-conqueror',
-          milestonesCount >= 3 ||
+          (profile.learningHistory?.filter(h => h.mastered).length || 0) >= 3 ||
             (profile.totalSessions || 0) >= 10 ||
             existingEarned.has('roadmap-conqueror')
         ),
@@ -350,7 +338,7 @@ export const Badges: React.FC<BadgesProps> = ({
         xpReward: 200,
       },
     ];
-  }, [profile, accuracy, milestonesCount]);
+  }, [profile, accuracy]);
 
   // Interactive achievement progression & unlock handler
   const handleUnlockOrAdvanceBadge = async (
@@ -806,7 +794,7 @@ export const Badges: React.FC<BadgesProps> = ({
 
         {/* Category Tabs */}
         <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {['all', 'consistency', 'quiz', 'problem_solving', 'mastery', 'curriculum'].map((cat) => (
+          {['all', 'consistency', 'quiz', 'problem_solving', 'mastery'].map((cat) => (
             <button
               key={cat}
               type="button"

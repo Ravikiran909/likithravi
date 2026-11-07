@@ -987,7 +987,7 @@ function createSampleVoiceWav(frequency = 440): string {
                         type="button"
                         onClick={() =>
                           sendMessage(
-                            `Tutor, based on our verified course notes on "${pDoc.title}" (${pDoc.subject}), explain the key principles and test my understanding.`
+                            `Tutor, based on our verified study notes on "${pDoc.title}" (${pDoc.subject}), explain the key principles and test my understanding.`
                           )
                         }
                         className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap transition cursor-pointer flex items-center space-x-1 shadow-sm shrink-0"

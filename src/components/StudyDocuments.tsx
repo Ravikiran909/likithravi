@@ -26,14 +26,11 @@ import { MaterialReviewModal } from './MaterialReviewModal.tsx';
 import {
   DocumentRecord,
   DocumentChunk,
-  LearningResource,
   StudentProfile,
 } from '../types/index.ts';
 import {
   saveOfflineDocuments,
   getOfflineDocuments,
-  saveOfflineCourses,
-  getOfflineCourses,
 } from '../utils/offlineDb.ts';
 import { db, collection, getDocs, doc, setDoc } from '../firebase.ts';
 
@@ -60,11 +57,7 @@ interface VectorDocumentMatchItem {
   matchedConcepts: string[];
 }
 
-interface VectorCourseMatchItem {
-  course: LearningResource;
-  similarity: number;
-  matchedConcepts: string[];
-}
+
 
 interface SemanticSearchPayload {
   query: string;
@@ -75,7 +68,6 @@ interface SemanticSearchPayload {
   totalDocumentsScanned: number;
   matchedChunks: VectorChunkMatchItem[];
   matchedDocuments: VectorDocumentMatchItem[];
-  matchedCourses: VectorCourseMatchItem[];
   aiSynthesis?: string | null;
 }
 
@@ -132,9 +124,8 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
   onNavigateToChat,
   profile,
 }) => {
-  const [activeTab, setActiveTab] = useState<'documents' | 'courses' | 'upload'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'upload'>('documents');
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
-  const [courses, setCourses] = useState<LearningResource[]>([]);
   const [ratingsSummary, setRatingsSummary] = useState<
     Record<string, { averageRating: number; totalRatings: number }>
   >({});
@@ -160,12 +151,9 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
   const [reviewModalTarget, setReviewModalTarget] = useState<{
     id: string;
     title: string;
-    type: 'document' | 'course';
+    type: 'document';
     subject: string;
   } | null>(null);
-
-  // Video Player Modal state
-  const [activeVideo, setActiveVideo] = useState<LearningResource | null>(null);
 
   // Document Chunks Preview Modal state
   const [previewDoc, setPreviewDoc] = useState<DocumentRecord | null>(null);
@@ -173,24 +161,20 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
   const [highlightedChunkIndex, setHighlightedChunkIndex] = useState<number | null>(null);
   const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
 
-  // Fetch initial documents, courses, and reviews summary (with IndexedDB rural offline support)
+  // Fetch initial documents and reviews summary (with IndexedDB rural offline support)
   const loadData = async () => {
     try {
       setLoading(true);
-      const [docsRes, coursesRes, summaryRes] = await Promise.all([
+      const [docsRes, summaryRes] = await Promise.all([
         fetch('/api/documents')
           .then((r) => (r.ok ? r.json() : { documents: [] }))
           .catch(() => ({ documents: [] })),
-        fetch('/api/learning-resources')
-          .then((r) => (r.ok ? r.json() : { resources: [] }))
-          .catch(() => ({ resources: [] })),
         fetch('/api/reviews/summary')
           .then((r) => (r.ok ? r.json() : { summaries: {} }))
           .catch(() => ({ summaries: {} })),
       ]);
 
       let docsList: DocumentRecord[] = docsRes.documents || [];
-      let coursesList = coursesRes.resources || [];
 
       // Sync with Firestore documents collection so all RAG documents persist in database
       if (db) {
@@ -220,9 +204,9 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                 doc(db, 'documents', d.id),
                 {
                   id: d.id,
-                  title: String(d.title || 'Course Document').slice(0, 195),
+                  title: String(d.title || 'Document').slice(0, 195),
                   subject: String(d.subject || 'General Studies').slice(0, 95),
-                  category: String(d.category || 'Course Notes').slice(0, 95),
+                  category: String(d.category || 'Study Notes').slice(0, 95),
                   originalFilename: String(d.originalFilename || 'notes.txt').slice(0, 195),
                   fileSizeKb: Number(d.fileSizeKb) || 2,
                   uploadedAt: d.uploadedAt || new Date().toISOString(),
@@ -244,23 +228,12 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
         docsList = await getOfflineDocuments();
       }
 
-      if (coursesList.length > 0) {
-        saveOfflineCourses(coursesList);
-      } else {
-        coursesList = await getOfflineCourses();
-      }
-
       setDocuments(docsList);
-      setCourses(coursesList);
       setRatingsSummary(summaryRes.summaries || {});
     } catch (err) {
       console.warn('Network failed, switching to IndexedDB offline cache:', err);
-      const [cachedDocs, cachedCourses] = await Promise.all([
-        getOfflineDocuments(),
-        getOfflineCourses(),
-      ]);
+      const cachedDocs = await getOfflineDocuments();
       setDocuments(cachedDocs);
-      setCourses(cachedCourses);
     } finally {
       setLoading(false);
     }
@@ -377,16 +350,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
     return map;
   }, [vectorResults]);
 
-  // Map courseId -> VectorCourseMatchItem for quick lookup
-  const vectorCourseMatchMap = useMemo(() => {
-    const map = new Map<string, VectorCourseMatchItem>();
-    if (vectorResults?.matchedCourses) {
-      for (const item of vectorResults.matchedCourses) {
-        map.set(item.course.id, item);
-      }
-    }
-    return map;
-  }, [vectorResults]);
+
 
   // Filtered & Sorted Documents (Supports both Semantic Vector Search & Keyword Filter)
   const filteredDocuments = useMemo(() => {
@@ -459,66 +423,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
     minSimilarityThreshold,
   ]);
 
-  // Filtered & Sorted Courses (Supports both Semantic Vector Search & Keyword Filter)
-  const filteredCourses = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
 
-    if (searchMode === 'semantic' && q && vectorResults && vectorResults.matchedCourses.length > 0) {
-      let semanticCourses = courses.filter((course) => {
-        const matchesSubject =
-          selectedSubject === 'all' ||
-          course.subject.toLowerCase() === selectedSubject.toLowerCase();
-        const vecMatch = vectorCourseMatchMap.get(course.id);
-        return matchesSubject && Boolean(vecMatch && vecMatch.similarity >= minSimilarityThreshold);
-      });
-
-      semanticCourses.sort((a, b) => {
-        if (sortBy === 'semantic_relevance') {
-          const simA = vectorCourseMatchMap.get(a.id)?.similarity || 0;
-          const simB = vectorCourseMatchMap.get(b.id)?.similarity || 0;
-          return simB - simA;
-        }
-        if (sortBy === 'highest_rated') {
-          return getRatingInfo(b.id).rating - getRatingInfo(a.id).rating;
-        }
-        return getRatingInfo(b.id).count - getRatingInfo(a.id).count;
-      });
-
-      return semanticCourses;
-    }
-
-    let list = courses.filter((course) => {
-      const matchesSubject =
-        selectedSubject === 'all' || course.subject.toLowerCase() === selectedSubject.toLowerCase();
-      const matchesSearch =
-        !q ||
-        course.title.toLowerCase().includes(q) ||
-        course.subject.toLowerCase().includes(q) ||
-        course.provider.toLowerCase().includes(q) ||
-        course.description.toLowerCase().includes(q) ||
-        course.keyTopics.some((t) => t.toLowerCase().includes(q));
-
-      return matchesSubject && matchesSearch;
-    });
-
-    if (sortBy === 'highest_rated' || sortBy === 'semantic_relevance') {
-      list.sort((a, b) => getRatingInfo(b.id).rating - getRatingInfo(a.id).rating);
-    } else if (sortBy === 'most_reviewed') {
-      list.sort((a, b) => getRatingInfo(b.id).count - getRatingInfo(a.id).count);
-    }
-
-    return list;
-  }, [
-    courses,
-    searchQuery,
-    searchMode,
-    selectedSubject,
-    sortBy,
-    ratingsSummary,
-    vectorResults,
-    vectorCourseMatchMap,
-    minSimilarityThreshold,
-  ]);
 
   // Preview Chunks for Document (optionally highlighting a specific chunk index from vector search)
   const handleOpenDocPreview = async (doc: DocumentRecord, targetChunkIndex?: number) => {
@@ -603,7 +508,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-                Search conceptually across our indexed RAG knowledge base using dense vector embeddings and cosine similarity, or browse student-rated government exam handbooks and courses.
+                Search conceptually across our indexed RAG knowledge base using dense vector embeddings and cosine similarity, or browse student-rated government exam handbooks.
               </p>
             </div>
           </div>
@@ -637,17 +542,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
             <span>Shared Documents ({documents.length})</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('courses')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer ${
-              activeTab === 'courses'
-                ? 'bg-red-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Youtube className="w-3.5 h-3.5" />
-            <span>Free Video Courses ({courses.length})</span>
-          </button>
+
 
           <button
             onClick={() => setActiveTab('upload')}
@@ -679,7 +574,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
         )}
       </div>
 
-      {/* SEMANTIC VECTOR SEARCH BAR & LANGUAGE FILTER (For documents and courses tabs) */}
+      {/* SEMANTIC VECTOR SEARCH BAR & LANGUAGE FILTER (For documents tab) */}
       {activeTab !== 'upload' && (
         <div className="bg-slate-900/95 border border-emerald-500/30 rounded-3xl p-5 space-y-4 shadow-xl relative overflow-hidden">
           <div className="absolute -top-12 -right-12 w-56 h-56 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
@@ -1310,156 +1205,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
         </div>
       )}
 
-      {/* 2. VIDEO COURSES & TUTORIALS VIEW */}
-      {!loading && activeTab === 'courses' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredCourses.map((course) => {
-              const ratingInfo = getRatingInfo(course.id);
-              const vecCourseMatch =
-                searchMode === 'semantic' && searchQuery.trim()
-                  ? vectorCourseMatchMap.get(course.id)
-                  : undefined;
 
-              return (
-                <div
-                  key={course.id}
-                  className="bg-slate-900 border border-slate-800 hover:border-red-500/40 rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between transition-all group hover:-translate-y-1"
-                >
-                  {/* Thumbnail & Badges */}
-                  <div className="relative aspect-video w-full bg-slate-950 overflow-hidden">
-                    {course.thumbnailUrl ? (
-                      <img
-                        src={course.thumbnailUrl}
-                        alt={course.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-85 group-hover:opacity-100"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-700">
-                        <Youtube className="w-12 h-12" />
-                      </div>
-                    )}
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
-
-                    {/* Play Button Overlay */}
-                    {course.embedUrl && (
-                      <button
-                        onClick={() => setActiveVideo(course)}
-                        className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-xl hover:scale-110 transition cursor-pointer"
-                      >
-                        <Play className="w-5 h-5 fill-white ml-0.5" />
-                      </button>
-                    )}
-
-                    {/* Top Badges */}
-                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-                      <div className="flex items-center space-x-1.5">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/80">
-                          {course.subject}
-                        </span>
-                        {vecCourseMatch && (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 backdrop-blur-md">
-                            {Math.round(vecCourseMatch.similarity * 100)}% Match
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Rating pill on thumbnail */}
-                      <button
-                        onClick={() =>
-                          setReviewModalTarget({
-                            id: course.id,
-                            title: course.title,
-                            type: 'course',
-                            subject: course.subject,
-                          })
-                        }
-                        className="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-black/80 hover:bg-black text-amber-300 backdrop-blur-md border border-amber-500/30 text-[11px] font-bold transition cursor-pointer"
-                      >
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        <span>{ratingInfo.rating > 0 ? ratingInfo.rating.toFixed(1) : '5.0'}</span>
-                        <span className="text-[9px] text-slate-400">({ratingInfo.count})</span>
-                      </button>
-                    </div>
-
-                    <div className="absolute bottom-2.5 right-3 flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-black/80 text-[10px] font-mono text-slate-300">
-                      <Clock className="w-3 h-3 text-red-400" />
-                      <span>{course.duration}</span>
-                    </div>
-                  </div>
-
-                  {/* Body */}
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                    <div>
-                      <div className="flex items-center space-x-2 text-[11px] text-slate-400 mb-1">
-                        <span className="font-bold text-red-400">{course.provider}</span>
-                        <span>•</span>
-                        <span className="text-slate-400">{course.difficulty}</span>
-                      </div>
-
-                      <h4 className="text-base font-bold text-white group-hover:text-red-300 transition line-clamp-2 leading-snug">
-                        {course.title}
-                      </h4>
-
-                      <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
-                        {course.description}
-                      </p>
-                    </div>
-
-                    {/* Actions Bar */}
-                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => handleAskTutor(course.title, course.subject)}
-                        className="flex-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer border border-slate-700 hover:border-emerald-500"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Ask Tutor</span>
-                      </button>
-
-                      {course.embedUrl ? (
-                        <button
-                          onClick={() => setActiveVideo(course)}
-                          className="py-2 px-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center space-x-1 transition cursor-pointer"
-                        >
-                          <Play className="w-3 h-3 fill-white" />
-                          <span>Watch</span>
-                        </button>
-                      ) : (
-                        <a
-                          href={course.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="py-2 px-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center space-x-1 transition cursor-pointer"
-                        >
-                          <span>Open</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-
-                      <button
-                        onClick={() =>
-                          setReviewModalTarget({
-                            id: course.id,
-                            title: course.title,
-                            type: 'course',
-                            subject: course.subject,
-                          })
-                        }
-                        className="py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30 transition cursor-pointer flex items-center space-x-1"
-                        title="Leave rating or review"
-                      >
-                        <Star className="w-3 h-3 fill-amber-300" />
-                        <span>Rate</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* 3. UPLOAD & RAG PIPELINE MANAGEMENT VIEW */}
       {activeTab === 'upload' && (
@@ -1486,80 +1232,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
         />
       )}
 
-      {/* EMBEDDED VIDEO PLAYER MODAL */}
-      {activeVideo && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between gap-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
-                  <Youtube className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm sm:text-base font-bold text-white line-clamp-1">
-                    {activeVideo.title}
-                  </h4>
-                  <div className="text-xs text-slate-400">
-                    {activeVideo.provider} • {activeVideo.subject}
-                  </div>
-                </div>
-              </div>
 
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => {
-                    setReviewModalTarget({
-                      id: activeVideo.id,
-                      title: activeVideo.title,
-                      type: 'course',
-                      subject: activeVideo.subject,
-                    });
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center space-x-1 cursor-pointer"
-                >
-                  <Star className="w-3.5 h-3.5 fill-amber-300" />
-                  <span>Rate Course</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveVideo(null)}
-                  className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="relative aspect-video w-full bg-black">
-              {activeVideo.embedUrl && (
-                <iframe
-                  src={activeVideo.embedUrl}
-                  title={activeVideo.title}
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              )}
-            </div>
-
-            <div className="p-4 border-t border-slate-800 bg-slate-950 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <span className="text-xs text-slate-400">
-                Discuss doubts on this video lecture with the AI Tutor in WhatsApp.
-              </span>
-              <button
-                onClick={() => {
-                  handleAskTutor(activeVideo.title, activeVideo.subject);
-                  setActiveVideo(null);
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 cursor-pointer"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Ask Doubt in WhatsApp</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* DOCUMENT PREVIEW MODAL */}
       {previewDoc && (

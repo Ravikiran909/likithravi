@@ -3,10 +3,10 @@
   "appId": "1:756741107048:web:5078f3be7ddf229d933add",
   "apiKey": "AIzaSyC-G4P7wgQ9gORHGluCETMQrMCBB91cd5Q",
   "authDomain": "gen-lang-client-0594243672.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-whatsappailearni-302dbf05-0a9b-4f72-8002-b0f079bc692b",
   "storageBucket": "gen-lang-client-0594243672.firebasestorage.app",
   "messagingSenderId": "756741107048",
   "measurementId": "",
   "oAuthClientId": "756741107048-78mqm95ughou5874h922fvrva6u0a3ui.apps.googleusercontent.com",
-  "recaptchaSiteKey": "",
-  "firestoreDatabaseId": "ai-studio-whatsappailearni-302dbf05-0a9b-4f72-8002-b0f079bc692b"
+  "recaptchaSiteKey": ""
 }

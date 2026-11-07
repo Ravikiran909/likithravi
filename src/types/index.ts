@@ -58,7 +58,6 @@ export interface StudentProfile {
   correctAnswers: number;
   learningRank?: 'Novice' | 'Apprentice' | 'Scholar' | 'Master';
   earnedBadges?: { id: string; name: string; awardedAt: string }[];
-  completedCourseIds?: string[];
   achievements?: any[];
   dailyQuestionsGoal?: number;
   questionsAnsweredToday?: number;
@@ -98,18 +97,6 @@ export interface StudentProfile {
     }[];
     verifiedAt: string;
   };
-  enrolledCourseIds?: string[];
-  courseEnrollments?: {
-    courseId: string;
-    courseTitle: string;
-    subject: string;
-    provider?: string;
-    enrolledAt: string;
-    enrollmentRef: string;
-    aadhaarRef: string;
-    digilockerId: string;
-    faceVerified?: boolean;
-  }[];
   placementPrep?: {
     targetCompanyIds: string[];
     completedQuestionIds: string[];
@@ -204,40 +191,12 @@ export interface FlashcardDeck {
   createdAt: string;
 }
 
-export interface LearningResource {
-  id: string;
-  title: string;
-  subject:
-    | 'Government Exams'
-    | 'Professional Skills'
-    | 'Technical Skills'
-    | 'AI & Data Science'
-    | 'Programming'
-    | 'App Development'
-    | 'Mathematics'
-    | 'Version Control'
-    | 'Indian History'
-    | 'Geography'
-    | 'Indian Polity'
-    | 'Economy'
-    | 'General';
-  type: 'youtube_video' | 'youtube_playlist' | 'free_course' | 'interactive_tutorial';
-  provider: string;
-  url: string;
-  embedUrl?: string;
-  thumbnailUrl?: string;
-  duration: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced' | 'All Levels';
-  description: string;
-  keyTopics: string[];
-  isFreeVerified: boolean;
-  featured?: boolean;
-}
+
 
 export interface MaterialReview {
   id: string;
   materialId: string;
-  materialType: 'document' | 'course';
+  materialType: 'document';
   materialTitle: string;
   userId: string;
   userName: string;
@@ -259,7 +218,7 @@ export interface VirtualBadge {
   id: string;
   name: string;
   description: string;
-  category: 'consistency' | 'problem_solving' | 'quiz' | 'mastery' | 'curriculum';
+  category: 'consistency' | 'problem_solving' | 'quiz' | 'mastery';
   iconName: string;
   requirement: string;
   isUnlocked: boolean;
