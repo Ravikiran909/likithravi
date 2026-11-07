@@ -38,7 +38,6 @@ export const StudyMaterialsBrowser: React.FC<StudyMaterialsBrowserProps> = ({
   onNavigateToChat,
   onNavigateToQuiz,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'documents' | 'courses'>('documents');
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [ratingsSummary, setRatingsSummary] = useState<Record<string, { averageRating: number; totalRatings: number }>>({});
   const [reviewModalTarget, setReviewModalTarget] = useState<DocumentRecord | null>(null);

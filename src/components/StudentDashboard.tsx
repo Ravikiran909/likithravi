@@ -69,6 +69,7 @@ import { StudySessionPlanner } from './StudySessionPlanner.tsx';
 import { DailyQuizStreakCounter } from './DailyQuizStreakCounter.tsx';
 import { DailyStudyGoal } from './DailyStudyGoal.tsx';
 import { DailyMicroGoalsWidget } from './DailyMicroGoalsWidget.tsx';
+import { YouTubeLearningHub } from './YouTubeLearningHub.tsx';
 
 import { PeerStudyGroupModule } from './PeerStudyGroupModule.tsx';
 import { DailyQuiz } from './DailyQuiz.tsx';
@@ -97,7 +98,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'peer_groups' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'videos' | 'peer_groups' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'settings'>('overview');
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -726,6 +727,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('videos')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                activeTab === 'videos' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Youtube className="w-3.5 h-3.5 text-red-400" />
+              <span>Free Videos</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('focus')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
                 activeTab === 'focus' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
@@ -963,6 +974,34 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </button>
             </div>
           )}
+
+          {/* Free YouTube Learning Tutorials Spotlight */}
+          <div className="bg-gradient-to-r from-red-950/30 via-slate-900 to-slate-900 border border-red-500/30 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
+                <Youtube className="w-5 h-5 fill-red-500 text-red-500" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-bold text-white">Free Video Tutorials Available</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                    Python • Java • C • C++ • Data Analysis • AI
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Watch curated YouTube full courses with embedded playback, personal notes, and direct WhatsApp AI Tutor Q&amp;A.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('videos')}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-md transition shrink-0 cursor-pointer flex items-center space-x-1.5"
+            >
+              <span>Explore Free Courses</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
           {/* Daily Learning Goal Progress Ring Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -1960,6 +1999,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             onNavigateToQuiz={() => setActiveTab('quiz')}
           />
         </div>
+      )}
+
+      {/* Free YouTube Video Tutorials Hub */}
+      {activeTab === 'videos' && (
+        <YouTubeLearningHub
+          profile={profile}
+          onNavigateToChat={onNavigateToChat}
+          onProfileUpdate={onProfileUpdate}
+        />
       )}
 
 

@@ -16,12 +16,13 @@ import {
   ShieldCheck,
   Lock,
   Building2,
+  Youtube,
 } from 'lucide-react';
 import { StudentProfile, SUPPORTED_LANGUAGES } from '../types/index.ts';
 
 interface NavbarProps {
-  activeTab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin';
-  setActiveTab: (tab: 'simulator' | 'voice' | 'documents' | 'student' | 'admin') => void;
+  activeTab: 'simulator' | 'voice' | 'videos' | 'documents' | 'student' | 'admin';
+  setActiveTab: (tab: 'simulator' | 'voice' | 'videos' | 'documents' | 'student' | 'admin') => void;
   selectedProfile: StudentProfile | null;
   isWhatsAppConfigured: boolean;
   focusMode?: boolean;
@@ -125,6 +126,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Mic className="w-4 h-4" />
               <span className="font-semibold hidden md:inline">Voice Tutor</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('videos')}
+              className={`flex items-center space-x-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer relative ${
+                activeTab === 'videos'
+                  ? 'bg-red-600 text-white shadow-md shadow-red-600/40'
+                  : focusMode
+                  ? 'text-slate-500 opacity-50'
+                  : 'text-red-400 hover:text-red-300 hover:bg-red-950/30'
+              }`}
+            >
+              <Youtube className="w-4 h-4 fill-current text-red-500" />
+              <span className="font-semibold hidden md:inline">Free Video Tutorials</span>
             </button>
 
             <button

@@ -9,6 +9,7 @@ import { OfflineIndicator } from './components/OfflineIndicator.tsx';
 import { AppLockOverlay } from './components/AppLockOverlay.tsx';
 import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.tsx';
 import { StudentLoginDashboard } from './components/StudentLoginDashboard.tsx';
+import { YouTubeLearningHub } from './components/YouTubeLearningHub.tsx';
 import { saveOfflineDocuments, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
 import { GraduationCap, LogOut } from 'lucide-react';
@@ -125,7 +126,7 @@ const normalizeStudentProfile = (
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'documents' | 'student' | 'admin'>('student');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'videos' | 'documents' | 'student' | 'admin'>('student');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile>(
     normalizeStudentProfile(null)
@@ -406,6 +407,17 @@ export default function App() {
             profile={selectedProfile}
             onProfileUpdate={handleProfileUpdate}
             onNavigateToDocuments={() => setActiveTab('documents')}
+          />
+        )}
+
+        {activeTab === 'videos' && (
+          <YouTubeLearningHub
+            profile={selectedProfile}
+            onProfileUpdate={handleProfileUpdate}
+            onNavigateToChat={(text) => {
+              if (text) setPendingChatPrompt(text);
+              setActiveTab('simulator');
+            }}
           />
         )}
 
