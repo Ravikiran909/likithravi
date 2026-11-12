@@ -191,6 +191,32 @@
         "createdAt": { "type": "string", "maxLength": 50 }
       },
       "required": ["id", "subject", "title"]
+    },
+    "Resume": {
+      "title": "Resume",
+      "description": "AI-generated professional resume",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "content": { "type": "object" },
+        "template": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "userId", "content"]
+    },
+    "AIChatMessage": {
+      "title": "AIChatMessage",
+      "description": "Standard AI Chat message for doubt solving",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string", "maxLength": 5000 },
+        "timestamp": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "userId", "role", "content", "timestamp"]
     }
   },
   "firestore": {
@@ -233,6 +259,14 @@
     "/peer_study_rooms/{roomId}": {
       "schema": "PeerStudyRoom",
       "description": "Virtual peer study group rooms with shared documents and voice chat state"
+    },
+    "/resumes/{resumeId}": {
+      "schema": "Resume",
+      "description": "AI-generated professional resumes"
+    },
+    "/aio_chats/{messageId}": {
+      "schema": "AIChatMessage",
+      "description": "Standard AI Chat doubt solving logs"
     }
   }
 }

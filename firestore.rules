@@ -125,6 +125,34 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    function isValidResume(data) {
+      return data.userId is string && data.userId.size() <= 128
+        && (!('template' in data) || (data.template is string && data.template.size() <= 50));
+    }
+
+    function isValidAIChatMessage(data) {
+      return data.userId is string && data.userId.size() <= 128
+        && data.role in ['user', 'model']
+        && data.content is string && data.content.size() <= 5000;
+    }
+
+    // Resumes Collection
+    match /resumes/{resumeId} {
+      allow get: if isOwner(resource.data.userId) || isAdmin();
+      allow list: if isSignedIn() && (request.query.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidResume(request.resource.data);
+      allow update: if isOwner(resource.data.userId) && isValidResume(request.resource.data);
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // AIO Chats Collection
+    match /aio_chats/{messageId} {
+      allow get: if isOwner(resource.data.userId) || isAdmin();
+      allow list: if isSignedIn() && (request.query.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidAIChatMessage(request.resource.data);
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
     // System Telemetry Collection
     match /system_telemetry/{docId} {
       allow read, write: if isAdmin();

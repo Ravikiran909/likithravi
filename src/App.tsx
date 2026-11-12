@@ -10,6 +10,8 @@ import { AppLockOverlay } from './components/AppLockOverlay.tsx';
 import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.tsx';
 import { StudentLoginDashboard } from './components/StudentLoginDashboard.tsx';
 import { YouTubeLearningHub } from './components/YouTubeLearningHub.tsx';
+import { AIResumeGenerator } from './components/AIResumeGenerator.tsx';
+import { AIODoubtSolver } from './components/AIODoubtSolver.tsx';
 import { saveOfflineDocuments, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
 import { GraduationCap, LogOut } from 'lucide-react';
@@ -126,7 +128,7 @@ const normalizeStudentProfile = (
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'videos' | 'documents' | 'student' | 'admin'>('student');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'videos' | 'resume' | 'chat_aio' | 'documents' | 'student' | 'admin'>('student');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile>(
     normalizeStudentProfile(null)
@@ -418,6 +420,20 @@ export default function App() {
               if (text) setPendingChatPrompt(text);
               setActiveTab('simulator');
             }}
+          />
+        )}
+
+        {activeTab === 'resume' && (
+          <AIResumeGenerator
+            profile={selectedProfile}
+            onProfileUpdate={handleProfileUpdate}
+          />
+        )}
+
+        {activeTab === 'chat_aio' && (
+          <AIODoubtSolver
+            profile={selectedProfile}
+            onProfileUpdate={handleProfileUpdate}
           />
         )}
 

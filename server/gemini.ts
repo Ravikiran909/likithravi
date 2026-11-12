@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
+export { Type };
 
 let aiInstance: GoogleGenAI | null = null;
 

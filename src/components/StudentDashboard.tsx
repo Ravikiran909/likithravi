@@ -24,8 +24,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { StudentProfile, StudyPlan, Recommendation } from '../types/index.ts';
-import { StudentProgressChart } from './StudentProgressChart.tsx';
-import { LearningProgressChart } from './LearningProgressChart.tsx';
 import { StudyPlanner } from './StudyPlanner.tsx';
 import { AdaptiveQuiz } from './AdaptiveQuiz.tsx';
 import { Badges, ProfileBadgesWidget } from './Badges.tsx';
@@ -70,6 +68,9 @@ import { DailyQuizStreakCounter } from './DailyQuizStreakCounter.tsx';
 import { DailyStudyGoal } from './DailyStudyGoal.tsx';
 import { DailyMicroGoalsWidget } from './DailyMicroGoalsWidget.tsx';
 import { YouTubeLearningHub } from './YouTubeLearningHub.tsx';
+import { AIResumeGenerator } from './AIResumeGenerator.tsx';
+import { AIODoubtSolver } from './AIODoubtSolver.tsx';
+import { LearningAnalyticsDashboard } from './LearningAnalyticsDashboard.tsx';
 
 import { PeerStudyGroupModule } from './PeerStudyGroupModule.tsx';
 import { DailyQuiz } from './DailyQuiz.tsx';
@@ -79,7 +80,7 @@ import {
   generateExportNotesStudyGuidePdf,
   RagDocumentSummaryItem,
 } from '../utils/generatePdfReport.ts';
-import { BarChart2, Timer, Layers, Pin, Youtube, BellOff, Shield, MessageSquare, Briefcase, Users, Mic, Building2 } from 'lucide-react';
+import { BarChart2, Timer, Layers, Pin, Youtube, BellOff, Shield, MessageSquare, Briefcase, Users, Mic, Building2, FileUser, Bot } from 'lucide-react';
 
 interface StudentDashboardProps {
   profile: StudentProfile;
@@ -98,7 +99,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'videos' | 'peer_groups' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'videos' | 'resume' | 'chat_aio' | 'peer_groups' | 'velocity' | 'knowledge_gaps' | 'thinking_models' | 'circles' | 'materials' | 'focus' | 'weekly_report' | 'flashcards' | 'quiz' | 'badges' | 'plan' | 'subjects' | 'settings'>('overview');
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -737,6 +738,26 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('resume')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                activeTab === 'resume' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <FileUser className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Resume AI</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('chat_aio')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
+                activeTab === 'chat_aio' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Bot className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AI Chat</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('focus')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 cursor-pointer ${
                 activeTab === 'focus' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
@@ -1002,6 +1023,66 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {/* New AI Power Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* AI Resume Generator Spotlight */}
+            <div className="bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
+                  <FileUser className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-bold text-white">AI Resume Builder</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      New Feature
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Generate an ATS-friendly, professional resume optimized by AI for your target jobs.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('resume')}
+                className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <span>Build AI Resume</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* AIO Doubt Solver Spotlight */}
+            <div className="bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-bold text-white">AIO Doubt Solver</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      24/7 AI Chat
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Instant AI reasoning for your complex academic doubts and technical coding bugs.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('chat_aio')}
+                className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <span>Chat with AI Bot</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Integrated Recharts Learning Analytics Dashboard Section */}
+          <LearningAnalyticsDashboard profile={profile} />
 
           {/* Daily Learning Goal Progress Ring Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -1488,18 +1569,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           {/* Secondary Analytics, Social Leaderboards, Study Circles & PDF Exporters (Hidden in Focus Mode) */}
           {!deepFocusActive && (
             <>
-              {/* 30-Day Streak & Learning Progress Visualization (Recharts) */}
-              <StudentProgressChart profile={profile} />
-
-              {/* Learning Progress Chart (Study Hours, Quiz Accuracy, and Moving Average Trend over Time) */}
-              <LearningProgressChart
-                profile={profile}
-                extraMinutesToday={totalStudiedMinutesToday}
-                onLogStudyMinutes={handleAddStudyMinutes}
-                onNavigateToQuiz={() => setActiveTab('quiz')}
-                onNavigateToChat={onNavigateToChat}
-              />
-
               {/* Subject Mastery Breakdown */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
@@ -1980,6 +2049,22 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             onLogStudyMinutes={handleAddStudyMinutes}
           />
         </div>
+      )}
+
+      {/* AI Resume Builder Sub-Tab */}
+      {activeTab === 'resume' && (
+        <AIResumeGenerator
+          profile={profile}
+          onProfileUpdate={onProfileUpdate}
+        />
+      )}
+
+      {/* AIO Doubt Solver Sub-Tab */}
+      {activeTab === 'chat_aio' && (
+        <AIODoubtSolver
+          profile={profile}
+          onProfileUpdate={onProfileUpdate}
+        />
       )}
 
       {/* RAG Knowledge Base Study Materials & Pinned Documents Tab */}

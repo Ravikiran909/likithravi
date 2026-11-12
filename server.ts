@@ -10,8 +10,9 @@ import { orchestrateMessage } from './server/agents/orchestrator.ts';
 import { ragService } from './server/rag/rag_service.ts';
 import { quizAgent } from './server/agents/quiz_agent.ts';
 import { plannerAgent } from './server/agents/planner_agent.ts';
-import { transcribeAudio, getGeminiAI, generateContentWithRetry, generateDynamicQuiz, generateDailyWeakTopicsQuiz } from './server/gemini.ts';
+import { transcribeAudio, getGeminiAI, generateContentWithRetry, generateDynamicQuiz, generateDailyWeakTopicsQuiz, Type } from './server/gemini.ts';
 import { runTutorAgent } from './server/agents/tutor_agent.ts';
+import { v4 as uuidv4 } from 'uuid';
 
 import {
   startAutomatedReminderScheduler,
@@ -640,6 +641,128 @@ app.post('/api/verification/digilocker', (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'DigiLocker verification failed' });
+  }
+});
+
+// ----------------------------------------------------
+// AI Resume Generator Endpoint
+// ----------------------------------------------------
+app.post('/api/resume/generate', async (req, res) => {
+  try {
+    const { userId, userData, jobDescription, template = 'modern' } = req.body;
+    if (!userData) {
+      return res.status(400).json({ error: 'User data is required' });
+    }
+
+    const ai = getGeminiAI();
+    if (!ai) {
+      return res.status(500).json({ error: 'Gemini AI not configured' });
+    }
+
+    const prompt = `You are a professional Resume Writing Expert. Create a high-impact, professional resume based on the provided user data.
+User Details: ${JSON.stringify(userData)}
+Target Job Description (Optional): ${jobDescription || 'None provided'}
+Template Style: ${template}
+
+Return the resume in a strictly structured JSON format with these keys:
+{
+  "personalInfo": { "fullName": "", "title": "", "email": "", "phone": "", "location": "", "linkedin": "", "portfolio": "" },
+  "summary": "Professional profile summary (3-5 sentences)",
+  "experience": [
+    { "company": "", "position": "", "location": "", "startDate": "", "endDate": "", "highlights": ["Point 1", "Point 2"] }
+  ],
+  "education": [
+    { "institution": "", "degree": "", "field": "", "graduationDate": "" }
+  ],
+  "skills": { "technical": [], "soft": [], "languages": [] },
+  "projects": [
+    { "name": "", "description": "", "link": "" }
+  ],
+  "certifications": []
+}
+
+Rules:
+- Be concise and action-oriented.
+- Use strong verbs (e.g., "Led", "Developed", "Optimized").
+- Quantify achievements where possible.
+- If job description is provided, tailor keywords to it.`;
+
+    const genRes = await generateContentWithRetry({
+      contents: prompt,
+      preferredModel: 'gemini-3.8-flash',
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.7,
+      },
+      timeoutMs: 12000,
+    });
+
+    const resumeContent = JSON.parse(genRes.text || '{}');
+    const resumeId = `res_${uuidv4().substring(0, 8)}`;
+    
+    // Save to Firestore-like structure if needed, or just return
+    res.json({ success: true, resumeId, content: resumeContent });
+  } catch (err: any) {
+    console.error('Resume generation error:', err);
+    res.status(500).json({ error: err.message || 'Failed to generate resume' });
+  }
+});
+
+// ----------------------------------------------------
+// AIO Doubt Solver Chat Endpoint
+// ----------------------------------------------------
+app.post('/api/chat/aio', async (req, res) => {
+  try {
+    const { userId, message, history = [], subject, topic } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const ai = getGeminiAI();
+    if (!ai) {
+      return res.status(500).json({ error: 'Gemini AI not configured' });
+    }
+
+    const prof = userId ? db.getProfileByUserId(userId) : null;
+    const studentName = prof?.name || 'Student';
+    
+    // RAG Grounding
+    const searchRes = ragService.search(`${subject || ''} ${topic || ''} ${message}`, 3);
+    const docContext = searchRes.contextString;
+
+    const systemInstruction = `You are the AIO (All-In-One) Doubt Solver Bot for the Universal Learning Command Center.
+You help students named ${studentName} solve academic and technical doubts with clarity, patience, and expert precision.
+
+Guidelines:
+- Use Socratic methods: don't just give the answer, guide them through the logic.
+- If relevant documents are provided, ground your answer in them.
+- Format responses with Markdown (bold, lists, etc.) for high readability.
+- Be encouraging and concise.
+
+${docContext ? `--- VERIFIED STUDY DOCUMENTS ---\n${docContext}\n` : ''}`;
+
+    const chatContents = history.map((msg: any) => ({
+      role: msg.role === 'model' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+    chatContents.push({ role: 'user', parts: [{ text: message }] });
+
+    const genRes = await generateContentWithRetry({
+      contents: chatContents,
+      preferredModel: 'gemini-3.8-flash',
+      config: {
+        systemInstruction,
+        temperature: 0.7,
+      },
+      timeoutMs: 10000,
+    });
+
+    const responseText = genRes.text || "I'm sorry, I couldn't process that query.";
+    
+    res.json({ success: true, content: responseText });
+  } catch (err: any) {
+    console.error('AIO Chat error:', err);
+    res.status(500).json({ error: err.message || 'Failed to solve doubt' });
   }
 });
 
