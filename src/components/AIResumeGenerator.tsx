@@ -319,18 +319,60 @@ export const AIResumeGenerator: React.FC<AIResumeGeneratorProps> = ({ profile })
                     Personal Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input
-                      value={resumeData.personalInfo.fullName}
-                      onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, fullName: e.target.value}})}
-                      placeholder="Full Name"
-                      className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-                    />
-                    <input
-                      value={resumeData.personalInfo.title}
-                      onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, title: e.target.value}})}
-                      placeholder="Professional Title"
-                      className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-                    />
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Full Name</label>
+                      <input
+                        value={resumeData.personalInfo.fullName}
+                        onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, fullName: e.target.value}})}
+                        placeholder="Full Name"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Title</label>
+                      <input
+                        value={resumeData.personalInfo.title}
+                        onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, title: e.target.value}})}
+                        placeholder="Professional Title"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Email</label>
+                      <input
+                        value={resumeData.personalInfo.email}
+                        onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, email: e.target.value}})}
+                        placeholder="Email Address"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Phone</label>
+                      <input
+                        value={resumeData.personalInfo.phone}
+                        onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, phone: e.target.value}})}
+                        placeholder="Phone Number"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Location</label>
+                      <input
+                        value={resumeData.personalInfo.location}
+                        onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, location: e.target.value}})}
+                        placeholder="Location (e.g. Bangalore, India)"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">LinkedIn</label>
+                      <input
+                        value={resumeData.personalInfo.linkedin}
+                        onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, linkedin: e.target.value}})}
+                        placeholder="LinkedIn Profile URL"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
                   </div>
                 </section>
 
@@ -340,33 +382,223 @@ export const AIResumeGenerator: React.FC<AIResumeGeneratorProps> = ({ profile })
                       <Briefcase className="w-4 h-4" />
                       Work Experience
                     </h3>
-                    <button className="text-indigo-400 hover:text-indigo-300 text-xs font-bold flex items-center gap-1">
+                    <button 
+                      onClick={() => setResumeData({
+                        ...resumeData, 
+                        experience: [...resumeData.experience, { company: '', position: '', location: '', startDate: '', endDate: '', highlights: [''] }]
+                      })}
+                      className="text-indigo-400 hover:text-indigo-300 text-xs font-bold flex items-center gap-1"
+                    >
                       <Plus className="w-3 h-3" /> Add Role
                     </button>
                   </div>
                   {resumeData.experience.map((exp, idx) => (
-                    <div key={idx} className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 grid grid-cols-2 gap-3">
-                          <input 
-                            value={exp.company} 
-                            placeholder="Company"
-                            className="bg-transparent border-b border-slate-800 py-1 text-sm text-white focus:outline-none focus:border-indigo-500"
-                          />
-                          <input 
-                            value={exp.position} 
-                            placeholder="Position"
-                            className="bg-transparent border-b border-slate-800 py-1 text-sm text-white focus:outline-none focus:border-indigo-500"
-                          />
-                        </div>
-                        <button className="text-slate-600 hover:text-rose-500 p-1">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                    <div key={idx} className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3 relative group">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input 
+                          value={exp.company} 
+                          onChange={(e) => {
+                            const newExp = [...resumeData.experience];
+                            newExp[idx].company = e.target.value;
+                            setResumeData({...resumeData, experience: newExp});
+                          }}
+                          placeholder="Company Name"
+                          className="bg-transparent border-b border-slate-800 py-1 text-sm text-white focus:outline-none focus:border-indigo-500 w-full"
+                        />
+                        <input 
+                          value={exp.position} 
+                          onChange={(e) => {
+                            const newExp = [...resumeData.experience];
+                            newExp[idx].position = e.target.value;
+                            setResumeData({...resumeData, experience: newExp});
+                          }}
+                          placeholder="Position / Title"
+                          className="bg-transparent border-b border-slate-800 py-1 text-sm text-white focus:outline-none focus:border-indigo-500 w-full"
+                        />
+                        <input 
+                          value={exp.startDate} 
+                          onChange={(e) => {
+                            const newExp = [...resumeData.experience];
+                            newExp[idx].startDate = e.target.value;
+                            setResumeData({...resumeData, experience: newExp});
+                          }}
+                          placeholder="Start Date"
+                          className="bg-transparent border-b border-slate-800 py-1 text-xs text-slate-400 focus:outline-none focus:border-indigo-500 w-full"
+                        />
+                        <input 
+                          value={exp.endDate} 
+                          onChange={(e) => {
+                            const newExp = [...resumeData.experience];
+                            newExp[idx].endDate = e.target.value;
+                            setResumeData({...resumeData, experience: newExp});
+                          }}
+                          placeholder="End Date (or Present)"
+                          className="bg-transparent border-b border-slate-800 py-1 text-xs text-slate-400 focus:outline-none focus:border-indigo-500 w-full"
+                        />
                       </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold text-slate-600 uppercase">Highlights / Achievements</label>
+                          <button 
+                            onClick={() => {
+                              const newExp = [...resumeData.experience];
+                              newExp[idx].highlights.push('');
+                              setResumeData({...resumeData, experience: newExp});
+                            }}
+                            className="text-[10px] text-indigo-400 hover:text-indigo-300"
+                          >
+                            + Add Point
+                          </button>
+                        </div>
+                        {exp.highlights.map((h, hIdx) => (
+                          <div key={hIdx} className="flex gap-2">
+                            <input
+                              value={h}
+                              onChange={(e) => {
+                                const newExp = [...resumeData.experience];
+                                newExp[idx].highlights[hIdx] = e.target.value;
+                                setResumeData({...resumeData, experience: newExp});
+                              }}
+                              placeholder="Describe an achievement..."
+                              className="flex-1 bg-transparent border-b border-slate-900 py-1 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+                            />
+                            <button 
+                              onClick={() => {
+                                const newExp = [...resumeData.experience];
+                                newExp[idx].highlights.splice(hIdx, 1);
+                                setResumeData({...resumeData, experience: newExp});
+                              }}
+                              className="text-slate-700 hover:text-rose-500"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button 
+                        onClick={() => {
+                          const newExp = [...resumeData.experience];
+                          newExp.splice(idx, 1);
+                          setResumeData({...resumeData, experience: newExp});
+                        }}
+                        className="absolute -top-2 -right-2 bg-slate-900 border border-slate-800 p-1.5 rounded-full text-slate-600 hover:text-rose-500 shadow-lg opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                 </section>
+
+                <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                      <GraduationCap className="w-4 h-4" />
+                      Education
+                    </h3>
+                    <button 
+                      onClick={() => setResumeData({
+                        ...resumeData, 
+                        education: [...resumeData.education, { institution: '', degree: '', field: '', graduationDate: '' }]
+                      })}
+                      className="text-indigo-400 hover:text-indigo-300 text-xs font-bold flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add Education
+                    </button>
+                  </div>
+                  {resumeData.education.map((edu, idx) => (
+                    <div key={idx} className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3 relative group">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input 
+                          value={edu.institution} 
+                          onChange={(e) => {
+                            const newEdu = [...resumeData.education];
+                            newEdu[idx].institution = e.target.value;
+                            setResumeData({...resumeData, education: newEdu});
+                          }}
+                          placeholder="Institution Name"
+                          className="bg-transparent border-b border-slate-800 py-1 text-sm text-white focus:outline-none focus:border-indigo-500 w-full"
+                        />
+                        <input 
+                          value={edu.degree} 
+                          onChange={(e) => {
+                            const newEdu = [...resumeData.education];
+                            newEdu[idx].degree = e.target.value;
+                            setResumeData({...resumeData, education: newEdu});
+                          }}
+                          placeholder="Degree (e.g. B.Tech)"
+                          className="bg-transparent border-b border-slate-800 py-1 text-sm text-white focus:outline-none focus:border-indigo-500 w-full"
+                        />
+                        <input 
+                          value={edu.field} 
+                          onChange={(e) => {
+                            const newEdu = [...resumeData.education];
+                            newEdu[idx].field = e.target.value;
+                            setResumeData({...resumeData, education: newEdu});
+                          }}
+                          placeholder="Field of Study"
+                          className="bg-transparent border-b border-slate-800 py-1 text-xs text-slate-400 focus:outline-none focus:border-indigo-500 w-full"
+                        />
+                        <input 
+                          value={edu.graduationDate} 
+                          onChange={(e) => {
+                            const newEdu = [...resumeData.education];
+                            newEdu[idx].graduationDate = e.target.value;
+                            setResumeData({...resumeData, education: newEdu});
+                          }}
+                          placeholder="Graduation Date"
+                          className="bg-transparent border-b border-slate-800 py-1 text-xs text-slate-400 focus:outline-none focus:border-indigo-500 w-full"
+                        />
+                      </div>
+                      <button 
+                        onClick={() => {
+                          const newEdu = [...resumeData.education];
+                          newEdu.splice(idx, 1);
+                          setResumeData({...resumeData, education: newEdu});
+                        }}
+                        className="absolute -top-2 -right-2 bg-slate-900 border border-slate-800 p-1.5 rounded-full text-slate-600 hover:text-rose-500 shadow-lg opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </section>
+
+                <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Skills
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase">Technical Skills</label>
+                      <input 
+                        value={resumeData.skills.technical.join(', ')} 
+                        onChange={(e) => setResumeData({
+                          ...resumeData, 
+                          skills: { ...resumeData.skills, technical: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }
+                        })}
+                        placeholder="React, Node.js, Python, SQL (comma separated)"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-slate-600 uppercase">Soft Skills</label>
+                      <input 
+                        value={resumeData.skills.soft.join(', ')} 
+                        onChange={(e) => setResumeData({
+                          ...resumeData, 
+                          skills: { ...resumeData.skills, soft: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }
+                        })}
+                        placeholder="Communication, Leadership, Problem Solving (comma separated)"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </section>
               </div>
+            
             </>
           ) : (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-6">
