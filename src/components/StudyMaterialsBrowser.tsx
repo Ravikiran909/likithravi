@@ -22,7 +22,7 @@ import {
   Star,
 } from 'lucide-react';
 import { DocumentRecord, StudentProfile } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 import { MaterialReviewModal } from './MaterialReviewModal.tsx';
 
 interface StudyMaterialsBrowserProps {
@@ -101,7 +101,7 @@ export const StudyMaterialsBrowser: React.FC<StudyMaterialsBrowserProps> = ({
 
     // Persist to Firestore
     try {
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(
           doc(db, 'profiles', profile.userId),
           { pinnedDocumentIds: updatedPins },

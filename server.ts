@@ -1360,14 +1360,15 @@ app.post('/api/quiz/answer', async (req, res) => {
 // Generate adaptive quiz specifically targeting student's weak topics
 app.post('/api/quiz/adaptive-generate', async (req, res) => {
   try {
-    const { userId, topic, subject, difficulty, count = 3 } = req.body;
-    const prof = db.getProfileByUserId(userId);
-    if (!prof) return res.status(404).json({ error: 'Profile not found' });
+    const { userId, topic, subject, difficulty, count = 3 } = req.body || {};
+    const prof = userId
+      ? db.getProfileByUserId(userId) || db.getOrCreateProfile('+91 98450 00000', 'Student', userId).profile
+      : null;
 
     // Pick targeted topic from student's weakTopics if none provided
     const targetTopic =
       topic ||
-      (prof.weakTopics && prof.weakTopics.length > 0
+      (prof?.weakTopics && prof.weakTopics.length > 0
         ? prof.weakTopics[0]
         : 'Recursion in Python');
 
@@ -1380,13 +1381,13 @@ app.post('/api/quiz/adaptive-generate', async (req, res) => {
         : targetTopic.toLowerCase().includes('data structure') ||
           targetTopic.toLowerCase().includes('dsa')
         ? 'Data Structures'
-        : prof.subjects[0] || 'General');
+        : prof?.subjects?.[0] || 'General');
 
     const targetDifficulty =
       difficulty ||
-      (prof.currentSkillLevel === 'beginner'
+      (prof?.currentSkillLevel === 'beginner'
         ? 'beginner'
-        : prof.currentSkillLevel === 'expert'
+        : prof?.currentSkillLevel === 'expert'
         ? 'advanced'
         : 'intermediate');
 
@@ -1415,7 +1416,7 @@ app.post('/api/quiz/adaptive-generate', async (req, res) => {
       subject: targetSubject,
       difficulty: targetDifficulty,
       questions,
-      studentWeakTopics: prof.weakTopics || [],
+      studentWeakTopics: prof?.weakTopics || [],
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Adaptive quiz generation failed' });
@@ -1459,11 +1460,14 @@ app.post('/api/quiz/daily-generate', async (req, res) => {
 // Record quiz results and update student mastery / weak topics + daily learning goal progress
 app.post('/api/quiz/record-result', async (req, res) => {
   try {
-    const { userId, topic, subject, score, totalQuestions, studyMinutesLogged } = req.body;
-    const prof = db.getProfileByUserId(userId);
-    if (!prof) return res.status(404).json({ error: 'Profile not found' });
+    const { userId, topic = 'General', subject = 'General', score = 0, totalQuestions = 1, studyMinutesLogged } = req.body || {};
+    const prof = userId
+      ? db.getProfileByUserId(userId) || db.getOrCreateProfile('+91 98450 00000', 'Student', userId).profile
+      : null;
+    if (!prof) return res.status(400).json({ error: 'userId is required' });
 
-    const percentage = Math.round((score / totalQuestions) * 100);
+    const safeTotal = Math.max(1, Number(totalQuestions) || 1);
+    const percentage = Math.round(((Number(score) || 0) / safeTotal) * 100);
     const isMastered = percentage >= 70;
     const todayStr = new Date().toISOString().split('T')[0];
 
@@ -3127,35 +3131,6 @@ Return valid JSON matching this exact structure:
     });
   }
 });
-
-// Delete a document and its semantic chunks from RAG
-app.delete('/api/documents/:id', (req, res) => {
-  try {
-    const ok = ragService.deleteDocument(req.params.id);
-    if (!ok) {
-      return res.status(404).json({ error: 'Document not found' });
-    }
-    res.json({ success: true, deletedId: req.params.id });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Preview chunks without persisting to DB
-app.post('/api/documents/preview-chunks', (req, res) => {
-  try {
-    const { content, chunkSize } = req.body;
-    if (!content) {
-      return res.json({ chunks: [], count: 0 });
-    }
-    const chunks = ragService.previewChunks(content, chunkSize || 450);
-    res.json({ chunks, count: chunks.length });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
 
 // ----------------------------------------------------
 // Material Ratings & Reviews System (Documents & Courses)

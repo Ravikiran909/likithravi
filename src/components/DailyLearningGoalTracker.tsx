@@ -15,7 +15,7 @@ import {
   Award,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 interface DailyLearningGoalTrackerProps {
   profile: StudentProfile;
@@ -209,7 +209,7 @@ export const DailyLearningGoalTracker: React.FC<DailyLearningGoalTrackerProps> =
     };
 
     try {
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(
           doc(db, 'profiles', profile.userId),
           {
@@ -325,7 +325,7 @@ export const DailyLearningGoalTracker: React.FC<DailyLearningGoalTrackerProps> =
         }),
       });
 
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(
           doc(db, 'profiles', profile.userId),
           {

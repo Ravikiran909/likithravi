@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { StudentProfile, StudyPlanItem } from '../types/index.ts';
 import {
+  canSyncUserToFirestore,
   db,
   doc,
   setDoc,
@@ -300,7 +301,7 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
         );
       } catch {}
 
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         try {
           await setDoc(
             doc(db, 'profiles', profile.userId),

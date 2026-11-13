@@ -13,7 +13,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { StudentProfile, Flashcard } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 interface DailyFlashcardsProps {
   profile: StudentProfile;
@@ -137,7 +137,7 @@ export const DailyFlashcards: React.FC<DailyFlashcardsProps> = ({
       };
       onProfileUpdate(updatedProfile);
 
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(
           doc(db, 'profiles', profile.userId),
           {

@@ -267,6 +267,14 @@ export async function subscribeToForegroundFcmMessages(
   }
 }
 
+export function canSyncUserToFirestore(userId?: string | null): boolean {
+  return Boolean(db && auth.currentUser && userId && auth.currentUser.uid === userId);
+}
+
+export function isSignedInToFirebase(): boolean {
+  return Boolean(db && auth.currentUser);
+}
+
 export {
   doc,
   getDocFromServer,

@@ -23,7 +23,7 @@ import {
   Database,
 } from 'lucide-react';
 import { StudentProfile, VirtualBadge } from '../types/index.ts';
-import { db, auth, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, auth, doc, setDoc } from '../firebase.ts';
 
 interface BadgesProps {
   profile: StudentProfile;
@@ -410,7 +410,7 @@ export const Badges: React.FC<BadgesProps> = ({
       });
     } catch {}
 
-    if (db && profile.userId) {
+    if (canSyncUserToFirestore(profile.userId)) {
       try {
         await setDoc(
           doc(db, 'profiles', profile.userId),
@@ -475,7 +475,7 @@ export const Badges: React.FC<BadgesProps> = ({
       });
 
       // 3. Update Firestore profile document with required fields
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         try {
           const profileDocRef = doc(db, 'profiles', profile.userId);
           await setDoc(

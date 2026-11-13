@@ -448,8 +448,8 @@ export default function App() {
       localStorage.setItem(`profile_${cleanProfile.userId}`, JSON.stringify(cleanProfile));
     }
 
-    // Persist to Firestore database if connected
-    if (db && cleanProfile.userId) {
+    // Persist to Firestore database only when authenticated as that user
+    if (db && cleanProfile.userId && auth.currentUser && auth.currentUser.uid === cleanProfile.userId) {
       try {
         const sanitizedPayload = JSON.parse(
           JSON.stringify({
@@ -639,7 +639,7 @@ export default function App() {
             Universal Learning Command Center • Personalized Academic, Technical & Competitive Exam Tutor
           </span>
           <span className="text-slate-500">
-            Hardened Firestore Security • Gemini 3.8 Flash • Socratic Pedagogy
+            Hardened Firestore Security • Gemini 4 Hydrogen • Socratic Pedagogy
           </span>
         </div>
       </footer>

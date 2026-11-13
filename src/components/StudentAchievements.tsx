@@ -20,7 +20,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 export type MilestoneCategoryFilter =
   | 'all'
@@ -503,7 +503,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         new Set([...(profile.achievements || []), ...unlockedList.map((b) => b.id)])
       );
 
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         setDoc(
           doc(db, 'profiles', profile.userId),
           {
@@ -580,7 +580,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
 
       onProfileUpdate(mergedProfile);
 
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         try {
           await setDoc(
             doc(db, 'profiles', profile.userId),

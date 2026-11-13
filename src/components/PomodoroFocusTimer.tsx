@@ -18,7 +18,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { StudentProfile, FocusSession } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 interface PomodoroFocusTimerProps {
   profile: StudentProfile;
@@ -132,7 +132,7 @@ export const PomodoroFocusTimer: React.FC<PomodoroFocusTimerProps> = ({
       };
 
       try {
-        if (db && profile.userId) {
+        if (canSyncUserToFirestore(profile.userId)) {
           // 1. Save stats to Firestore profile document
           await setDoc(
             doc(db, 'profiles', profile.userId),

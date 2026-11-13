@@ -467,8 +467,10 @@ export const AdaptiveQuiz: React.FC<AdaptiveQuizProps> = ({
     const updatedWeak = Array.from(new Set([...(profile.weakTopics || []), topicToAdd]));
 
     try {
-      const profileDocRef = doc(db, 'profiles', profile.userId);
-      await setDoc(profileDocRef, { weakTopics: updatedWeak }, { merge: true });
+      if (db && auth.currentUser && auth.currentUser.uid === profile.userId) {
+        const profileDocRef = doc(db, 'profiles', profile.userId);
+        await setDoc(profileDocRef, { weakTopics: updatedWeak }, { merge: true });
+      }
 
       await fetch(`/api/students/${profile.userId}`, {
         method: 'PUT',

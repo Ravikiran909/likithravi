@@ -364,9 +364,9 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
       console.warn('Failed to record result via API, continuing with client state:', err);
     }
 
-    // Sync to Firestore if authenticated
+    // Sync to Firestore if authenticated as owner
     try {
-      if (profile.userId && auth.currentUser) {
+      if (profile.userId && auth.currentUser && auth.currentUser.uid === profile.userId) {
         const quizRecordRef = doc(db, 'quiz_history', `daily_${Date.now()}`);
         await setDoc(quizRecordRef, {
           userId: profile.userId,
@@ -414,7 +414,7 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
               <h2 className="text-xl font-bold text-white tracking-tight">Daily Quiz</h2>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center space-x-1">
                 <Sparkles className="w-3 h-3 text-emerald-400" />
-                <span>Gemini 3.8 Flash</span>
+                <span>Gemini 4 Hydrogen</span>
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
@@ -573,7 +573,7 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
           <div>
             <h3 className="text-base font-bold text-white">Synthesizing 5 Targeted Questions...</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
-              Gemini 3.8 Flash is analyzing your weak topics ({selectedTopics.slice(0, 3).join(', ')}) to craft high-yield diagnostic questions.
+              Gemini 4 Hydrogen is analyzing your weak topics ({selectedTopics.slice(0, 3).join(', ')}) to craft high-yield diagnostic questions.
             </p>
           </div>
         </div>

@@ -12,7 +12,7 @@ import {
   Award,
 } from 'lucide-react';
 import { MaterialReview, MaterialRatingSummary, StudentProfile } from '../types/index.ts';
-import { db, collection, doc, setDoc } from '../firebase.ts';
+import { auth, db, collection, doc, setDoc } from '../firebase.ts';
 
 interface MaterialReviewModalProps {
   materialId: string;
@@ -100,16 +100,16 @@ export const MaterialReviewModal: React.FC<MaterialReviewModalProps> = ({
 
       if (res.ok) {
         const data = await res.json();
-        // Also sync to Firestore if db is active
+        // Also sync to Firestore only when authenticated
         try {
-          if (db && data.review) {
+          if (db && auth.currentUser && data.review) {
             await setDoc(
               doc(db, 'material_reviews', data.review.id),
               {
                 id: String(data.review.id),
                 materialId: String(data.review.materialId || materialId),
                 materialType: 'document',
-                userId: String(data.review.userId || profile?.userId || 'usr_guest'),
+                userId: auth.currentUser.uid,
                 userName: String(data.review.userName || profile?.name || 'Verified Student').slice(0, 95),
                 rating: Number(data.review.rating) || 5,
                 comment: String(data.review.comment || commentText.trim()).slice(0, 1900),

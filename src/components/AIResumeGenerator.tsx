@@ -117,11 +117,68 @@ export const AIResumeGenerator: React.FC<AIResumeGeneratorProps> = ({ profile })
 
   const [jobDescription, setJobDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeStep, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const [template, setTemplate] = useState<'modern' | 'classic' | 'minimal'>('modern');
 
+  const normalizeResumeData = (raw: any, fallback: ResumeContent): ResumeContent => {
+    const p = raw?.personalInfo || {};
+    return {
+      personalInfo: {
+        fullName: String(p.fullName ?? fallback.personalInfo.fullName ?? ''),
+        title: String(p.title ?? fallback.personalInfo.title ?? ''),
+        email: String(p.email ?? fallback.personalInfo.email ?? ''),
+        phone: String(p.phone ?? fallback.personalInfo.phone ?? ''),
+        location: String(p.location ?? fallback.personalInfo.location ?? ''),
+        linkedin: String(p.linkedin ?? fallback.personalInfo.linkedin ?? ''),
+        portfolio: String(p.portfolio ?? fallback.personalInfo.portfolio ?? ''),
+      },
+      summary: String(raw?.summary ?? fallback.summary ?? ''),
+      experience: Array.isArray(raw?.experience)
+        ? raw.experience.map((e: any) => ({
+            company: String(e?.company ?? ''),
+            position: String(e?.position ?? ''),
+            location: String(e?.location ?? ''),
+            startDate: String(e?.startDate ?? ''),
+            endDate: String(e?.endDate ?? ''),
+            highlights: Array.isArray(e?.highlights) ? e.highlights.map((h: any) => String(h ?? '')) : [],
+          }))
+        : fallback.experience,
+      education: Array.isArray(raw?.education)
+        ? raw.education.map((ed: any) => ({
+            institution: String(ed?.institution ?? ''),
+            degree: String(ed?.degree ?? ''),
+            field: String(ed?.field ?? ''),
+            graduationDate: String(ed?.graduationDate ?? ''),
+          }))
+        : fallback.education,
+      skills: {
+        technical: Array.isArray(raw?.skills?.technical)
+          ? raw.skills.technical.map((s: any) => String(s ?? ''))
+          : fallback.skills.technical,
+        soft: Array.isArray(raw?.skills?.soft)
+          ? raw.skills.soft.map((s: any) => String(s ?? ''))
+          : fallback.skills.soft,
+        languages: Array.isArray(raw?.skills?.languages)
+          ? raw.skills.languages.map((s: any) => String(s ?? ''))
+          : fallback.skills.languages,
+      },
+      projects: Array.isArray(raw?.projects)
+        ? raw.projects.map((pr: any) => ({
+            name: String(pr?.name ?? ''),
+            description: String(pr?.description ?? ''),
+            link: String(pr?.link ?? ''),
+          }))
+        : fallback.projects,
+      certifications: Array.isArray(raw?.certifications)
+        ? raw.certifications.map((c: any) => String(c ?? ''))
+        : fallback.certifications,
+    };
+  };
+
   const handleGenerateAI = async () => {
     setIsGenerating(true);
+    setErrorMessage(null);
     try {
       const response = await fetch('/api/resume/generate', {
         method: 'POST',
@@ -133,13 +190,15 @@ export const AIResumeGenerator: React.FC<AIResumeGeneratorProps> = ({ profile })
           template
         })
       });
-      const data = await response.json();
-      if (data.success && data.content) {
-        setResumeData(data.content);
-        setActiveTab('preview');
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success || !data.content) {
+        throw new Error(data.error || `Resume generator returned HTTP ${response.status}`);
       }
-    } catch (err) {
+      setResumeData((prev) => normalizeResumeData(data.content, prev));
+      setActiveTab('preview');
+    } catch (err: any) {
       console.error('Failed to generate resume:', err);
+      setErrorMessage(err?.message || 'Could not optimize resume right now. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -149,10 +208,15 @@ export const AIResumeGenerator: React.FC<AIResumeGeneratorProps> = ({ profile })
     const doc = new jsPDF();
     const { personalInfo, summary, experience, education, skills, projects, certifications } = resumeData;
 
-    // Helper for adding text and moving cursor
     let y = 20;
     const margin = 20;
     const width = 170;
+    const ensureSpace = (needed = 12) => {
+      if (y + needed > 280) {
+        doc.addPage();
+        y = 20;
+      }
+    };
 
     // Header
     doc.setFontSize(22);
@@ -170,65 +234,116 @@ export const AIResumeGenerator: React.FC<AIResumeGeneratorProps> = ({ profile })
     y += 15;
 
     // Summary
+    ensureSpace(20);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.text('PROFESSIONAL SUMMARY', margin, y);
     y += 5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    const summaryLines = doc.splitTextToSize(summary, width);
+    const summaryLines = doc.splitTextToSize(summary || '', width);
     doc.text(summaryLines, margin, y);
-    y += summaryLines.length * 5 + 10;
+    y += summaryLines.length * 5 + 8;
 
     // Experience
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('EXPERIENCE', margin, y);
-    y += 7;
-    experience.forEach(exp => {
+    if (experience.length > 0) {
+      ensureSpace(16);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text(`${exp.position} | ${exp.company}`, margin, y);
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(10);
-      doc.text(`${exp.startDate} - ${exp.endDate} | ${exp.location}`, margin + 110, y);
-      y += 5;
-      doc.setFont('helvetica', 'normal');
-      exp.highlights.forEach(h => {
-        const lines = doc.splitTextToSize(`• ${h}`, width);
-        doc.text(lines, margin + 5, y);
-        y += lines.length * 5;
+      doc.setFontSize(12);
+      doc.text('EXPERIENCE', margin, y);
+      y += 7;
+      experience.forEach(exp => {
+        ensureSpace(18);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text(`${exp.position || 'Role'} | ${exp.company || ''}`, margin, y);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9);
+        doc.text(`${exp.startDate || ''} - ${exp.endDate || ''}${exp.location ? ` | ${exp.location}` : ''}`, margin, y + 4.5);
+        y += 9;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        (exp.highlights || []).forEach(h => {
+          const lines = doc.splitTextToSize(`• ${h}`, width - 5);
+          ensureSpace(lines.length * 5 + 2);
+          doc.text(lines, margin + 5, y);
+          y += lines.length * 5;
+        });
+        y += 4;
       });
-      y += 5;
-    });
+    }
 
     // Education
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('EDUCATION', margin, y);
-    y += 7;
-    education.forEach(edu => {
+    if (education.length > 0) {
+      ensureSpace(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${edu.degree} in ${edu.field}`, margin, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(edu.institution, margin, y + 5);
-      doc.text(edu.graduationDate, margin + 140, y);
-      y += 12;
-    });
+      doc.setFontSize(12);
+      doc.text('EDUCATION', margin, y);
+      y += 7;
+      education.forEach(edu => {
+        ensureSpace(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(`${edu.degree || ''}${edu.field ? ` in ${edu.field}` : ''}`, margin, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${edu.institution || ''}${edu.graduationDate ? ` (${edu.graduationDate})` : ''}`, margin, y + 5);
+        y += 11;
+      });
+    }
+
+    // Projects
+    if (projects && projects.length > 0) {
+      ensureSpace(16);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('PROJECTS', margin, y);
+      y += 7;
+      projects.forEach(pr => {
+        ensureSpace(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(`${pr.name || 'Project'}${pr.link ? ` (${pr.link})` : ''}`, margin, y);
+        y += 5;
+        doc.setFont('helvetica', 'normal');
+        const descLines = doc.splitTextToSize(pr.description || '', width);
+        ensureSpace(descLines.length * 5 + 2);
+        doc.text(descLines, margin, y);
+        y += descLines.length * 5 + 3;
+      });
+    }
 
     // Skills
+    ensureSpace(18);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.text('SKILLS', margin, y);
     y += 7;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`Technical: ${skills.technical.join(', ')}`, margin, y);
-    y += 5;
-    doc.text(`Soft: ${skills.soft.join(', ')}`, margin, y);
-    y += 10;
+    const techLines = doc.splitTextToSize(`Technical: ${(skills.technical || []).join(', ')}`, width);
+    doc.text(techLines, margin, y);
+    y += techLines.length * 5 + 2;
+    const softLines = doc.splitTextToSize(`Soft: ${(skills.soft || []).join(', ')}`, width);
+    ensureSpace(softLines.length * 5 + 4);
+    doc.text(softLines, margin, y);
+    y += softLines.length * 5 + 6;
 
-    doc.save(`${personalInfo.fullName.replace(/\s+/g, '_')}_Resume.pdf`);
+    // Certifications
+    if (certifications && certifications.length > 0) {
+      ensureSpace(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('CERTIFICATIONS', margin, y);
+      y += 7;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const certLines = doc.splitTextToSize(certifications.join(' • '), width);
+      ensureSpace(certLines.length * 5 + 4);
+      doc.text(certLines, margin, y);
+    }
+
+    const safeFileName = (personalInfo.fullName || 'Resume').trim().replace(/\s+/g, '_');
+    doc.save(`${safeFileName}_Resume.pdf`);
   };
 
   return (
@@ -291,6 +406,12 @@ export const AIResumeGenerator: React.FC<AIResumeGeneratorProps> = ({ profile })
                     placeholder="Paste job description here..."
                     className="w-full h-32 bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 resize-none"
                   />
+                  {errorMessage && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-200">
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
                   <button
                     onClick={handleGenerateAI}
                     disabled={isGenerating}
@@ -367,7 +488,7 @@ export const AIResumeGenerator: React.FC<AIResumeGeneratorProps> = ({ profile })
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">LinkedIn</label>
                       <input
-                        value={resumeData.personalInfo.linkedin}
+                        value={resumeData.personalInfo.linkedin || ''}
                         onChange={(e) => setResumeData({...resumeData, personalInfo: {...resumeData.personalInfo, linkedin: e.target.value}})}
                         placeholder="LinkedIn Profile URL"
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"

@@ -223,6 +223,54 @@
         "timestamp": { "type": "string", "maxLength": 50 }
       },
       "required": ["id", "userId", "role", "content", "timestamp"]
+    },
+    "QuizHistory": {
+      "title": "QuizHistory",
+      "description": "Completed daily diagnostic quiz summary record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "quizType": { "type": "string", "maxLength": 80 },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "percentage": { "type": "number" },
+        "weakTopicsTested": { "type": "array" },
+        "masteredTopics": { "type": "array" },
+        "completedAt": { "type": "string", "maxLength": 50 },
+        "aiModel": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["userId", "quizType", "score", "totalQuestions", "completedAt"]
+    },
+    "FocusSession": {
+      "title": "FocusSession",
+      "description": "Completed Pomodoro or deep focus study session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "durationMinutes": { "type": "number" },
+        "subject": { "type": "string", "maxLength": 100 },
+        "topic": { "type": "string", "maxLength": 200 },
+        "completedAt": { "type": "string", "maxLength": 50 },
+        "type": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "userId", "durationMinutes", "completedAt"]
+    },
+    "MaterialReview": {
+      "title": "MaterialReview",
+      "description": "Student rating and review on a study document or video course",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "materialId": { "type": "string", "maxLength": 128 },
+        "materialType": { "type": "string", "maxLength": 50 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "rating": { "type": "number" },
+        "comment": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "materialId", "userId", "rating", "comment", "createdAt"]
     }
   },
   "firestore": {
@@ -241,6 +289,18 @@
     "/quizzes/{quizId}": {
       "schema": "QuizSession",
       "description": "Individual quiz attempts and outcomes"
+    },
+    "/quiz_history/{quizId}": {
+      "schema": "QuizHistory",
+      "description": "Daily diagnostic quiz completion logs"
+    },
+    "/focus_sessions/{sessionId}": {
+      "schema": "FocusSession",
+      "description": "Completed Pomodoro focus study sessions"
+    },
+    "/material_reviews/{reviewId}": {
+      "schema": "MaterialReview",
+      "description": "Ratings and reviews for learning resources"
     },
     "/study_plans/{userId}": {
       "schema": "StudyPlan",

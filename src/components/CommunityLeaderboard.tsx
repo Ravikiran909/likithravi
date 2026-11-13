@@ -22,7 +22,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 interface CommunityLeaderboardProps {
   profile: StudentProfile;
@@ -129,7 +129,7 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
     }).catch(() => {});
 
     try {
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         setDoc(
           doc(db, 'profiles', profile.userId),
           { totalSessions: nextSessions, updatedAt: new Date().toISOString() },

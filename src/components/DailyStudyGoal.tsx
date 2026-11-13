@@ -15,7 +15,7 @@ import {
   Heart,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 import { CircularStudyGoal } from './CircularStudyGoal.tsx';
 
 interface DailyStudyGoalProps {
@@ -159,7 +159,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
     } catch {}
 
     try {
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(
           doc(db, 'profiles', profile.userId),
           {

@@ -30,7 +30,7 @@ import {
 import { DocumentRecord } from '../types/index.ts';
 import { RagKnowledgeBase } from './RagKnowledgeBase.tsx';
 import { AdminBulkCsvImporter } from './AdminBulkCsvImporter.tsx';
-import { db, doc, setDoc, getDocs, collection } from '../firebase.ts';
+import { db, doc, setDoc, getDocs, collection, isSignedInToFirebase } from '../firebase.ts';
 
 export const AdminDashboard: React.FC = () => {
   const [adminStats, setAdminStats] = useState<any>(null);
@@ -66,8 +66,8 @@ export const AdminDashboard: React.FC = () => {
         setDocuments(serverDocs);
         setTotalChunks(data.totalChunks || 0);
 
-        // Also merge any custom documents saved in Firestore
-        if (db) {
+        // Also merge any custom documents saved in Firestore when signed in
+        if (isSignedInToFirebase()) {
           try {
             const snap = await getDocs(collection(db, 'documents'));
             if (!snap.empty) {
@@ -98,7 +98,7 @@ export const AdminDashboard: React.FC = () => {
     setSyncingDb(true);
     setDbSyncNotice(null);
     try {
-      if (db) {
+      if (isSignedInToFirebase()) {
         // 1. Store all indexed RAG documents in Firestore
         for (const docItem of documents) {
           await setDoc(

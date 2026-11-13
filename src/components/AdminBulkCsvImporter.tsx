@@ -11,7 +11,7 @@ import {
   RefreshCw,
   Database,
 } from 'lucide-react';
-import { db, doc, setDoc, getDocs, collection } from '../firebase.ts';
+import { db, doc, setDoc, getDocs, collection, isSignedInToFirebase } from '../firebase.ts';
 
 type ImportType = 'students' | 'objectives';
 
@@ -65,7 +65,7 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
       // fallback if offline
     }
 
-    if (db) {
+    if (isSignedInToFirebase()) {
       try {
         const [profSnap, objSnap] = await Promise.all([
           getDocs(collection(db, 'profiles')).catch(() => null),
@@ -244,7 +244,7 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
             dailyQuestionsGoal: 10,
           };
 
-          if (db) {
+          if (isSignedInToFirebase()) {
             await setDoc(doc(db, 'users', userId), userData, { merge: true }).catch(() => {});
             await setDoc(doc(db, 'profiles', userId), profileData, { merge: true }).catch(() => {});
           }
@@ -296,7 +296,7 @@ export const AdminBulkCsvImporter: React.FC<AdminBulkCsvImporterProps> = ({
             createdAt: new Date().toISOString(),
           };
 
-          if (db) {
+          if (isSignedInToFirebase()) {
             await setDoc(doc(db, 'learning_objectives', objId), objectiveData, {
               merge: true,
             }).catch(() => {});

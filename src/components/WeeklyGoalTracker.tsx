@@ -16,7 +16,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 interface WeeklyGoalTrackerProps {
   profile: StudentProfile;
@@ -234,7 +234,7 @@ export const WeeklyGoalTracker: React.FC<WeeklyGoalTrackerProps> = ({
     };
 
     try {
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(doc(db, 'profiles', profile.userId), updatedFields, { merge: true });
       }
       await fetch(`/api/students/${profile.userId}`, {

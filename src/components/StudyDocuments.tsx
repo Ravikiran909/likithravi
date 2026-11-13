@@ -32,7 +32,7 @@ import {
   saveOfflineDocuments,
   getOfflineDocuments,
 } from '../utils/offlineDb.ts';
-import { db, collection, getDocs, doc, setDoc } from '../firebase.ts';
+import { db, collection, getDocs, isSignedInToFirebase } from '../firebase.ts';
 
 interface StudyDocumentsProps {
   onNavigateToVoice?: (docId?: string) => void;
@@ -176,8 +176,8 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
 
       let docsList: DocumentRecord[] = docsRes.documents || [];
 
-      // Sync with Firestore documents collection so all RAG documents persist in database
-      if (db) {
+      // Sync with Firestore documents collection only when signed in
+      if (isSignedInToFirebase()) {
         try {
           const fsSnap = await getDocs(collection(db, 'documents'));
           const fsDocs: DocumentRecord[] = [];
@@ -196,27 +196,6 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
             }
           });
           docsList = Array.from(mergedMap.values());
-
-          // Ensure seeded documents are also persisted into Firestore if collection was empty
-          if (fsDocs.length === 0 && docsList.length > 0) {
-            docsList.slice(0, 8).forEach((d) => {
-              setDoc(
-                doc(db, 'documents', d.id),
-                {
-                  id: d.id,
-                  title: String(d.title || 'Document').slice(0, 195),
-                  subject: String(d.subject || 'General Studies').slice(0, 95),
-                  category: String(d.category || 'Study Notes').slice(0, 95),
-                  originalFilename: String(d.originalFilename || 'notes.txt').slice(0, 195),
-                  fileSizeKb: Number(d.fileSizeKb) || 2,
-                  uploadedAt: d.uploadedAt || new Date().toISOString(),
-                  chunkCount: Number(d.chunkCount) || 2,
-                  summary: String(d.summary || '').slice(0, 1900),
-                },
-                { merge: true }
-              ).catch(() => {});
-            });
-          }
         } catch {
           // Fallback to server/offline list if Firestore is temporarily unreachable
         }

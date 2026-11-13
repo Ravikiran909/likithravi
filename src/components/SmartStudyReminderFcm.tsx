@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
 import {
+  canSyncUserToFirestore,
   db,
   doc,
   setDoc,
@@ -247,7 +248,7 @@ export const SmartStudyReminderFcm: React.FC<SmartStudyReminderFcmProps> = ({
         dailyReminderEnabled: true,
       };
 
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(doc(db, 'profiles', profile.userId), updatedFields, { merge: true }).catch(
           () => {}
         );
@@ -306,7 +307,7 @@ export const SmartStudyReminderFcm: React.FC<SmartStudyReminderFcmProps> = ({
     };
 
     try {
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(doc(db, 'profiles', profile.userId), updatedFields, { merge: true }).catch(
           () => {}
         );

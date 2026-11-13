@@ -18,7 +18,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { StudentProfile, Flashcard, FlashcardDeck } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 interface FlashcardDeckGeneratorProps {
   profile: StudentProfile;
@@ -189,7 +189,7 @@ export const FlashcardDeckGenerator: React.FC<FlashcardDeckGeneratorProps> = ({
     };
 
     try {
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(
           doc(db, 'profiles', profile.userId),
           {
@@ -327,7 +327,7 @@ export const FlashcardDeckGenerator: React.FC<FlashcardDeckGeneratorProps> = ({
         <div className="py-20 flex flex-col items-center justify-center space-y-3 relative z-10">
           <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <div className="text-sm font-bold text-white">
-            Synthesizing Active Recall Flashcards with Gemini 3.8...
+            Synthesizing Active Recall Flashcards with Gemini 4...
           </div>
           <div className="text-xs text-slate-400">
             Targeting weak concept: <span className="text-amber-400 font-semibold">{selectedTopic}</span>

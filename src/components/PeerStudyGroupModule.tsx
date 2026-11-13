@@ -24,7 +24,7 @@ import {
   Check,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { db, handleFirestoreError, OperationType } from '../firebase.ts';
+import { db, handleFirestoreError, isSignedInToFirebase, OperationType } from '../firebase.ts';
 import { doc, setDoc } from 'firebase/firestore';
 
 interface PeerStudyGroupModuleProps {
@@ -215,23 +215,25 @@ export const PeerStudyGroupModule: React.FC<PeerStudyGroupModuleProps> = ({
         if (onProfileUpdate) {
           onProfileUpdate({ ...profile, joinedPeerRoomIds: joinedIds });
         }
-        try {
-          await setDoc(
-            doc(db, 'peer_study_rooms', roomId),
-            {
-              id: data.room.id,
-              name: data.room.name,
-              subject: data.room.subject,
-              skillLevel: data.room.skillLevel,
-              topic: data.room.topic,
-              sharedNoteContent: data.room.sharedDocumentContent.slice(0, 4900),
-              activeVoiceCount: data.room.participants.filter((p: any) => p.inVoiceChannel).length,
-              updatedAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
-        } catch (fsErr) {
-          handleFirestoreError(fsErr, OperationType.WRITE, `peer_study_rooms/${roomId}`);
+        if (isSignedInToFirebase()) {
+          try {
+            await setDoc(
+              doc(db, 'peer_study_rooms', roomId),
+              {
+                id: data.room.id,
+                name: data.room.name,
+                subject: data.room.subject,
+                skillLevel: data.room.skillLevel,
+                topic: data.room.topic,
+                sharedNoteContent: data.room.sharedDocumentContent.slice(0, 4900),
+                activeVoiceCount: data.room.participants.filter((p: any) => p.inVoiceChannel).length,
+                updatedAt: new Date().toISOString(),
+              },
+              { merge: true }
+            );
+          } catch (fsErr) {
+            handleFirestoreError(fsErr, OperationType.WRITE, `peer_study_rooms/${roomId}`);
+          }
         }
         setRoomToast(
           `🎙️ Connected to "${data.room?.name}" (${data.room?.subject} • ${data.room?.skillLevel.toUpperCase()}) with Shared Document & Voice Chat!`
@@ -264,23 +266,25 @@ export const PeerStudyGroupModule: React.FC<PeerStudyGroupModuleProps> = ({
         if (onLogStudyMinutes) {
           onLogStudyMinutes(10, `Shared Document Collaboration: ${activeRoom.name}`);
         }
-        try {
-          await setDoc(
-            doc(db, 'peer_study_rooms', activeRoom.id),
-            {
-              id: activeRoom.id,
-              name: activeRoom.name,
-              subject: activeRoom.subject,
-              skillLevel: activeRoom.skillLevel,
-              topic: activeRoom.topic,
-              sharedNoteContent: docContentDraft.slice(0, 4900),
-              activeVoiceCount: activeRoom.participants.filter((p) => p.inVoiceChannel).length,
-              updatedAt: new Date().toISOString(),
-            },
-            { merge: true }
-          );
-        } catch (fsErr) {
-          handleFirestoreError(fsErr, OperationType.WRITE, `peer_study_rooms/${activeRoom.id}`);
+        if (isSignedInToFirebase()) {
+          try {
+            await setDoc(
+              doc(db, 'peer_study_rooms', activeRoom.id),
+              {
+                id: activeRoom.id,
+                name: activeRoom.name,
+                subject: activeRoom.subject,
+                skillLevel: activeRoom.skillLevel,
+                topic: activeRoom.topic,
+                sharedNoteContent: docContentDraft.slice(0, 4900),
+                activeVoiceCount: activeRoom.participants.filter((p) => p.inVoiceChannel).length,
+                updatedAt: new Date().toISOString(),
+              },
+              { merge: true }
+            );
+          } catch (fsErr) {
+            handleFirestoreError(fsErr, OperationType.WRITE, `peer_study_rooms/${activeRoom.id}`);
+          }
         }
         setRoomToast(`✅ Shared Document synced for all peers in "${activeRoom.name}"!`);
         setTimeout(() => setRoomToast(null), 3500);

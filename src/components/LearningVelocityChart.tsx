@@ -27,7 +27,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 interface LearningVelocityChartProps {
   profile: StudentProfile;
@@ -317,8 +317,8 @@ export const LearningVelocityChart: React.FC<LearningVelocityChartProps> = ({
     }
 
     try {
-      if (db && profile.userId) {
-        const profileDocRef = doc(db, 'students', profile.userId);
+      if (canSyncUserToFirestore(profile.userId)) {
+        const profileDocRef = doc(db, 'profiles', profile.userId);
         await setDoc(
           profileDocRef,
           {
@@ -365,8 +365,8 @@ export const LearningVelocityChart: React.FC<LearningVelocityChartProps> = ({
     }
 
     try {
-      if (db && profile.userId) {
-        const profileDocRef = doc(db, 'students', profile.userId);
+      if (canSyncUserToFirestore(profile.userId)) {
+        const profileDocRef = doc(db, 'profiles', profile.userId);
         await setDoc(profileDocRef, { weakTopics: updatedWeak }, { merge: true });
       }
       await fetch(`/api/students/${profile.userId}`, {

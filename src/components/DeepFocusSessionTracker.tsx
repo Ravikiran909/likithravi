@@ -19,7 +19,7 @@ import {
   Award,
 } from 'lucide-react';
 import { StudentProfile } from '../types/index.ts';
-import { db, doc, setDoc } from '../firebase.ts';
+import { canSyncUserToFirestore, db, doc, setDoc } from '../firebase.ts';
 
 interface DeepFocusSessionTrackerProps {
   profile: StudentProfile;
@@ -212,7 +212,7 @@ export const DeepFocusSessionTracker: React.FC<DeepFocusSessionTrackerProps> = (
     }
 
     try {
-      if (db && profile.userId) {
+      if (canSyncUserToFirestore(profile.userId)) {
         await setDoc(
           doc(db, 'profiles', profile.userId),
           {

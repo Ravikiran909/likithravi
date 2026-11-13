@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { DocumentRecord, DocumentChunk } from '../types/index.ts';
 import { extractTextFromPdfFile, extractTextFromGenericFile } from '../utils/pdfExtractor.ts';
-import { db, doc, setDoc, deleteDoc } from '../firebase.ts';
+import { db, doc, setDoc, deleteDoc, isSignedInToFirebase } from '../firebase.ts';
 
 interface RagKnowledgeBaseProps {
   onDocumentAdded?: () => void;
@@ -310,8 +310,8 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
         const data = await res.json();
         const uploadedDoc: DocumentRecord = data.document;
 
-        // Persist RAG document metadata in Firestore database
-        if (db && uploadedDoc?.id) {
+        // Persist RAG document metadata in Firestore database when signed in
+        if (isSignedInToFirebase() && uploadedDoc?.id) {
           await setDoc(
             doc(db, 'documents', uploadedDoc.id),
             {
@@ -356,7 +356,7 @@ The Indo-Gangetic plain is one of the most fertile and densely populated regions
     try {
       const res = await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
       if (res.ok) {
-        if (db && docId) {
+        if (isSignedInToFirebase() && docId) {
           await deleteDoc(doc(db, 'documents', docId)).catch(() => {});
         }
         fetchDocuments();

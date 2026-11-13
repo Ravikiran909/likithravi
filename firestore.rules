@@ -8,6 +8,18 @@ service cloud.firestore {
     }
 
     // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -16,15 +28,21 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdminByToken() {
+      return isSignedIn()
+        && request.auth.token.email == "kiranmravi45@gmail.com"
+        && request.auth.token.email_verified == true;
+    }
+
     function isAdmin() {
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        (request.auth.token.email == "kiranmravi45@gmail.com" && request.auth.token.email_verified == true)
+        isAdminByToken() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
 
     function isValidUser(data) {
-      return (!('id' in data) || (data.id is string && data.id.size() <= 128))
+      return (!('id' in data) || isValidId(data.id))
         && (!('name' in data) || (data.name is string && data.name.size() <= 100))
         && (!('email' in data) || (data.email is string && data.email.size() <= 150))
         && (!('phone' in data) || (data.phone is string && data.phone.size() <= 30))
@@ -37,143 +55,222 @@ service cloud.firestore {
     }
 
     function isValidStudentProfile(data) {
-      return (!('userId' in data) || (data.userId is string && data.userId.size() <= 128))
+      return (!('userId' in data) || isValidId(data.userId))
         && (!('name' in data) || (data.name is string && data.name.size() <= 100))
         && (!('email' in data) || (data.email is string && data.email.size() <= 150))
         && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 500))
+        && (!('whatsappNumber' in data) || (data.whatsappNumber is string && data.whatsappNumber.size() <= 30))
         && (!('accountType' in data) || (data.accountType in ['student', 'user']))
-        && (!('preferredLanguage' in data) || (data.preferredLanguage is string && data.preferredLanguage.size() <= 20));
+        && (!('preferredLanguage' in data) || (data.preferredLanguage is string && data.preferredLanguage.size() <= 20))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000));
     }
 
-    // Users Collection
-    match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data)
-        && (!('role' in request.resource.data) || request.resource.data.role in ['student', 'user'] || isAdmin());
-      allow update: if (isOwner(userId) && isValidUser(request.resource.data)
-        && (!('role' in request.resource.data) || request.resource.data.role in ['student', 'user'] || request.resource.data.role == resource.data.role))
-        || (isAdmin() && isValidUser(request.resource.data));
-      allow delete: if isAdmin();
+    function isValidQuizHistory(data) {
+      return data.userId is string && isValidId(data.userId)
+        && data.quizType is string && data.quizType.size() <= 80
+        && data.score is number && data.score >= 0
+        && data.totalQuestions is number && data.totalQuestions > 0
+        && (!('percentage' in data) || (data.percentage is number && data.percentage >= 0 && data.percentage <= 100))
+        && (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50))
+        && (!('aiModel' in data) || (data.aiModel is string && data.aiModel.size() <= 60));
     }
 
-    // Profiles Collection
-    match /profiles/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && isValidStudentProfile(request.resource.data);
-      allow update: if (isOwner(userId) || isAdmin()) && isValidStudentProfile(request.resource.data);
-      allow delete: if isAdmin();
+    function isValidFocusSession(data) {
+      return data.userId is string && isValidId(data.userId)
+        && data.durationMinutes is number && data.durationMinutes > 0 && data.durationMinutes <= 600
+        && (!('id' in data) || isValidId(data.id))
+        && (!('subject' in data) || (data.subject is string && data.subject.size() <= 100))
+        && (!('topic' in data) || (data.topic is string && data.topic.size() <= 200))
+        && (!('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50))
+        && (!('type' in data) || (data.type is string && data.type.size() <= 50));
     }
 
-    // RAG Documents Collection
-    match /documents/{docId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+    function isValidMaterialReview(data) {
+      return data.userId is string && isValidId(data.userId)
+        && data.materialId is string && data.materialId.size() <= 128
+        && data.rating is number && data.rating >= 1 && data.rating <= 5
+        && data.comment is string && data.comment.size() > 0 && data.comment.size() <= 2000
+        && (!('id' in data) || isValidId(data.id))
+        && (!('materialType' in data) || (data.materialType is string && data.materialType.size() <= 50))
+        && (!('userName' in data) || (data.userName is string && data.userName.size() <= 100))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
     }
 
-    // Messages Collection
-    match /messages/{messageId} {
-      allow get: if isOwner(resource.data.userId) || isAdmin();
-      allow list: if isSignedIn() && (request.query.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isAdmin();
-    }
-
-    // Quizzes Collection
-    match /quizzes/{quizId} {
-      allow get: if isOwner(resource.data.userId) || isAdmin();
-      allow list: if isSignedIn() && (request.query.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isOwner(resource.data.userId) || isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // Study Plans Collection
-    match /study_plans/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create, update: if isOwner(userId);
-      allow delete: if isAdmin();
-    }
-
-    // Reminders Collection
-    match /reminders/{reminderId} {
-      allow get: if isOwner(resource.data.userId) || isAdmin();
-      allow list: if isSignedIn() && (request.query.userId == request.auth.uid || isAdmin());
-      allow create, update: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isOwner(resource.data.userId) || isAdmin();
-    }
-
-    // Focus Sessions Collection
-    match /focus_sessions/{sessionId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
-      allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-
-    // Learning Objectives Collection
-    match /learning_objectives/{objId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
-    }
-
-    // Material Reviews Collection
-    match /material_reviews/{reviewId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
-    }
-
-    // Mock Interviews Collection
-    match /mock_interviews/{sessionId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
-      allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-
-    // Peer Study Rooms Collection
-    match /peer_study_rooms/{roomId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+    function isValidPeerStudyRoom(data) {
+      return data.id is string && isValidId(data.id)
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 150
+        && data.subject is string && data.subject.size() <= 100
+        && data.skillLevel in ['beginner', 'intermediate', 'advanced', 'expert']
+        && (!('topic' in data) || (data.topic is string && data.topic.size() <= 150))
+        && (!('sharedNoteContent' in data) || (data.sharedNoteContent is string && data.sharedNoteContent.size() <= 5000))
+        && (!('activeVoiceCount' in data) || (data.activeVoiceCount is number && data.activeVoiceCount >= 0))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
     }
 
     function isValidResume(data) {
-      return data.userId is string && data.userId.size() <= 128
+      return data.userId is string && isValidId(data.userId)
         && (!('template' in data) || (data.template is string && data.template.size() <= 50));
     }
 
     function isValidAIChatMessage(data) {
-      return data.userId is string && data.userId.size() <= 128
+      return data.userId is string && isValidId(data.userId)
         && data.role in ['user', 'model']
         && data.content is string && data.content.size() <= 5000;
     }
 
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdminByToken();
+      allow create: if isValidId(userId) && isOwner(userId) && isValidUser(incoming())
+        && (!('role' in incoming()) || incoming().role in ['student', 'user'] || isAdmin());
+      allow update: if isValidId(userId) && (
+        (isOwner(userId) && isValidUser(incoming())
+          && (!('role' in incoming()) || incoming().role in ['student', 'user'] || incoming().role == existing().role))
+        || (isAdmin() && isValidUser(incoming()))
+      );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // Profiles Collection
+    match /profiles/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdminByToken();
+      allow create: if isValidId(userId) && isOwner(userId) && isValidStudentProfile(incoming())
+        && (!('userId' in incoming()) || incoming().userId == userId);
+      allow update: if isValidId(userId) && (isOwner(userId) || isAdmin()) && isValidStudentProfile(incoming())
+        && (!('userId' in incoming()) || incoming().userId == userId);
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // RAG Documents Collection
+    match /documents/{docId} {
+      allow get: if isValidId(docId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create, update, delete: if isValidId(docId) && isAdmin();
+    }
+
+    // Messages Collection
+    match /messages/{messageId} {
+      allow get: if isValidId(messageId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdminByToken());
+      allow create: if isValidId(messageId) && isSignedIn() && incoming().userId == request.auth.uid
+        && incoming().content is string && incoming().content.size() <= 5000;
+      allow delete: if isValidId(messageId) && isAdmin();
+    }
+
+    // Quizzes Collection
+    match /quizzes/{quizId} {
+      allow get: if isValidId(quizId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdminByToken());
+      allow create: if isValidId(quizId) && isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isValidId(quizId) && (isOwner(existing().userId) || isAdmin())
+        && incoming().userId == existing().userId;
+      allow delete: if isValidId(quizId) && isAdmin();
+    }
+
+    // Quiz History Collection
+    match /quiz_history/{quizId} {
+      allow get: if isValidId(quizId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdminByToken());
+      allow create: if isValidId(quizId) && isSignedIn() && incoming().userId == request.auth.uid
+        && isValidQuizHistory(incoming());
+      allow update: if isValidId(quizId) && isOwner(existing().userId) && incoming().userId == existing().userId
+        && isValidQuizHistory(incoming());
+      allow delete: if isValidId(quizId) && (isOwner(existing().userId) || isAdmin());
+    }
+
+    // Study Plans Collection
+    match /study_plans/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdminByToken();
+      allow create, update: if isValidId(userId) && isOwner(userId);
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // Reminders Collection
+    match /reminders/{reminderId} {
+      allow get: if isValidId(reminderId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdminByToken());
+      allow create: if isValidId(reminderId) && isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isValidId(reminderId) && isSignedIn() && isOwner(existing().userId)
+        && incoming().userId == existing().userId;
+      allow delete: if isValidId(reminderId) && (isOwner(existing().userId) || isAdmin());
+    }
+
+    // Focus Sessions Collection
+    match /focus_sessions/{sessionId} {
+      allow get: if isValidId(sessionId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdminByToken());
+      allow create: if isValidId(sessionId) && isSignedIn() && incoming().userId == request.auth.uid
+        && isValidFocusSession(incoming());
+      allow update: if isValidId(sessionId) && isOwner(existing().userId) && incoming().userId == existing().userId
+        && isValidFocusSession(incoming());
+      allow delete: if isValidId(sessionId) && (isOwner(existing().userId) || isAdmin());
+    }
+
+    // Learning Objectives Collection
+    match /learning_objectives/{objId} {
+      allow get: if isValidId(objId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create, update, delete: if isValidId(objId) && isAdmin();
+    }
+
+    // Material Reviews Collection
+    match /material_reviews/{reviewId} {
+      allow get: if isValidId(reviewId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(reviewId) && isSignedIn() && incoming().userId == request.auth.uid
+        && isValidMaterialReview(incoming());
+      allow update: if isValidId(reviewId) && (isOwner(existing().userId) || isAdmin())
+        && incoming().userId == existing().userId && isValidMaterialReview(incoming());
+      allow delete: if isValidId(reviewId) && (isOwner(existing().userId) || isAdmin());
+    }
+
+    // Mock Interviews Collection
+    match /mock_interviews/{sessionId} {
+      allow get: if isValidId(sessionId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdminByToken());
+      allow create: if isValidId(sessionId) && isSignedIn() && incoming().userId == request.auth.uid;
+      allow update: if isValidId(sessionId) && isOwner(existing().userId) && incoming().userId == existing().userId;
+      allow delete: if isValidId(sessionId) && (isOwner(existing().userId) || isAdmin());
+    }
+
+    // Peer Study Rooms Collection
+    match /peer_study_rooms/{roomId} {
+      allow get: if isValidId(roomId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create, update: if isValidId(roomId) && isSignedIn() && isValidPeerStudyRoom(incoming());
+      allow delete: if isValidId(roomId) && isAdmin();
+    }
+
     // Resumes Collection
     match /resumes/{resumeId} {
-      allow get: if isOwner(resource.data.userId) || isAdmin();
-      allow list: if isSignedIn() && (request.query.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidResume(request.resource.data);
-      allow update: if isOwner(resource.data.userId) && isValidResume(request.resource.data);
-      allow delete: if isOwner(resource.data.userId) || isAdmin();
+      allow get: if isValidId(resumeId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdminByToken());
+      allow create: if isValidId(resumeId) && isSignedIn() && incoming().userId == request.auth.uid && isValidResume(incoming());
+      allow update: if isValidId(resumeId) && isOwner(existing().userId) && incoming().userId == existing().userId && isValidResume(incoming());
+      allow delete: if isValidId(resumeId) && (isOwner(existing().userId) || isAdmin());
     }
 
     // AIO Chats Collection
     match /aio_chats/{messageId} {
-      allow get: if isOwner(resource.data.userId) || isAdmin();
-      allow list: if isSignedIn() && (request.query.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidAIChatMessage(request.resource.data);
-      allow delete: if isOwner(resource.data.userId) || isAdmin();
+      allow get: if isValidId(messageId) && (isOwner(existing().userId) || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdminByToken());
+      allow create: if isValidId(messageId) && isSignedIn() && incoming().userId == request.auth.uid && isValidAIChatMessage(incoming());
+      allow delete: if isValidId(messageId) && (isOwner(existing().userId) || isAdmin());
     }
 
     // System Telemetry Collection
     match /system_telemetry/{docId} {
-      allow read, write: if isAdmin();
+      allow get: if isValidId(docId) && isAdmin();
+      allow list: if isAdminByToken();
+      allow create, update, delete: if isValidId(docId) && isAdmin();
     }
 
     // Test connection doc
     match /test/{docId} {
-      allow read: if true;
+      allow read: if docId == 'connection';
     }
   }
 }
-
