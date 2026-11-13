@@ -145,7 +145,7 @@ export const HighLevelThinkingModels: React.FC<HighLevelThinkingModelsProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [analysis, setAnalysis] = useState<ThinkingModelAnalysis | null>(null);
   const [modelUsedBadge, setModelUsedBadge] = useState<string>(
-    'gemini-3.8-flash (ThinkingLevel.HIGH)'
+    'gemini-4-hydrogen (ThinkingLevel.HIGH)'
   );
   const [selfReflections, setSelfReflections] = useState<Record<number, string>>({});
   const [completedStages, setCompletedStages] = useState<Record<number, boolean>>({});

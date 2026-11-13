@@ -92,7 +92,7 @@ export const PomodoroStudyTimer: React.FC<PomodoroStudyTimerProps> = ({
     {
       id: 'init_pomo_log_1',
       title: 'Time to Take a Break! (25m Polity Focus Complete)',
-      body: 'Logged +25 mins to your daily study goal and weekly streak. Step away for a 5m recharge break!',
+      body: 'Logged +25 mins to your daily study goal. Step away for a 5m recharge break!',
       timestamp: 'Earlier Today',
       mode: 'focus',
       subject: 'Indian Polity',

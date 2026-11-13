@@ -27,12 +27,21 @@ service cloud.firestore {
       return (!('id' in data) || (data.id is string && data.id.size() <= 128))
         && (!('name' in data) || (data.name is string && data.name.size() <= 100))
         && (!('email' in data) || (data.email is string && data.email.size() <= 150))
-        && (!('role' in data) || (data.role in ['student', 'admin']));
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 30))
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 500))
+        && (!('lastLoginAt' in data) || (data.lastLoginAt is string && data.lastLoginAt.size() <= 50))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50))
+        && (!('accountType' in data) || (data.accountType in ['student', 'user']))
+        && (!('role' in data) || (data.role in ['student', 'user', 'admin']));
     }
 
     function isValidStudentProfile(data) {
       return (!('userId' in data) || (data.userId is string && data.userId.size() <= 128))
         && (!('name' in data) || (data.name is string && data.name.size() <= 100))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 150))
+        && (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 500))
+        && (!('accountType' in data) || (data.accountType in ['student', 'user']))
         && (!('preferredLanguage' in data) || (data.preferredLanguage is string && data.preferredLanguage.size() <= 20));
     }
 
@@ -40,8 +49,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data)
+        && (!('role' in request.resource.data) || request.resource.data.role in ['student', 'user'] || isAdmin());
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data)
+        && (!('role' in request.resource.data) || request.resource.data.role in ['student', 'user'] || request.resource.data.role == resource.data.role))
+        || (isAdmin() && isValidUser(request.resource.data));
       allow delete: if isAdmin();
     }
 
@@ -49,8 +61,8 @@ service cloud.firestore {
     match /profiles/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && isValidStudentProfile(request.resource.data);
+      allow create: if isOwner(userId) && isValidStudentProfile(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidStudentProfile(request.resource.data);
       allow delete: if isAdmin();
     }
 

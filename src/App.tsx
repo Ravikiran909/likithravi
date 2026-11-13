@@ -8,7 +8,11 @@ import { StudyDocuments } from './components/StudyDocuments.tsx';
 import { OfflineIndicator } from './components/OfflineIndicator.tsx';
 import { AppLockOverlay } from './components/AppLockOverlay.tsx';
 import { SecurityPrivacyHubModal } from './components/SecurityPrivacyHubModal.tsx';
-import { StudentLoginDashboard } from './components/StudentLoginDashboard.tsx';
+import {
+  StudentLoginDashboard,
+  AccountPortalType,
+  WorkspaceEntryPayload,
+} from './components/StudentLoginDashboard.tsx';
 import { YouTubeLearningHub } from './components/YouTubeLearningHub.tsx';
 import { AIResumeGenerator } from './components/AIResumeGenerator.tsx';
 import { AIODoubtSolver } from './components/AIODoubtSolver.tsx';
@@ -24,6 +28,8 @@ import {
   auth,
   onAuthStateChanged,
   signOutUser,
+  OperationType,
+  handleFirestoreError,
 } from './firebase.ts';
 
 const normalizeStudentProfile = (
@@ -128,7 +134,7 @@ const normalizeStudentProfile = (
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'videos' | 'resume' | 'chat_aio' | 'documents' | 'student' | 'admin'>('student');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'videos' | 'resume' | 'chat_aio' | 'documents' | 'student' | 'admin' | 'login'>('student');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile>(
     normalizeStudentProfile(null)
@@ -154,45 +160,129 @@ export default function App() {
     checkConnection();
   }, []);
 
+  // Sync authenticated Google user record & student/user profile in Firestore
+  const syncAuthenticatedUserToFirestore = async (
+    firebaseUser: any,
+    preferredAccountType?: AccountPortalType
+  ) => {
+    const resolvedType: AccountPortalType =
+      preferredAccountType ||
+      (localStorage.getItem('preferred_account_type') === 'user' ? 'user' : 'student');
+    const nowIso = new Date().toISOString();
+
+    // 1. Sync users/{uid} document
+    try {
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      const existingUserSnap = await getDoc(userRef);
+      const existingUserData = existingUserSnap.exists() ? existingUserSnap.data() : null;
+      const safeRole =
+        existingUserData?.role === 'admin' ? 'admin' : resolvedType;
+
+      const userPayload = {
+        id: String(firebaseUser.uid).slice(0, 128),
+        name: String(firebaseUser.displayName || existingUserData?.name || (resolvedType === 'user' ? 'Workspace User' : 'Student')).slice(0, 100),
+        email: String(firebaseUser.email || existingUserData?.email || '').slice(0, 150),
+        phone: String(existingUserData?.phone || '+91 98450 11223').slice(0, 30),
+        role: safeRole,
+        accountType: resolvedType,
+        avatarUrl: String(firebaseUser.photoURL || existingUserData?.avatarUrl || '').slice(0, 500),
+        lastLoginAt: nowIso,
+        createdAt: String(existingUserData?.createdAt || nowIso).slice(0, 50),
+        updatedAt: nowIso,
+      };
+      await setDoc(userRef, userPayload, { merge: true });
+    } catch (err: any) {
+      if (err?.message?.toLowerCase().includes('permission')) {
+        try {
+          handleFirestoreError(err, OperationType.WRITE, `users/${firebaseUser.uid}`);
+        } catch {}
+      } else {
+        console.warn('User account sync skipped (offline or unavailable):', err);
+      }
+    }
+
+    // 2. Sync profiles/{uid} document
+    try {
+      const profileRef = doc(db, 'profiles', firebaseUser.uid);
+      const docSnap = await getDoc(profileRef);
+      if (docSnap.exists()) {
+        const merged = normalizeStudentProfile({
+          ...(docSnap.data() as StudentProfile),
+          accountType: resolvedType,
+          email: String(firebaseUser.email || '').slice(0, 150),
+          avatarUrl: String(firebaseUser.photoURL || '').slice(0, 500),
+        });
+        setSelectedProfile(merged);
+        localStorage.setItem(`profile_${firebaseUser.uid}`, JSON.stringify(merged));
+        await setDoc(
+          profileRef,
+          {
+            accountType: resolvedType,
+            email: merged.email,
+            avatarUrl: merged.avatarUrl,
+          },
+          { merge: true }
+        );
+      } else {
+        const newProfile = normalizeStudentProfile({
+          userId: firebaseUser.uid,
+          name: String(firebaseUser.displayName || (resolvedType === 'user' ? 'Workspace User' : 'Student')).slice(0, 100),
+          email: String(firebaseUser.email || '').slice(0, 150),
+          avatarUrl: String(firebaseUser.photoURL || '').slice(0, 500),
+          accountType: resolvedType,
+          educationLevel: resolvedType === 'user' ? 'professional' : 'college_university',
+          subjects:
+            resolvedType === 'user'
+              ? ['Python', 'Data Analysis', 'AI Agents', 'Career & Resume']
+              : ['Mathematics', 'Programming', 'App Development', 'Science', 'English'],
+        });
+        setSelectedProfile(newProfile);
+        localStorage.setItem(`profile_${firebaseUser.uid}`, JSON.stringify(newProfile));
+        await setDoc(profileRef, JSON.parse(JSON.stringify(newProfile)));
+      }
+    } catch (err: any) {
+      console.warn('Profile fetch/sync failed (offline or reachability issue):', err);
+      const savedProfile = localStorage.getItem(`profile_${firebaseUser.uid}`);
+      if (savedProfile) {
+        try {
+          setSelectedProfile(
+            normalizeStudentProfile({
+              ...JSON.parse(savedProfile),
+              accountType: resolvedType,
+            })
+          );
+        } catch {
+          setSelectedProfile(
+            normalizeStudentProfile({
+              userId: firebaseUser.uid,
+              name: firebaseUser.displayName || 'Student',
+              accountType: resolvedType,
+            })
+          );
+        }
+      } else {
+        setSelectedProfile(
+          normalizeStudentProfile({
+            userId: firebaseUser.uid,
+            name: firebaseUser.displayName || 'Student',
+            accountType: resolvedType,
+          })
+        );
+      }
+      setIsFirebaseConnected(false);
+    }
+  };
+
   // Monitor Auth State
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       setAuthLoading(false);
-      
+
       if (firebaseUser) {
         setIsEntryComplete(true);
         localStorage.setItem('entry_complete', 'true');
-        
-        try {
-          // Sync/Load Profile for this UID
-          const docSnap = await getDoc(doc(db, 'profiles', firebaseUser.uid));
-          if (docSnap.exists()) {
-            setSelectedProfile(normalizeStudentProfile(docSnap.data() as StudentProfile));
-          } else {
-            // Create initial profile for new user
-            const newProfile = normalizeStudentProfile({
-              userId: firebaseUser.uid,
-              name: firebaseUser.displayName || 'Student',
-            });
-            setSelectedProfile(newProfile);
-            await setDoc(doc(db, 'profiles', firebaseUser.uid), newProfile);
-          }
-        } catch (err) {
-          console.warn('Profile fetch failed (offline or reachability issue):', err);
-          // Fallback to local profile if available
-          const savedProfile = localStorage.getItem(`profile_${firebaseUser.uid}`);
-          if (savedProfile) {
-            try {
-              setSelectedProfile(normalizeStudentProfile(JSON.parse(savedProfile)));
-            } catch {
-              setSelectedProfile(normalizeStudentProfile({ userId: firebaseUser.uid }));
-            }
-          } else {
-            setSelectedProfile(normalizeStudentProfile({ userId: firebaseUser.uid }));
-          }
-          setIsFirebaseConnected(false);
-        }
+        await syncAuthenticatedUserToFirestore(firebaseUser);
       }
     });
     return () => unsubscribe();
@@ -219,20 +309,83 @@ export default function App() {
     } else {
       setSelectedProfile(normalizeStudentProfile({ userId: guestId }));
     }
-    
+
     fetchInitialData();
   }, [authLoading, user]);
 
   const handleLogout = async () => {
     await signOutUser();
+    setUser(null);
     setIsEntryComplete(false);
     localStorage.removeItem('entry_complete');
-    window.location.reload();
+    setActiveTab('student');
   };
 
-  const handleEnterAsGuest = () => {
+  const handleEnterAsGuest = (payload: WorkspaceEntryPayload) => {
+    localStorage.setItem('preferred_account_type', payload.accountType);
+    const savedGuestId = localStorage.getItem('guest_user_id');
+    const guestId =
+      user?.uid || savedGuestId || `guest_${Math.random().toString(36).substring(2, 11)}`;
+    if (!user && !savedGuestId) {
+      localStorage.setItem('guest_user_id', guestId);
+    }
+
+    const updatedProfile = normalizeStudentProfile(
+      {
+        userId: guestId,
+        name: payload.name,
+        accountType: payload.accountType,
+        educationLevel: payload.educationLevel,
+        whatsappNumber: payload.whatsappNumber || selectedProfile.whatsappNumber,
+        subjects:
+          payload.accountType === 'user'
+            ? ['Python', 'Data Analysis', 'Prompt Engineering', 'Career & Resume']
+            : selectedProfile.subjects,
+      },
+      selectedProfile
+    );
+
+    handleProfileUpdate(updatedProfile);
     setIsEntryComplete(true);
     localStorage.setItem('entry_complete', 'true');
+    setActiveTab('student');
+  };
+
+  const handleGoogleLoginSuccess = async (
+    firebaseUser: any,
+    accountType: AccountPortalType
+  ) => {
+    localStorage.setItem('preferred_account_type', accountType);
+    localStorage.setItem('entry_complete', 'true');
+    setIsEntryComplete(true);
+    setUser(firebaseUser);
+    await syncAuthenticatedUserToFirestore(firebaseUser, accountType);
+    setActiveTab('student');
+  };
+
+  const handleSwitchAccountType = async (accountType: AccountPortalType) => {
+    localStorage.setItem('preferred_account_type', accountType);
+    const updated = normalizeStudentProfile(
+      {
+        ...selectedProfile,
+        accountType,
+      },
+      selectedProfile
+    );
+    await handleProfileUpdate(updated);
+    if (user && db) {
+      try {
+        await setDoc(
+          doc(db, 'users', user.uid),
+          {
+            role: accountType,
+            accountType,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch {}
+    }
   };
 
   const handleToggleFocusMode = async (nextState?: boolean) => {
@@ -336,12 +489,11 @@ export default function App() {
 
   if (!isEntryComplete && !user) {
     return (
-      <StudentLoginDashboard 
+      <StudentLoginDashboard
         onEnterAsGuest={handleEnterAsGuest}
-        onLoginSuccess={() => {
-          setIsEntryComplete(true);
-          localStorage.setItem('entry_complete', 'true');
-        }}
+        onLoginSuccess={handleGoogleLoginSuccess}
+        currentUser={user}
+        currentProfile={selectedProfile}
       />
     );
   }
@@ -462,6 +614,19 @@ export default function App() {
         )}
 
         {activeTab === 'admin' && <AdminDashboard />}
+
+        {activeTab === 'login' && (
+          <StudentLoginDashboard
+            isInAppView
+            currentUser={user}
+            currentProfile={selectedProfile}
+            onEnterAsGuest={handleEnterAsGuest}
+            onLoginSuccess={handleGoogleLoginSuccess}
+            onSwitchAccountType={handleSwitchAccountType}
+            onLogout={handleLogout}
+            onBackToApp={() => setActiveTab('student')}
+          />
+        )}
       </main>
 
       <footer

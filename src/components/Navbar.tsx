@@ -23,8 +23,8 @@ import {
 import { StudentProfile, SUPPORTED_LANGUAGES } from '../types/index.ts';
 
 interface NavbarProps {
-  activeTab: 'simulator' | 'voice' | 'videos' | 'resume' | 'chat_aio' | 'documents' | 'student' | 'admin';
-  setActiveTab: (tab: 'simulator' | 'voice' | 'videos' | 'resume' | 'chat_aio' | 'documents' | 'student' | 'admin') => void;
+  activeTab: 'simulator' | 'voice' | 'videos' | 'resume' | 'chat_aio' | 'documents' | 'student' | 'admin' | 'login';
+  setActiveTab: (tab: 'simulator' | 'voice' | 'videos' | 'resume' | 'chat_aio' | 'documents' | 'student' | 'admin' | 'login') => void;
   selectedProfile: StudentProfile | null;
   isWhatsAppConfigured: boolean;
   focusMode?: boolean;
@@ -249,25 +249,50 @@ export const Navbar: React.FC<NavbarProps> = ({
 
 
 
-            {onLogout && (
-              <div className="flex items-center space-x-2 border-l border-slate-800 ml-2 pl-4">
-                <div className="flex flex-col items-end hidden sm:flex">
-                  <span className="text-[10px] font-bold text-white leading-tight truncate max-w-[100px]">
-                    {user?.displayName || selectedProfile?.name || 'Student'}
-                  </span>
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider leading-tight">
-                    {user ? 'Cloud Active' : 'Guest Mode'}
-                  </span>
-                </div>
+            <div className="flex items-center space-x-2 border-l border-slate-800 ml-2 pl-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('login')}
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  activeTab === 'login'
+                    ? 'bg-emerald-600 text-white'
+                    : user
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700'
+                    : 'bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/30'
+                }`}
+                title="Open Student & User Login Dashboard"
+              >
+                {user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Account'}
+                    referrerPolicy="no-referrer"
+                    className="w-5 h-5 rounded-md object-cover shrink-0"
+                  />
+                ) : (
+                  <User className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span className="max-w-[110px] truncate">
+                  {user
+                    ? user.displayName || selectedProfile?.name || 'Account'
+                    : 'Login / Account'}
+                </span>
+                <span className="hidden lg:inline text-[11px] opacity-75">
+                  · {selectedProfile?.accountType === 'user' ? 'User' : 'Student'}
+                </span>
+              </button>
+
+              {onLogout && (
                 <button
+                  type="button"
                   onClick={onLogout}
-                  className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer"
-                  title="Sign Out"
+                  className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer shrink-0"
+                  title="Sign Out / Return to Login Screen"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4" />
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* WhatsApp Cloud API Live Indicator */}
             {!focusMode && (

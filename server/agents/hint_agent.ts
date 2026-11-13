@@ -141,13 +141,12 @@ Return strict JSON:
 }`;
 
         const response = await generateContentWithRetry({
-          preferredModel: 'gemini-3.8-flash',
+          preferredModel: 'gemini-4-hydrogen',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
-            temperature: 0.6,
           },
-          timeoutMs: 4500,
+          timeoutMs: 8000,
           maxAttempts: 1,
         });
 

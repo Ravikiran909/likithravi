@@ -16,7 +16,6 @@ import {
   Brain,
   Code2,
   Calendar,
-  Flame,
   Award,
   Zap,
   Globe,
@@ -593,7 +592,7 @@ function createSampleVoiceWav(frequency = 440): string {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-4 text-slate-200">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <Flame className="w-5 h-5 text-amber-500 fill-amber-500" />
+            <Bot className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
@@ -604,8 +603,8 @@ function createSampleVoiceWav(frequency = 440): string {
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Streak: <span className="text-amber-400 font-semibold">{selectedProfile.streak} days 🔥</span> |
-              Accuracy: <span className="text-emerald-400 font-semibold">{selectedProfile.overallProgress}%</span> |
+              Mastery: <span className="text-emerald-400 font-semibold">{selectedProfile.overallProgress}%</span> |
+              Questions: <span className="text-amber-300 font-semibold">{selectedProfile.totalQuestionsAnswered || 0}</span> |
               Language: <span className="text-sky-300 uppercase">{selectedProfile.preferredLanguage}</span>
             </p>
           </div>
@@ -1340,8 +1339,8 @@ function createSampleVoiceWav(frequency = 440): string {
                     <span className="text-sky-300 font-medium uppercase">{selectedProfile.preferredLanguage}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400">Study Streak: </span>
-                    <span className="text-amber-400 font-medium">{selectedProfile.streak} Days 🔥</span>
+                    <span className="text-slate-400">Questions Solved: </span>
+                    <span className="text-amber-400 font-medium">{selectedProfile.totalQuestionsAnswered || 0}</span>
                   </div>
                   <div>
                     <span className="text-slate-400">Overall Accuracy: </span>

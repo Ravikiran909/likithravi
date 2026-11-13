@@ -38,7 +38,7 @@ const FALLBACK_AFFIRMATION: AffirmationPayload = {
   quote: 'Success is the sum of small efforts, repeated day in and day out.',
   author: 'Robert Collier',
   affirmation: 'Every concept I master today compounds into lifelong expertise.',
-  category: 'Consistency & Streak',
+  category: 'Consistency & Focus',
   morningTip: 'Start with 15 minutes on your toughest topic while your mind is sharpest.',
   personalizedNote: 'Morning Study Motivation',
   refreshedAt: '06:00 AM Daily Morning Sync',

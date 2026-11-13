@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, GenerateContentResponse } from '@google/genai';
+import { GoogleGenAI, Type, GenerateContentResponse, ThinkingLevel } from '@google/genai';
 export { Type };
 
 let aiInstance: GoogleGenAI | null = null;
@@ -22,10 +22,10 @@ export function getGeminiAI(): GoogleGenAI | null {
 
 /**
  * Resilient candidate models adhering to SKILL.md rules.
- * 'gemini-3.8-flash' is the primary modern model.
- * 'gemini-3.1-flash-lite' and 'gemini-flash-latest' serve as backup cascade models.
+ * 'gemini-4-hydrogen' is the primary model for text & Q&A.
+ * 'gemini-3.1-flash-lite' serves as the fast fallback cascade model.
  */
-const CANDIDATE_MODELS = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+const CANDIDATE_MODELS = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite'];
 
 // Track models that hit 429 RESOURCE_EXHAUSTED so we skip them during their quota cooldown window
 const modelCooldownUntil = new Map<string, number>();
@@ -57,9 +57,44 @@ export function markModelCooldown(model: string, err: any): void {
       msg.includes('PerDay') || msg.includes('free_tier_requests') || msg.includes('retryDelay');
     const cooldownMs = isDailyQuota ? 30 * 60 * 1000 : 2 * 60 * 1000;
     modelCooldownUntil.set(model, Date.now() + cooldownMs);
+  } else if (status === 404 || msg.includes('NOT_FOUND') || msg.includes('404')) {
+    // Unsupported/not found model — cool down for 30 minutes
+    modelCooldownUntil.set(model, Date.now() + 30 * 60 * 1000);
   } else if (status === 503 || msg.includes('503') || msg.includes('UNAVAILABLE')) {
     modelCooldownUntil.set(model, Date.now() + 30 * 1000);
   }
+}
+
+function buildModelSafeConfig(model: string, rawConfig?: any): any {
+  const isGemini4 =
+    model === 'gemini-4-hydrogen' ||
+    model === 'gemini-4-argon' ||
+    model === 'gemini-4-carbon';
+
+  if (!rawConfig && !isGemini4) return undefined;
+
+  const config: any = rawConfig ? { ...rawConfig } : {};
+
+  if (isGemini4) {
+    // SKILL.md: Do not pass deprecated sampling parameters or thinkingBudget to Gemini 4 models
+    delete config.temperature;
+    delete config.topP;
+    delete config.topK;
+    delete config.candidateCount;
+    if (config.thinkingConfig) {
+      const nextThinking = { ...config.thinkingConfig };
+      delete nextThinking.thinkingBudget;
+      if (nextThinking.thinkingLevel === ThinkingLevel.MINIMAL) {
+        nextThinking.thinkingLevel = ThinkingLevel.LOW;
+      }
+      config.thinkingConfig = nextThinking;
+    } else {
+      // Keep interactive responses snappy while preserving reasoning quality
+      config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+    }
+  }
+
+  return Object.keys(config).length > 0 ? config : undefined;
 }
 
 export interface GenerateContentRetryOptions {
@@ -82,7 +117,11 @@ export async function generateContentWithRetry(
     throw new Error('Gemini API key is not configured.');
   }
 
-  const preferred = options.preferredModel || 'gemini-3.8-flash';
+  const requestedPreferred = options.preferredModel || 'gemini-4-hydrogen';
+  const preferred =
+    requestedPreferred === 'gemini-3.8-flash' || requestedPreferred === 'gemini-flash-latest'
+      ? 'gemini-4-hydrogen'
+      : requestedPreferred;
   const allModels = [preferred, ...CANDIDATE_MODELS.filter((m) => m !== preferred)];
   const availableModels = allModels.filter((m) => !isModelInCooldown(m));
 
@@ -92,7 +131,7 @@ export async function generateContentWithRetry(
   }
 
   const maxAttempts = options.maxAttempts ?? 1;
-  const timeoutMs = options.timeoutMs ?? 6500;
+  const timeoutMs = options.timeoutMs ?? 12000;
 
   let lastError: any = null;
 
@@ -101,10 +140,11 @@ export async function generateContentWithRetry(
       if (isModelInCooldown(model)) continue;
 
       try {
+        const safeConfig = buildModelSafeConfig(model, options.config);
         const callPromise = ai.models.generateContent({
           model,
           contents: options.contents,
-          config: options.config,
+          ...(safeConfig ? { config: safeConfig } : {}),
         });
 
         let timer: NodeJS.Timeout | null = null;
@@ -494,8 +534,8 @@ Respond in JSON with fields:
       config: {
         responseMimeType: 'application/json',
       },
-      preferredModel: 'gemini-3.8-flash',
-      timeoutMs: 3500,
+      preferredModel: 'gemini-4-hydrogen',
+      timeoutMs: 6000,
     });
 
     const rawIntentText = (response.text || '{}')
@@ -574,11 +614,10 @@ ${params.ragContext ? `\n--- VERIFIED KNOWLEDGE BASE MATERIAL ---\n${params.ragC
       contents: query,
       config: {
         systemInstruction: systemPrompt,
-        temperature: 0.65,
       },
-      preferredModel: 'gemini-3.8-flash',
+      preferredModel: 'gemini-4-hydrogen',
       maxAttempts: 2,
-      timeoutMs: 7500,
+      timeoutMs: 12000,
     });
 
     if (response.text && response.text.trim().length > 0) {
@@ -845,8 +884,8 @@ Language preference: ${preferredLanguage === 'kn' ? 'Kannada/English' : preferre
           { text: promptText },
         ],
       },
-      preferredModel: 'gemini-3.8-flash',
-      timeoutMs: 8000,
+      preferredModel: 'gemini-4-hydrogen',
+      timeoutMs: 12000,
     });
 
     if (response.text && response.text.trim().length > 0) {
@@ -1046,8 +1085,8 @@ Return a JSON array of ${targetCount} objects.`;
           },
         },
       },
-      preferredModel: 'gemini-3.8-flash',
-      timeoutMs: 6500,
+      preferredModel: 'gemini-4-hydrogen',
+      timeoutMs: 12000,
     });
 
     const rawText = (response.text || '[]')
@@ -1436,8 +1475,8 @@ Return a JSON array of 5 question objects.`;
           },
         },
       },
-      preferredModel: 'gemini-3.8-flash',
-      timeoutMs: 8500,
+      preferredModel: 'gemini-4-hydrogen',
+      timeoutMs: 12000,
     });
 
     const rawText = (response.text || '[]')

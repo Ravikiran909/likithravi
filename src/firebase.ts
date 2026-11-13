@@ -140,16 +140,18 @@ export async function testConnection(): Promise<boolean> {
 
   try {
     const testDocRef = doc(db, 'test', 'connection');
-    // Use getDoc with timeout to verify client readiness without backend hang
-    const checkPromise = getDoc(testDocRef);
+    const checkPromise = getDocFromServer(testDocRef);
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Connection check timeout')), 4000)
     );
-    
+
     await Promise.race([checkPromise, timeoutPromise]);
     return true;
   } catch (error: any) {
-    // If offline or network delayed, Firestore continues in offline cache mode
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+      return false;
+    }
     return Boolean(db && app);
   }
 }

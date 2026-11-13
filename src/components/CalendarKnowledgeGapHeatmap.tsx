@@ -140,7 +140,6 @@ export const CalendarKnowledgeGapHeatmap: React.FC<CalendarKnowledgeGapHeatmapPr
         : ['Indian Polity', 'Modern History', 'General Science', 'Indian Economy'];
 
     const targetMinutes = (profile.studyHoursPerDay || 2) * 60;
-    const currentStreak = Math.max(1, profile.streak || 7);
 
     for (let offset = 29; offset >= 0; offset--) {
       const d = new Date(today);
@@ -157,7 +156,7 @@ export const CalendarKnowledgeGapHeatmap: React.FC<CalendarKnowledgeGapHeatmapPr
       // Determine deterministic gap patterns across the 30-day timeline
       // Week 1-2 had more critical gaps, Week 3 had moderate gaps, Week 4 is mostly mastered
       const isGapDay = (dayIndex + 3) % 7 === 0 || (dayIndex + 1) % 8 === 0 || hasUnmastered;
-      const isRestDay = !isToday && dayIndex % 7 === 1 && dayIndex < 29 - currentStreak;
+      const isRestDay = !isToday && dayIndex % 7 === 1 && dayIndex < 22;
 
       let status: GapStatus = 'active_study';
       let studyMinutes = Math.round(targetMinutes * (0.8 + (dayIndex % 5) * 0.1));
@@ -208,7 +207,7 @@ export const CalendarKnowledgeGapHeatmap: React.FC<CalendarKnowledgeGapHeatmapPr
         studyMinutes = Math.max(45, profile.dailyStudyMinutesCompleted || 75);
         questionsSolved = Math.max(10, profile.questionsAnsweredToday || 12);
         status = 'mastered';
-        aiTutorObservation = `✅ Today's session on track. 7-day streak maintained with solid concept retention.`;
+        aiTutorObservation = `✅ Today's session on track with solid concept retention.`;
       }
 
       list.push({

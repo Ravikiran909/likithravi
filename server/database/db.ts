@@ -1532,10 +1532,19 @@ Type your answer below! 👇`,
     const qLower = (query || '').toLowerCase().trim();
     if (!qLower) return [];
 
+    const stopwords = new Set([
+      'explain', 'briefly', 'what', 'when', 'where', 'which', 'how', 'does', 'this', 'that',
+      'with', 'from', 'have', 'about', 'solve', 'help', 'please', 'could', 'would', 'should',
+      'tell', 'give', 'example', 'examples', 'step', 'steps', 'concept', 'question', 'doubt',
+      'simple', 'easy', 'understand', 'define', 'definition', 'between', 'into', 'your',
+    ]);
+
     const queryWords = qLower
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
-      .filter((w) => w.length > 1);
+      .filter((w) => w.length > 2 && !stopwords.has(w));
+
+    if (queryWords.length === 0) return [];
 
     const scored = this.chunks.map((chunk) => {
       let score = 0;
@@ -1564,7 +1573,7 @@ Type your answer below! 👇`,
 
       // Content word occurrences
       for (const w of queryWords) {
-        if (w.length > 2 && contentLower.includes(w)) {
+        if (contentLower.includes(w)) {
           score += 2;
         }
       }
@@ -1573,7 +1582,7 @@ Type your answer below! 👇`,
     });
 
     return scored
-      .filter((s) => s.score > 0)
+      .filter((s) => s.score >= 4)
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map((s) => s.chunk);

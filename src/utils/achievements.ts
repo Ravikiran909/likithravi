@@ -3,7 +3,7 @@ import { StudentProfile } from '../types/index.ts';
 export interface AchievementBadge {
   id: string;
   title: string;
-  category: 'streak' | 'questions_milestone' | 'subject_mastery';
+  category: 'sessions_milestone' | 'questions_milestone' | 'subject_mastery';
   tier: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond';
   icon: string;
   description: string;
@@ -21,15 +21,15 @@ export function calculateLearningAchievements(
   profile: StudentProfile
 ): {
   allBadges: AchievementBadge[];
-  streakBadges: AchievementBadge[];
+  sessionBadges: AchievementBadge[];
   questionBadges: AchievementBadge[];
   masteryBadges: AchievementBadge[];
   unlockedCount: number;
   totalCount: number;
   completionRate: number;
-  currentStreakTier: string;
+  currentScholarTier: string;
 } {
-  const streak = profile.streak || 0;
+  const totalSessions = profile.totalSessions || 0;
   const totalQuestions = profile.totalQuestionsAnswered || 0;
   const correctAnswers = profile.correctAnswers || 0;
   const accuracy =
@@ -62,68 +62,68 @@ export function calculateLearningAchievements(
     strongLower.some((s) => /economy|banking|rbi|budget/i.test(s)) ||
     historyMastered.some((h) => /economy/i.test(h.subject));
 
-  // 1. Study Streak Milestone Badges
-  const streakBadges: AchievementBadge[] = [
+  // 1. Study Sessions Milestone Badges
+  const sessionBadges: AchievementBadge[] = [
     {
       id: 'badge_streak_3',
-      title: '3-Day Streak Starter',
-      category: 'streak',
+      title: '3-Session Starter',
+      category: 'sessions_milestone',
       tier: 'Bronze',
-      icon: '🔥',
-      description: 'Study 3 consecutive days to jumpstart your daily learning habit.',
-      requirementDescription: 'Maintain a 3-day study streak',
-      currentValue: Math.min(streak, 3),
+      icon: '⚡',
+      description: 'Complete 3 study sessions to build your learning momentum.',
+      requirementDescription: 'Complete 3 study sessions',
+      currentValue: Math.min(totalSessions, 3),
       targetValue: 3,
-      unlocked: isStoredOrUnlocked('badge_streak_3', streak >= 3),
-      progressPercent: Math.min(Math.round((streak / 3) * 100), 100),
+      unlocked: isStoredOrUnlocked('badge_streak_3', totalSessions >= 3),
+      progressPercent: Math.min(Math.round((totalSessions / 3) * 100), 100),
       unlockedAt: earnedMap.get('badge_streak_3'),
       rarity: 'Common',
       glowColor: 'from-amber-500/20 to-orange-500/20 border-amber-500/40 text-amber-300',
     },
     {
       id: 'badge_streak_7',
-      title: '7-Day Streak',
-      category: 'streak',
+      title: '7-Session Champion',
+      category: 'sessions_milestone',
       tier: 'Silver',
       icon: '⚡',
-      description: 'Maintain an unbroken 7-day study streak across a full week of active learning.',
-      requirementDescription: 'Maintain a 7-day study streak',
-      currentValue: Math.min(streak, 7),
+      description: 'Complete 7 full study sessions across active learning topics.',
+      requirementDescription: 'Complete 7 study sessions',
+      currentValue: Math.min(totalSessions, 7),
       targetValue: 7,
-      unlocked: isStoredOrUnlocked('badge_streak_7', streak >= 7),
-      progressPercent: Math.min(Math.round((streak / 7) * 100), 100),
+      unlocked: isStoredOrUnlocked('badge_streak_7', totalSessions >= 7),
+      progressPercent: Math.min(Math.round((totalSessions / 7) * 100), 100),
       unlockedAt: earnedMap.get('badge_streak_7'),
       rarity: 'Rare',
       glowColor: 'from-blue-500/20 to-cyan-500/20 border-blue-500/40 text-blue-300',
     },
     {
       id: 'badge_streak_14',
-      title: '14-Day Fortnight Legend',
-      category: 'streak',
+      title: '14-Session Fortnight Legend',
+      category: 'sessions_milestone',
       tier: 'Gold',
       icon: '🛡️',
-      description: 'Conquer 14 straight days of active recall and structured study.',
-      requirementDescription: 'Maintain a 14-day study streak',
-      currentValue: Math.min(streak, 14),
+      description: 'Conquer 14 structured sessions of active recall and study.',
+      requirementDescription: 'Complete 14 study sessions',
+      currentValue: Math.min(totalSessions, 14),
       targetValue: 14,
-      unlocked: isStoredOrUnlocked('badge_streak_14', streak >= 14),
-      progressPercent: Math.min(Math.round((streak / 14) * 100), 100),
+      unlocked: isStoredOrUnlocked('badge_streak_14', totalSessions >= 14),
+      progressPercent: Math.min(Math.round((totalSessions / 14) * 100), 100),
       unlockedAt: earnedMap.get('badge_streak_14'),
       rarity: 'Epic',
       glowColor: 'from-amber-400/20 to-yellow-500/20 border-amber-400/50 text-amber-300',
     },
     {
       id: 'badge_streak_30',
-      title: '30-Day Monthly Master',
-      category: 'streak',
+      title: '30-Session Master',
+      category: 'sessions_milestone',
       tier: 'Platinum',
       icon: '👑',
-      description: 'The golden milestone: 30 consecutive days of daily learning consistency.',
-      requirementDescription: 'Maintain a 30-day study streak',
-      currentValue: Math.min(streak, 30),
+      description: 'The golden milestone: 30 completed guided learning sessions.',
+      requirementDescription: 'Complete 30 study sessions',
+      currentValue: Math.min(totalSessions, 30),
       targetValue: 30,
-      unlocked: isStoredOrUnlocked('badge_streak_30', streak >= 30),
-      progressPercent: Math.min(Math.round((streak / 30) * 100), 100),
+      unlocked: isStoredOrUnlocked('badge_streak_30', totalSessions >= 30),
+      progressPercent: Math.min(Math.round((totalSessions / 30) * 100), 100),
       unlockedAt: earnedMap.get('badge_streak_30'),
       rarity: 'Legendary',
       glowColor: 'from-purple-500/20 to-pink-500/20 border-purple-500/50 text-purple-300',
@@ -131,7 +131,7 @@ export function calculateLearningAchievements(
     {
       id: 'badge_early_bird',
       title: 'Early Bird',
-      category: 'streak',
+      category: 'sessions_milestone',
       tier: 'Bronze',
       icon: '🌅',
       description: 'Start your study session or conquer a quiz before 9:00 AM to kickstart your day.',
@@ -292,26 +292,26 @@ export function calculateLearningAchievements(
     },
   ];
 
-  const allBadges = [...streakBadges, ...questionBadges, ...masteryBadges];
+  const allBadges = [...sessionBadges, ...questionBadges, ...masteryBadges];
   const unlockedCount = allBadges.filter((b) => b.unlocked).length;
   const totalCount = allBadges.length;
   const completionRate = Math.round((unlockedCount / totalCount) * 100);
 
-  let currentStreakTier = 'Novice';
-  if (streak >= 50) currentStreakTier = 'Diamond Centurion';
-  else if (streak >= 30) currentStreakTier = 'Platinum Master';
-  else if (streak >= 14) currentStreakTier = 'Gold Legend';
-  else if (streak >= 7) currentStreakTier = 'Silver Warrior';
-  else if (streak >= 3) currentStreakTier = 'Bronze Starter';
+  let currentScholarTier = 'Novice';
+  if (totalSessions >= 50) currentScholarTier = 'Diamond Centurion';
+  else if (totalSessions >= 30) currentScholarTier = 'Platinum Master';
+  else if (totalSessions >= 14) currentScholarTier = 'Gold Legend';
+  else if (totalSessions >= 7) currentScholarTier = 'Silver Warrior';
+  else if (totalSessions >= 3) currentScholarTier = 'Bronze Starter';
 
   return {
     allBadges,
-    streakBadges,
+    sessionBadges,
     questionBadges,
     masteryBadges,
     unlockedCount,
     totalCount,
     completionRate,
-    currentStreakTier,
+    currentScholarTier,
   };
 }

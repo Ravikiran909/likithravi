@@ -435,7 +435,6 @@ export const AdminDashboard: React.FC = () => {
                       <th className="p-3">WhatsApp / Phone</th>
                       <th className="p-3">Level</th>
                       <th className="p-3">Subjects</th>
-                      <th className="p-3">Streak</th>
                       <th className="p-3">Mastery</th>
                     </tr>
                   </thead>
@@ -448,7 +447,6 @@ export const AdminDashboard: React.FC = () => {
                         <td className="p-3 text-slate-300">
                           {Array.isArray(st.subjects) ? st.subjects.join(', ') : 'Indian Polity, History'}
                         </td>
-                        <td className="p-3 font-bold text-amber-400">{st.streak || 1}d</td>
                         <td className="p-3 font-bold text-emerald-400">{st.overallProgress || 65}%</td>
                       </tr>
                     ))}

@@ -551,7 +551,7 @@ export const SmartStudyReminderFcm: React.FC<SmartStudyReminderFcmProps> = ({
             <span className="text-white font-semibold font-mono tabular-nums">
               {preferredStudyTime}
             </span>
-            ), tailored to your active streak ({profile.streak} days) and priority topic (
+            ), tailored to your active goals and priority topic (
             <span className="text-emerald-300 font-medium">{targetWeakTopic}</span>).
           </p>
         </div>
@@ -755,7 +755,7 @@ export const SmartStudyReminderFcm: React.FC<SmartStudyReminderFcmProps> = ({
               <p className="text-xs text-slate-200 leading-relaxed">
                 Hi {profile.name}! It&apos;s {preferredStudyTime} — time for your{' '}
                 {profile.studyHoursPerDay || 2}h study goal on <strong>{targetWeakTopic}</strong> (
-                {primarySubject}). Keep your {profile.streak}-day streak alive!
+                {primarySubject}).
               </p>
               <div className="pt-1.5 flex items-center gap-3 text-[11px] text-slate-400">
                 <span>Action 1: Start Study Session</span>

@@ -114,7 +114,7 @@ export const WeeklyStudyReport: React.FC<WeeklyStudyReportProps> = ({
 🧠 PEDAGOGICAL INSIGHTS & NEXT WEEK FOCUS:
 1. Strong Retention in ${profile.strongTopics?.[0] || profile.subjects[0] || 'Core Concepts'}: Problem-solving speed improved by 18%.
 2. Priority Topic for Next Week: Dedicate 45 mins to ${profile.weakTopics?.[0] || 'Fundamental Rights & Constitutional Amendments'}.
-3. Goal Consistency: Met target on 6 of 7 days. Your ${profile.streak}-day streak is in the top 5% of active learners!`;
+3. Goal Consistency: Met target on 6 of 7 days across ${profile.totalSessions || 1} total study sessions!`;
       setAiReportOutput(summary);
       setIsGeneratingAiReport(false);
     }, 800);

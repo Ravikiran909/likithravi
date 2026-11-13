@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Calendar,
   Brain,
-  Flame,
   Target,
   Zap,
   ExternalLink,
@@ -51,7 +50,6 @@ interface AnalyzedMetrics {
   accuracy: number;
   totalQuestionsAnswered: number;
   correctAnswers: number;
-  streak: number;
   weakTopicsCount: number;
   focusMinutes: number;
   focusSessions: number;
@@ -323,18 +321,18 @@ export const SmartNotificationScheduler: React.FC<SmartNotificationSchedulerProp
               </div>
             </div>
             <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-              <div className="text-[10px] text-slate-400 uppercase font-bold">Streak</div>
+              <div className="text-[10px] text-slate-400 uppercase font-bold">Questions</div>
               <div className="text-sm font-black text-orange-400 mt-0.5">
-                {profile.streak}d 🔥
+                {metrics?.totalQuestionsAnswered ?? (profile.totalQuestionsAnswered || 0)}
               </div>
             </div>
           </div>
 
           <p className="text-xs text-slate-300 leading-relaxed">
             {aiSummary ||
-              `Calibrated from ${profile.name}'s ${accuracy}% quiz accuracy, ${
+              `Calibrated from ${profile.name}'s ${accuracy}% quiz accuracy and ${
                 (profile.weakTopics || []).length
-              } priority weak topics, and ${profile.streak}-day study streak.`}
+              } priority weak topics.`}
           </p>
         </div>
 

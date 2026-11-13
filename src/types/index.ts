@@ -3,8 +3,10 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  role: 'student' | 'admin';
+  role: 'student' | 'user' | 'admin';
+  accountType?: 'student' | 'user';
   avatarUrl?: string;
+  lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,6 +30,9 @@ export interface StudentProfile {
   id: string;
   userId: string;
   name: string;
+  email?: string;
+  avatarUrl?: string;
+  accountType?: 'student' | 'user';
   whatsappNumber: string;
   preferredLanguage: string; // e.g. 'en', 'hi', 'kn', 'ta', 'te', 'es', 'fr', 'de', 'ja', 'ar', etc.
   educationLevel: 'school' | 'college' | 'college_university' | 'competitive_exam' | 'professional' | 'competitive' | 'engineering';

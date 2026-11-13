@@ -6,7 +6,6 @@ import {
   Eye,
   GraduationCap,
   Award,
-  Flame,
   Clock,
   BookOpen,
   Sparkles,
@@ -145,7 +144,7 @@ export const AcademicPdfExportCard: React.FC<AcademicPdfExportCardProps> = ({
               Export Study Progress Data as an Official PDF Summary
             </h3>
             <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
-              Generate a formatted A4 PDF academic report containing your subject mastery, quiz accuracy ({accuracy}%), {profile.streak}-day study streak, Pomodoro focus hours ({focusedHours}h), and mastered curriculum topics.
+              Generate a formatted A4 PDF academic report containing your subject mastery, quiz accuracy ({accuracy}%), Pomodoro focus hours ({focusedHours}h), and mastered curriculum topics.
             </p>
           </div>
         </div>
@@ -324,8 +323,8 @@ export const AcademicPdfExportCard: React.FC<AcademicPdfExportCardProps> = ({
               <div className="text-base font-black text-emerald-400 mt-0.5">{accuracy}%</div>
             </div>
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-              <div className="text-[10px] text-slate-400 uppercase font-bold">Active Streak</div>
-              <div className="text-base font-black text-amber-400 mt-0.5">{profile.streak} Days</div>
+              <div className="text-[10px] text-slate-400 uppercase font-bold">Questions Answered</div>
+              <div className="text-base font-black text-amber-400 mt-0.5">{profile.totalQuestionsAnswered || 0}</div>
             </div>
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
               <div className="text-[10px] text-slate-400 uppercase font-bold">Focused Hours</div>

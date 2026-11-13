@@ -57,7 +57,7 @@ export function generateStudentProgressPdf(
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184); // slate-400
-    doc.text(`Current Streak: ${profile.streak} Days | Mastery: ${profile.overallProgress}%`, pageWidth - margin, 7.5, { align: 'right' });
+    doc.text(`Mastery: ${profile.overallProgress}% | Sessions: ${profile.totalSessions || 0}`, pageWidth - margin, 7.5, { align: 'right' });
 
     currentY = 18;
   };
@@ -120,9 +120,9 @@ export function generateStudentProgressPdf(
 
   const metrics = [
     {
-      title: 'CURRENT STREAK',
-      value: `${profile.streak} Days`,
-      sub: profile.streak >= 7 ? '7-Day Milestone Active' : `Next goal: 7 Days`,
+      title: 'STUDY SESSIONS',
+      value: `${profile.totalSessions || 0} Sessions`,
+      sub: `${profile.studyHoursPerDay || 2}h Daily Target`,
       fillR: 254, fillG: 243, fillB: 199, // amber-100
       borderR: 245, borderG: 158, borderB: 11, // amber-500
       textR: 180, textG: 83, textB: 9, // amber-700
@@ -204,11 +204,11 @@ export function generateStudentProgressPdf(
   // Milestone list items
   const milestoneList = [
     {
-      name: '7-Day Streak',
-      desc: 'Study consecutively for 7 days on WhatsApp without breaking the chain.',
-      unlocked: profile.streak >= 7,
-      progress: `${Math.min(profile.streak, 7)} / 7 Days`,
-      status: profile.streak >= 7 ? 'UNLOCKED' : 'IN PROGRESS',
+      name: 'Dedicated Scholar',
+      desc: 'Complete 10 guided AI study sessions across core subjects.',
+      unlocked: profile.totalSessions >= 10,
+      progress: `${Math.min(profile.totalSessions, 10)} / 10 Sessions`,
+      status: profile.totalSessions >= 10 ? 'UNLOCKED' : 'IN PROGRESS',
     },
     {
       name: '100 Questions Answered',
@@ -355,7 +355,7 @@ export function generateStudentProgressPdf(
   doc.text(`• Strong Mastery: ${strongStr}`, rightX + 4, currentY + 12);
   doc.text(`• Priority Focus: ${weakStr}`, rightX + 4, currentY + 17);
   doc.text(`• Skill Tier: ${profile.currentSkillLevel.toUpperCase()}`, rightX + 4, currentY + 22);
-  doc.text(`• Total Active Days: ${Math.max(profile.streak, profile.totalSessions)} Days Logged`, rightX + 4, currentY + 27);
+  doc.text(`• Total Study Sessions: ${profile.totalSessions || 0} Sessions Logged`, rightX + 4, currentY + 27);
 
   currentY += colH + 6;
 

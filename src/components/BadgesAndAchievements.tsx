@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Award,
-  Flame,
   Trophy,
   Sparkles,
   Lock,
@@ -68,7 +67,7 @@ export const BadgesAndAchievements: React.FC<BadgesAndAchievementsProps> = ({
   );
 
   const stickers: DigitalStickerBadge[] = useMemo(() => {
-    const streakVal = profile.streak || 0;
+    const sessionsVal = profile.totalSessions || 0;
     const topPerfScore = Math.max(quizAccuracy, profile.overallProgress || 0);
     const questionsSolved = profile.totalQuestionsAnswered || 0;
     const masteredCount =
@@ -78,17 +77,17 @@ export const BadgesAndAchievements: React.FC<BadgesAndAchievementsProps> = ({
     return [
       {
         id: 'sticker_7_day_streak',
-        title: '7-Day Streak',
-        stickerTag: 'STREAK LEGEND STICKER',
-        emoji: '🔥',
+        title: 'Study Marathon',
+        stickerTag: 'SESSION LEGEND STICKER',
+        emoji: '📚',
         tier: 'Gold',
         description:
-          'Awarded for maintaining 7 consecutive days of active WhatsApp learning without breaking your study chain.',
-        requirementLabel: '7 consecutive study days',
-        currentValue: Math.min(7, streakVal),
-        targetValue: 7,
-        unit: 'days',
-        unlocked: streakVal >= 7 || earnedIdsSet.has('sticker_7_day_streak') || earnedIdsSet.has('streak-master'),
+          'Awarded for completing 10 guided WhatsApp study sessions with consistent focus.',
+        requirementLabel: '10 completed study sessions',
+        currentValue: Math.min(10, sessionsVal),
+        targetValue: 10,
+        unit: 'sessions',
+        unlocked: sessionsVal >= 10 || earnedIdsSet.has('sticker_7_day_streak'),
         gradientClass: 'from-amber-500/25 via-orange-600/15 to-slate-900',
         borderClass: 'border-amber-400/60',
         accentHex: '#f59e0b',
@@ -184,7 +183,7 @@ export const BadgesAndAchievements: React.FC<BadgesAndAchievementsProps> = ({
       },
     ];
   }, [
-    profile.streak,
+    profile.totalSessions,
     profile.overallProgress,
     profile.totalQuestionsAnswered,
     profile.strongTopics,
@@ -224,8 +223,8 @@ export const BadgesAndAchievements: React.FC<BadgesAndAchievementsProps> = ({
         earnedBadges: updatedEarned,
       };
 
-      if (sticker.id === 'sticker_7_day_streak' && (profile.streak || 0) < 7) {
-        patchPayload.streak = 7;
+      if (sticker.id === 'sticker_7_day_streak' && (profile.totalSessions || 0) < 10) {
+        patchPayload.totalSessions = 10;
       }
       if (sticker.id === 'sticker_top_performer' && (profile.overallProgress || 0) < 80) {
         patchPayload.overallProgress = Math.max(profile.overallProgress || 75, 80);
@@ -351,7 +350,7 @@ export const BadgesAndAchievements: React.FC<BadgesAndAchievementsProps> = ({
             </h3>
             <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
               Unlock holographic digital stickers when you hit study milestones like{' '}
-              <strong className="text-amber-300">7-Day Streak</strong> or{' '}
+              <strong className="text-amber-300">Study Marathon</strong> or{' '}
               <strong className="text-indigo-300">Top Performer</strong>. Download stickers as PNGs or share them in your WhatsApp study chat.
             </p>
           </div>

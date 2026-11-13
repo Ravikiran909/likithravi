@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Trophy,
-  Flame,
   Crown,
   Medal,
   Users,
@@ -40,7 +39,6 @@ export interface CommunityPeer {
   educationLevel: string;
   learningSessions: number;
   studyHours: number;
-  streak: number;
   accuracy: number;
   points: number;
   weeklyDelta: number;
@@ -56,10 +54,9 @@ export function computeLeaderboardPoints(p: Partial<StudentProfile>, bonus: numb
   const sessions = Math.max(p.totalSessions || 0, p.focusStats?.completedSessions || 0, 1);
   const sessionPts = sessions * 120;
   const correctPts = (p.correctAnswers || 0) * 20;
-  const streakPts = (p.streak || 0) * 60;
   const progressPts = Math.round((p.overallProgress || 50) * 12);
   const focusPts = Math.round(((p.focusStats?.totalFocusMinutes || 60) / 25) * 50);
-  return sessionPts + correctPts + streakPts + progressPts + focusPts + bonus;
+  return sessionPts + correctPts + progressPts + focusPts + bonus;
 }
 
 export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
@@ -89,7 +86,7 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         }
       })
       .catch(() => {});
-  }, [profile.userId, profile.totalSessions, profile.streak, profile.correctAnswers]);
+  }, [profile.userId, profile.totalSessions, profile.correctAnswers]);
 
   // Handle cheer / kudos to foster healthy competition
   const handleGiveKudos = (peer: CommunityPeer) => {
@@ -156,7 +153,6 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         educationLevel: 'college',
         baseSessions: 38,
         studyHours: 42.5,
-        streak: 18,
         accuracy: 94,
         topSubject: 'UPSC CSE',
         badgeTitle: 'Polity Professional',
@@ -170,7 +166,6 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         educationLevel: 'competitive_exam',
         baseSessions: 34,
         studyHours: 37.0,
-        streak: 15,
         accuracy: 90,
         topSubject: 'Government Exams',
         badgeTitle: 'UPSC Aspirant Star',
@@ -184,7 +179,6 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         educationLevel: 'college',
         baseSessions: 29,
         studyHours: 31.5,
-        streak: 12,
         accuracy: 86,
         topSubject: 'SSC CGL',
         badgeTitle: 'SSC Aspirant Star',
@@ -198,7 +192,6 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         educationLevel: 'school',
         baseSessions: 25,
         studyHours: 28.0,
-        streak: 9,
         accuracy: 83,
         topSubject: 'Indian Polity',
         badgeTitle: 'Constitution Expert',
@@ -212,7 +205,6 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         educationLevel: 'professional',
         baseSessions: 22,
         studyHours: 24.5,
-        streak: 7,
         accuracy: 81,
         topSubject: 'Modern Indian History',
         badgeTitle: 'History Scholar',
@@ -226,7 +218,6 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         educationLevel: 'college',
         baseSessions: 18,
         studyHours: 19.5,
-        streak: 6,
         accuracy: 79,
         topSubject: 'General Awareness',
         badgeTitle: 'GK Master',
@@ -241,7 +232,7 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
     const seedEntries: Omit<CommunityPeer, 'rank'>[] = communitySeeds.map((seed) => {
       const sessions = Math.max(1, Math.round(seed.baseSessions * tfMult));
       const hours = Math.round(seed.studyHours * tfMult * 10) / 10;
-      const pts = Math.round((sessions * 120 + hours * 35 + seed.streak * 50 + seed.accuracy * 10) * tfMult);
+      const pts = Math.round((sessions * 120 + hours * 35 + seed.accuracy * 15) * tfMult);
       return {
         userId: seed.userId,
         name: seed.name,
@@ -249,10 +240,9 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
         educationLevel: seed.educationLevel,
         learningSessions: sessions,
         studyHours: hours,
-        streak: seed.streak,
         accuracy: seed.accuracy,
         points: pts,
-        weeklyDelta: Math.round(sessions * 15 + seed.streak * 8),
+        weeklyDelta: Math.round(sessions * 18),
         topSubject: seed.topSubject,
         badgeTitle: seed.badgeTitle,
         badgeTier: seed.badgeTier,
@@ -286,10 +276,9 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
           educationLevel: p.educationLevel || 'college',
           learningSessions: sessions,
           studyHours: hours,
-          streak: p.streak || 3,
           accuracy: acc,
           points: pts,
-          weeklyDelta: Math.round(sessions * 14 + (p.streak || 1) * 6),
+          weeklyDelta: Math.round(sessions * 16),
           topSubject: p.subjects?.[0] || 'UPSC CSE',
           badgeTitle: pts >= 2500 ? 'Mastery Prodigy' : 'Rising Scholar',
           badgeTier: pts >= 2500 ? 'Platinum' : pts >= 1800 ? 'Gold' : 'Silver',
@@ -331,7 +320,6 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
       educationLevel: profile.educationLevel || 'college',
       learningSessions: mySessions,
       studyHours: myHours,
-      streak: profile.streak || 1,
       accuracy: myAccuracy,
       points: myPoints,
       weeklyDelta: 280 + extraSimulatedBonus,
@@ -563,11 +551,11 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
                 </div>
               </div>
 
-              {/* Bottom Cheer & Streak info */}
+              {/* Bottom Cheer & Accuracy info */}
               <div className="flex items-center justify-between mt-3 text-xs pt-1">
-                <span className="text-slate-400 flex items-center space-x-1 text-[11px]">
-                  <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                  <span>{peer.streak}d streak</span>
+                <span className="text-emerald-400 flex items-center space-x-1 text-[11px] font-semibold">
+                  <Award className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{peer.accuracy}% accuracy</span>
                 </span>
                 {!peer.isCurrentUser && (
                   <button
@@ -802,10 +790,7 @@ export const CommunityLeaderboard: React.FC<CommunityLeaderboardProps> = ({
                         <div className="flex items-center space-x-2 text-[11px] text-slate-400 mt-0.5">
                           <span>{peer.topSubject}</span>
                           <span>•</span>
-                          <span className="flex items-center space-x-0.5 text-amber-400">
-                            <Flame className="w-3 h-3 fill-amber-400" />
-                            <span>{peer.streak}d streak</span>
-                          </span>
+                          <span className="text-amber-400 font-medium">{peer.badgeTitle}</span>
                         </div>
                       </div>
                     </div>

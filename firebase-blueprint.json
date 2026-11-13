@@ -2,14 +2,17 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "Registered user account with role",
+      "description": "Registered user or student account with role",
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
         "name": { "type": "string", "maxLength": 100 },
         "email": { "type": "string", "maxLength": 150 },
         "phone": { "type": "string", "maxLength": 30 },
-        "role": { "type": "string", "enum": ["student", "admin"] },
+        "role": { "type": "string", "enum": ["student", "user", "admin"] },
+        "accountType": { "type": "string", "enum": ["student", "user"] },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "lastLoginAt": { "type": "string", "maxLength": 50 },
         "createdAt": { "type": "string", "maxLength": 50 },
         "updatedAt": { "type": "string", "maxLength": 50 }
       },
@@ -17,12 +20,15 @@
     },
     "StudentProfile": {
       "title": "StudentProfile",
-      "description": "Student academic preferences, streak, and progress metrics",
+      "description": "Student and user academic preferences, streak, and progress metrics",
       "type": "object",
       "properties": {
         "id": { "type": "string", "maxLength": 128 },
         "userId": { "type": "string", "maxLength": 128 },
         "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "accountType": { "type": "string", "enum": ["student", "user"] },
         "whatsappNumber": { "type": "string", "maxLength": 30 },
         "preferredLanguage": { "type": "string", "maxLength": 20 },
         "educationLevel": { "type": "string", "maxLength": 50 },

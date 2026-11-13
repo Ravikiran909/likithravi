@@ -233,7 +233,7 @@ export class RagService {
   }
 
   /**
-   * Optional Gemini Embedding (`gemini-embedding-2-preview`) with fast timeout & cache
+   * Optional Gemini Embedding (`gemini-embedding-2`) with fast timeout & cache
    */
   private async tryComputeGeminiEmbedding(text: string, timeoutMs = 2200): Promise<number[] | null> {
     const cacheKey = text.trim().toLowerCase().slice(0, 500);
@@ -242,12 +242,12 @@ export class RagService {
     }
 
     const ai = getGeminiAI();
-    if (!ai || isModelInCooldown('gemini-embedding-2-preview')) return null;
+    if (!ai || isModelInCooldown('gemini-embedding-2')) return null;
 
     let timer: NodeJS.Timeout | null = null;
     try {
       const embedPromise = ai.models.embedContent({
-        model: 'gemini-embedding-2-preview',
+        model: 'gemini-embedding-2',
         contents: [text.slice(0, 1200)],
       });
 
@@ -264,7 +264,7 @@ export class RagService {
       }
       return null;
     } catch (err) {
-      markModelCooldown('gemini-embedding-2-preview', err);
+      markModelCooldown('gemini-embedding-2', err);
       return null;
     } finally {
       if (timer) clearTimeout(timer);
@@ -346,7 +346,7 @@ export class RagService {
     if (!cleanQuery) {
       return {
         query: '',
-        embeddingModel: 'gemini-embedding-2-preview (Hybrid Dense Vector Index)',
+        embeddingModel: 'gemini-embedding-2 (Hybrid Dense Vector Index)',
         vectorDimension: LOCAL_VECTOR_DIM,
         searchLatencyMs: 1,
         totalChunksScanned: db.chunks.length,
@@ -516,7 +516,7 @@ export class RagService {
     return {
       query: cleanQuery,
       embeddingModel: usedGeminiEmbedding
-        ? 'gemini-embedding-2-preview + Dense Cosine Vector Index'
+        ? 'gemini-embedding-2 + Dense Cosine Vector Index'
         : 'RAG Dense Concept Vector Index (Cosine Similarity)',
       vectorDimension: usedGeminiEmbedding && queryGeminiVec ? queryGeminiVec.length : LOCAL_VECTOR_DIM,
       searchLatencyMs: Math.max(2, Date.now() - startTime),
@@ -608,15 +608,20 @@ export class RagService {
       return { chunks: [], contextString: '', formattedContext: '' };
     }
 
+    const queryStopwords = new Set([
+      'explain', 'briefly', 'what', 'when', 'where', 'which', 'how', 'does', 'this', 'that',
+      'with', 'from', 'have', 'about', 'solve', 'help', 'please', 'could', 'would', 'should',
+      'tell', 'give', 'example', 'examples', 'step', 'steps', 'concept', 'question', 'doubt',
+      'simple', 'easy', 'understand', 'define', 'definition', 'between', 'into', 'your',
+    ]);
+
     const cleanQuery = query.trim();
     const queryVec = this.computeLocalSemanticVector(cleanQuery);
     const qLower = cleanQuery.toLowerCase();
     const qWords = qLower
       .replace(/[^\w\s+#]/g, ' ')
       .split(/\s+/)
-      .filter((w) => w.length > 1);
-
-
+      .filter((w) => w.length > 1 && !queryStopwords.has(w));
 
     const scored = db.chunks.map((chunk) => {
       if (!chunk.embedding || chunk.embedding.length !== LOCAL_VECTOR_DIM) {
@@ -630,13 +635,13 @@ export class RagService {
       const subjectLower = (chunk.subject || '').toLowerCase();
       const contentLower = (chunk.content || '').toLowerCase();
 
-      if (qLower.includes(subjectLower) || subjectLower.includes(qLower)) {
+      if (qLower.includes(subjectLower) || (qWords.length > 0 && subjectLower.includes(qLower))) {
         lexicalBoost += 0.18;
       }
       for (const w of qWords) {
-        if (titleLower.includes(w)) lexicalBoost += 0.1;
-        if ((chunk.keywords || []).some((kw) => kw.toLowerCase().includes(w))) lexicalBoost += 0.1;
-        if (w.length > 2 && contentLower.includes(w)) lexicalBoost += 0.05;
+        if (titleLower.includes(w)) lexicalBoost += 0.12;
+        if ((chunk.keywords || []).some((kw) => kw.toLowerCase().includes(w))) lexicalBoost += 0.12;
+        if (w.length > 2 && contentLower.includes(w)) lexicalBoost += 0.06;
       }
 
       const similarityScore = Math.min(0.99, Number((cosine * 0.72 + Math.min(0.45, lexicalBoost)).toFixed(4)));
@@ -653,17 +658,19 @@ export class RagService {
           matchedConcepts,
         },
         score: similarityScore,
+        lexicalBoost,
       };
     });
 
+    // Require strong semantic similarity or multi-signal lexical/title/keyword overlap
     const matched = scored
-      .filter((s) => s.score >= 0.15)
+      .filter((s) => (s.lexicalBoost >= 0.16 ? s.score >= 0.32 : s.score >= 0.48))
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map((s) => s.chunk);
 
     if (matched.length === 0) {
-      const fallbackMatched = db.searchChunks(cleanQuery, limit);
+      const fallbackMatched = db.searchChunks(qWords.join(' '), limit);
       if (fallbackMatched.length === 0) {
         return { chunks: [], contextString: '', formattedContext: '' };
       }

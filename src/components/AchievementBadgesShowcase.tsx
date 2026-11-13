@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Flame,
   BookOpen,
   Trophy,
   Award,
@@ -20,13 +19,13 @@ import {
 import { StudentProfile } from '../types/index.ts';
 import { db, auth, doc, setDoc } from '../firebase.ts';
 
-export type BadgePillar = 'all' | 'streaks' | 'completed_lessons' | 'quiz_scores';
+export type BadgePillar = 'all' | 'study_sessions' | 'completed_lessons' | 'quiz_scores';
 
 export interface EarnedAchievementBadgeItem {
   id: string;
   title: string;
   subtitle: string;
-  pillar: 'streaks' | 'completed_lessons' | 'quiz_scores';
+  pillar: 'study_sessions' | 'completed_lessons' | 'quiz_scores';
   tier: 'Bronze' | 'Silver' | 'Gold' | 'Diamond';
   xpReward: number;
   description: string;
@@ -36,7 +35,7 @@ export interface EarnedAchievementBadgeItem {
   unitLabel: string;
   unlocked: boolean;
   awardedAt?: string;
-  iconType: 'flame' | 'zap' | 'crown' | 'book' | 'graduation' | 'check' | 'trophy' | 'medal' | 'target';
+  iconType: 'zap' | 'crown' | 'book' | 'graduation' | 'check' | 'trophy' | 'medal' | 'target';
   accentColor: 'amber' | 'emerald' | 'indigo' | 'sky';
 }
 
@@ -64,8 +63,8 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
 
 
 
-  // Compute live metrics for the three core pillars: Streaks, Completed Lessons, and High Quiz Scores
-  const streakDays = profile.streak || 0;
+  // Compute live metrics for the three core pillars: Study Sessions, Completed Lessons, and High Quiz Scores
+  const sessionCount = profile.totalSessions || 0;
   const completedLessonsCount = useMemo(() => {
     const historyMastered = profile.learningHistory?.filter((h) => h.mastered).length || 0;
     const strongCount = profile.strongTopics?.length || 0;
@@ -112,61 +111,61 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
       earnedBadgesMap.get(id) || (unlocked ? profile.lastActiveDate || new Date().toISOString() : undefined);
 
     return [
-      // 1. STREAKS PILLAR
+      // 1. STUDY SESSIONS PILLAR
       {
         id: 'streak_3_day_spark',
-        title: '3-Day Momentum Spark',
-        subtitle: 'Study Streak',
-        pillar: 'streaks',
+        title: '3-Session Momentum Spark',
+        subtitle: 'Study Sessions',
+        pillar: 'study_sessions',
         tier: 'Bronze',
         xpReward: 150,
         description:
-          'Maintain an active learning streak for 3 consecutive days via WhatsApp sessions or dashboard study logs.',
-        requirementText: '3 consecutive days of active study',
-        currentValue: Math.min(3, streakDays),
+          'Complete 3 guided study sessions via WhatsApp tutoring or interactive dashboard modules.',
+        requirementText: '3 completed study sessions',
+        currentValue: Math.min(3, sessionCount),
         targetValue: 3,
-        unitLabel: 'days',
-        unlocked: resolveUnlocked('streak_3_day_spark', streakDays >= 3),
-        awardedAt: resolveDate('streak_3_day_spark', resolveUnlocked('streak_3_day_spark', streakDays >= 3)),
-        iconType: 'flame',
+        unitLabel: 'sessions',
+        unlocked: resolveUnlocked('streak_3_day_spark', sessionCount >= 3),
+        awardedAt: resolveDate('streak_3_day_spark', resolveUnlocked('streak_3_day_spark', sessionCount >= 3)),
+        iconType: 'zap',
         accentColor: 'amber',
       },
       {
         id: 'streak_7_day_guardian',
-        title: '7-Day Streak Guardian',
-        subtitle: 'Study Streak',
-        pillar: 'streaks',
+        title: '7-Session Focus Guardian',
+        subtitle: 'Study Sessions',
+        pillar: 'study_sessions',
         tier: 'Gold',
         xpReward: 350,
         description:
-          'Complete a full week of uninterrupted daily study sessions, demonstrating disciplined academic consistency.',
-        requirementText: '7 consecutive days of active study',
-        currentValue: Math.min(7, streakDays),
+          'Complete 7 focused study sessions, demonstrating disciplined academic consistency.',
+        requirementText: '7 completed study sessions',
+        currentValue: Math.min(7, sessionCount),
         targetValue: 7,
-        unitLabel: 'days',
-        unlocked: resolveUnlocked('streak_7_day_guardian', streakDays >= 7 || earnedBadgesMap.has('streak-master')),
+        unitLabel: 'sessions',
+        unlocked: resolveUnlocked('streak_7_day_guardian', sessionCount >= 7),
         awardedAt: resolveDate(
           'streak_7_day_guardian',
-          resolveUnlocked('streak_7_day_guardian', streakDays >= 7 || earnedBadgesMap.has('streak-master'))
+          resolveUnlocked('streak_7_day_guardian', sessionCount >= 7)
         ),
         iconType: 'zap',
         accentColor: 'amber',
       },
       {
         id: 'streak_14_day_unstoppable',
-        title: '14-Day Unstoppable Scholar',
-        subtitle: 'Study Streak',
-        pillar: 'streaks',
+        title: '14-Session Unstoppable Scholar',
+        subtitle: 'Study Sessions',
+        pillar: 'study_sessions',
         tier: 'Diamond',
         xpReward: 700,
         description:
-          'Two full weeks of daily deep-work sessions, active recall flashcards, and Socratic tutoring.',
-        requirementText: '14 consecutive days of active study',
-        currentValue: Math.min(14, streakDays),
+          'Fourteen deep-work sessions, active recall flashcards, and Socratic tutoring rounds.',
+        requirementText: '14 completed study sessions',
+        currentValue: Math.min(14, sessionCount),
         targetValue: 14,
-        unitLabel: 'days',
-        unlocked: resolveUnlocked('streak_14_day_unstoppable', streakDays >= 14),
-        awardedAt: resolveDate('streak_14_day_unstoppable', resolveUnlocked('streak_14_day_unstoppable', streakDays >= 14)),
+        unitLabel: 'sessions',
+        unlocked: resolveUnlocked('streak_14_day_unstoppable', sessionCount >= 14),
+        awardedAt: resolveDate('streak_14_day_unstoppable', resolveUnlocked('streak_14_day_unstoppable', sessionCount >= 14)),
         iconType: 'crown',
         accentColor: 'amber',
       },
@@ -307,7 +306,7 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
       },
     ];
   }, [
-    streakDays,
+    sessionCount,
     completedLessonsCount,
     quizAccuracy,
     highQuizScoresCount,
@@ -353,8 +352,6 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
       : 'text-indigo-400';
 
     switch (iconType) {
-      case 'flame':
-        return <Flame className={`w-5 h-5 ${colorClass}`} />;
       case 'zap':
         return <Zap className={`w-5 h-5 ${colorClass}`} />;
       case 'crown':
@@ -390,8 +387,8 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
         earnedBadges: updatedEarned,
       };
 
-      if (badge.pillar === 'streaks' && (profile.streak || 0) < badge.targetValue) {
-        patch.streak = badge.targetValue;
+      if (badge.pillar === 'study_sessions' && (profile.totalSessions || 0) < badge.targetValue) {
+        patch.totalSessions = badge.targetValue;
       } else if (badge.pillar === 'completed_lessons') {
         patch.overallProgress = Math.min(100, Math.max(profile.overallProgress || 0, 75));
         const currentStrong = profile.strongTopics || [];
@@ -437,7 +434,7 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
 
   const handleShareOnWhatsApp = (badge: EarnedAchievementBadgeItem) => {
     if (!onNavigateToChat) return;
-    const message = `🏆 I just earned the "${badge.title}" (${badge.tier} Tier) achievement badge! Current stats: ${streakDays}-day streak, ${completedLessonsCount} lessons completed, and ${quizAccuracy}% quiz accuracy. Let's keep studying!`;
+    const message = `🏆 I just earned the "${badge.title}" (${badge.tier} Tier) achievement badge! Current stats: ${sessionCount} study sessions, ${completedLessonsCount} lessons completed, and ${quizAccuracy}% quiz accuracy. Let's keep studying!`;
     onNavigateToChat(message);
     setActiveBadgeModal(null);
   };
@@ -466,7 +463,7 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
             Earned Achievement Badges
           </h3>
           <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-            Milestones awarded automatically for consecutive study streaks, completed curriculum lessons, and high adaptive quiz scores.
+            Milestones awarded automatically for completed study sessions, curriculum lessons, and high adaptive quiz scores.
           </p>
         </div>
 
@@ -485,15 +482,15 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
           </button>
           <button
             type="button"
-            onClick={() => setSelectedPillar('streaks')}
+            onClick={() => setSelectedPillar('study_sessions')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
-              selectedPillar === 'streaks'
+              selectedPillar === 'study_sessions'
                 ? 'bg-amber-500/20 text-amber-300'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span>Streaks</span>
+            <Zap className="w-3.5 h-3.5 text-amber-400" />
+            <span>Sessions</span>
           </button>
           <button
             type="button"
@@ -544,19 +541,19 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
         <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
           <div className="space-y-0.5">
             <div className="text-xs text-slate-400 flex items-center gap-1.5">
-              <Flame className="w-3.5 h-3.5 text-amber-400" />
-              <span>Active Study Streak</span>
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Study Sessions Completed</span>
             </div>
             <div className="text-xl font-semibold text-white font-mono tabular-nums">
-              {streakDays} {streakDays === 1 ? 'Day' : 'Days'}
+              {sessionCount} {sessionCount === 1 ? 'Session' : 'Sessions'}
             </div>
             <div className="text-xs text-slate-500">
-              {badges.filter((b) => b.pillar === 'streaks' && b.unlocked).length} of 3 streak badges earned
+              {badges.filter((b) => b.pillar === 'study_sessions' && b.unlocked).length} of 3 session badges earned
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setSelectedPillar(selectedPillar === 'streaks' ? 'all' : 'streaks')}
+            onClick={() => setSelectedPillar(selectedPillar === 'study_sessions' ? 'all' : 'study_sessions')}
             className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-400 text-xs font-medium border border-slate-800 transition cursor-pointer"
           >
             View
@@ -720,7 +717,7 @@ export const AchievementBadgesShowcase: React.FC<AchievementBadgesShowcaseProps>
         ) : (
           <div className="flex items-center gap-2 text-emerald-400 font-medium">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>All 9 core streak, lesson, and quiz score achievements unlocked!</span>
+            <span>All 9 core session, lesson, and quiz score achievements unlocked!</span>
           </div>
         )}
 

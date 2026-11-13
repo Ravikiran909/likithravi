@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Trophy,
-  Flame,
   Award,
   CheckCircle2,
   Lock,
@@ -32,7 +31,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
 
 
   const [selectedCategory, setSelectedCategory] = useState<
-    'all' | 'streak' | 'questions_milestone' | 'subject_mastery'
+    'all' | 'sessions_milestone' | 'questions_milestone' | 'subject_mastery'
   >('all');
   const [selectedBadge, setSelectedBadge] = useState<AchievementBadge | null>(null);
   const [celebrationBadge, setCelebrationBadge] = useState<AchievementBadge | null>(null);
@@ -40,12 +39,12 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
 
   const {
     allBadges,
-    streakBadges,
+    sessionBadges,
     questionBadges,
     masteryBadges,
     unlockedCount,
     totalCount,
-    currentStreakTier,
+    currentScholarTier,
   } = calculateLearningAchievements(profile);
 
   // Automatically sync unlocked badges to user profile document (earnedBadges & achievements)
@@ -90,8 +89,8 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
   }, [unlockedCount, profile.userId]);
 
   const displayedBadges =
-    selectedCategory === 'streak'
-      ? streakBadges
+    selectedCategory === 'sessions_milestone'
+      ? sessionBadges
       : selectedCategory === 'questions_milestone'
       ? questionBadges
       : selectedCategory === 'subject_mastery'
@@ -107,8 +106,8 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
         lastActiveDate: nowIso.split('T')[0],
       };
 
-      if (badge.id === 'badge_streak_7' || badge.category === 'streak') {
-        updates.streak = Math.max((profile.streak || 0) + 1, badge.targetValue);
+      if (badge.id === 'badge_streak_7' || badge.category === 'sessions_milestone') {
+        updates.totalSessions = Math.max((profile.totalSessions || 0) + 1, badge.targetValue);
       } else if (badge.id === 'badge_questions_100' || badge.category === 'questions_milestone') {
         updates.totalQuestionsAnswered = Math.max(
           (profile.totalQuestionsAnswered || 0) + 10,
@@ -156,16 +155,16 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
     }
   };
 
-  // Streak Boost handler to simulate or record continuous streak
-  const handleBoostStreak = async () => {
+  // Log study session handler
+  const handleLogStudySession = async () => {
     setIsUpdating(true);
-    const newStreak = (profile.streak || 0) + 1;
+    const nextSessions = (profile.totalSessions || 0) + 1;
     try {
       const res = await fetch(`/api/students/${profile.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          streak: newStreak,
+          totalSessions: nextSessions,
           lastActiveDate: new Date().toISOString().split('T')[0],
         }),
       });
@@ -174,7 +173,6 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
         const updated = await res.json();
         onProfileUpdate(updated);
 
-        // Check if any badge just got unlocked
         const nextAchievements = calculateLearningAchievements(updated);
         const newlyUnlocked = nextAchievements.allBadges.find(
           (b) => b.unlocked && allBadges.find((sb) => sb.id === b.id && !sb.unlocked)
@@ -185,7 +183,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
         }
       }
     } catch (e) {
-      console.error('Failed to boost streak:', e);
+      console.error('Failed to log study session:', e);
     } finally {
       setIsUpdating(false);
     }
@@ -193,7 +191,7 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
 
   // Share achievement to WhatsApp
   const handleShareBadge = (badge: AchievementBadge) => {
-    const text = `🏆 *Achievement Unlocked on WhatsApp AI Tutor!* 🌟\n\nI just earned the *${badge.title}* badge (${badge.tier} tier)!\n• *Description:* ${badge.description}\n• *Current Study Streak:* ${profile.streak} Days 🔥\n• *Questions Answered:* ${profile.totalQuestionsAnswered || 0}\n\nJoin me in learning with AI on WhatsApp! 🚀`;
+    const text = `🏆 *Achievement Unlocked on WhatsApp AI Tutor!* 🌟\n\nI just earned the *${badge.title}* badge (${badge.tier} tier)!\n• *Description:* ${badge.description}\n• *Study Sessions:* ${profile.totalSessions || 0}\n• *Questions Answered:* ${profile.totalQuestionsAnswered || 0}\n\nJoin me in learning with AI on WhatsApp! 🚀`;
     if (onNavigateToChat) {
       onNavigateToChat(text);
     }
@@ -218,14 +216,14 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
                 Learning Achievements & Profile Badges
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                {currentStreakTier}
+                {currentScholarTier}
               </span>
             </div>
             <h3 className="text-xl font-black text-white mt-1 tracking-tight">
-              Milestone Badges: 7-Day Streak, 100 Questions & Topic Mastery
+              Milestone Badges: Study Sessions, 100 Questions & Topic Mastery
             </h3>
             <p className="text-xs text-slate-300 mt-1 max-w-xl">
-              Earn verified badges for milestones like <strong className="text-amber-300">7-Day Streak</strong>, <strong className="text-emerald-300">100 Questions Answered</strong>, and <strong className="text-rose-300">Mastery in Indian Polity</strong>. Stored directly in your user profile document.
+              Earn verified badges for milestones like <strong className="text-amber-300">7-Session Champion</strong>, <strong className="text-emerald-300">100 Questions Answered</strong>, and <strong className="text-rose-300">Mastery in Indian Polity</strong>. Stored directly in your user profile document.
             </p>
           </div>
         </div>
@@ -239,10 +237,9 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
             </span>
           </div>
           <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center min-w-[95px]">
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Streak</span>
-            <span className="text-lg font-black text-orange-400 flex items-center justify-center space-x-1">
-              <span>{profile.streak}</span>
-              <span className="text-sm">🔥</span>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Sessions</span>
+            <span className="text-lg font-black text-orange-400">
+              {profile.totalSessions || 0}
             </span>
           </div>
           <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 text-center min-w-[100px]">
@@ -270,15 +267,15 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
           </button>
 
           <button
-            onClick={() => setSelectedCategory('streak')}
+            onClick={() => setSelectedCategory('sessions_milestone')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center space-x-1.5 ${
-              selectedCategory === 'streak'
+              selectedCategory === 'sessions_milestone'
                 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-black'
                 : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
             }`}
           >
-            <Flame className="w-3.5 h-3.5 text-amber-300" />
-            <span>Streaks ({streakBadges.length})</span>
+            <Award className="w-3.5 h-3.5 text-amber-300" />
+            <span>Sessions ({sessionBadges.length})</span>
           </button>
 
           <button
@@ -304,23 +301,19 @@ export const LearningAchievementsCard: React.FC<LearningAchievementsCardProps> =
             <BookOpen className="w-3.5 h-3.5 text-rose-300" />
             <span>Subject Mastery ({masteryBadges.length})</span>
           </button>
-
-
         </div>
 
-        {/* Quick Streak Simulation / Course Explorer */}
+        {/* Quick Session Logger */}
         <div className="flex items-center space-x-2 shrink-0">
           <button
-            onClick={handleBoostStreak}
+            onClick={handleLogStudySession}
             disabled={isUpdating}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 cursor-pointer active:scale-95"
-            title="Record daily check-in to level up study streak"
+            title="Log a completed study session"
           >
-            <Flame className="w-3.5 h-3.5 fill-amber-400" />
-            <span>+1 Day Streak</span>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>+1 Study Session</span>
           </button>
-
-
         </div>
       </div>
 

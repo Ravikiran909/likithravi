@@ -258,9 +258,9 @@ Student Spoken Question: "${cleanQuery}"`;
       try {
         const genRes = await generateContentWithRetry({
           contents: voicePrompt,
-          preferredModel: 'gemini-3.8-flash',
+          preferredModel: 'gemini-4-hydrogen',
           maxAttempts: 2,
-          timeoutMs: 10000,
+          timeoutMs: 12000,
         });
         if (genRes.text && genRes.text.trim()) {
           responseText = genRes.text.trim();
@@ -443,13 +443,12 @@ Return strictly valid JSON with these exact keys:
 }`;
 
         const geminiRes = await generateContentWithRetry({
-          preferredModel: 'gemini-3.8-flash',
+          preferredModel: 'gemini-4-hydrogen',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
-            temperature: 0.7,
           },
-          timeoutMs: 6500,
+          timeoutMs: 10000,
         });
 
         const raw = (geminiRes.text || '').trim();
@@ -473,17 +472,17 @@ Return strictly valid JSON with these exact keys:
       author: generated?.author || fallbackItem.author,
       affirmation:
         generated?.affirmation ||
-        `Today I master ${targetTopic} with calm focus and extend my ${streak}-day study streak.`,
+        `Today I master ${targetTopic} with calm focus and steady confidence.`,
       category: generated?.category || 'Gemini Personalized Motivation',
       morningTip:
         generated?.morningTip ||
         `Break "${targetTopic}" into a 25-minute Pomodoro block and solve 3 active-recall questions.`,
-      personalizedNote: `Gemini Daily Affirmation for ${studentName} • ${streak}-Day Streak • Focus: ${targetTopic}`,
-      refreshedAt: `Gemini 3.8 Flash • ${new Date().toLocaleTimeString([], {
+      personalizedNote: `Gemini Daily Affirmation for ${studentName} • Focus: ${targetTopic}`,
+      refreshedAt: `Gemini 4 Hydrogen • ${new Date().toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       })}`,
-      source: generated ? 'Gemini 3.8 Flash' : 'Gemini Fallback',
+      source: generated ? 'Gemini 4 Hydrogen' : 'Gemini Fallback',
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to generate Gemini affirmation' });
@@ -689,12 +688,11 @@ Rules:
 
     const genRes = await generateContentWithRetry({
       contents: prompt,
-      preferredModel: 'gemini-3.8-flash',
+      preferredModel: 'gemini-4-hydrogen',
       config: {
         responseMimeType: 'application/json',
-        temperature: 0.7,
       },
-      timeoutMs: 12000,
+      timeoutMs: 15000,
     });
 
     const resumeContent = JSON.parse(genRes.text || '{}');
@@ -713,56 +711,105 @@ Rules:
 // ----------------------------------------------------
 app.post('/api/chat/aio', async (req, res) => {
   try {
-    const { userId, message, history = [], subject, topic } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+    const { userId, message, history = [], subject, topic } = req.body || {};
+    const cleanMessage = typeof message === 'string' ? message.trim() : '';
+    if (!cleanMessage) {
+      return res.status(400).json({ success: false, error: 'Message is required' });
     }
 
     const ai = getGeminiAI();
     if (!ai) {
-      return res.status(500).json({ error: 'Gemini AI not configured' });
+      return res.status(503).json({
+        success: false,
+        error: 'Gemini API key is not configured. Please check Settings > Secrets and try again.',
+      });
     }
 
     const prof = userId ? db.getProfileByUserId(userId) : null;
     const studentName = prof?.name || 'Student';
-    
-    // RAG Grounding
-    const searchRes = ragService.search(`${subject || ''} ${topic || ''} ${message}`, 3);
+
+    // RAG Grounding (only matches relevant curriculum notes)
+    const searchRes = ragService.search(`${subject || ''} ${topic || ''} ${cleanMessage}`.trim(), 3);
     const docContext = searchRes.contextString;
+    const matchedSources = searchRes.chunks.map((c) => c.documentTitle).filter(Boolean);
 
     const systemInstruction = `You are the AIO (All-In-One) Doubt Solver Bot for the Universal Learning Command Center.
-You help students named ${studentName} solve academic and technical doubts with clarity, patience, and expert precision.
+You help students named ${studentName} solve academic, programming, and career doubts with clarity, patience, and expert precision.
 
 Guidelines:
-- Use Socratic methods: don't just give the answer, guide them through the logic.
-- If relevant documents are provided, ground your answer in them.
-- Format responses with Markdown (bold, lists, etc.) for high readability.
+- Give a direct, helpful explanation first, then guide them through the reasoning step-by-step and end with a quick check question to reinforce understanding.
+- If verified study documents are provided below and relevant to the question, ground your answer in them and cite the source.
+- Format responses cleanly with Markdown (headings, bold text, bullet points, and fenced code blocks where helpful).
 - Be encouraging and concise.
 
 ${docContext ? `--- VERIFIED STUDY DOCUMENTS ---\n${docContext}\n` : ''}`;
 
-    const chatContents = history.map((msg: any) => ({
-      role: msg.role === 'model' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }));
-    chatContents.push({ role: 'user', parts: [{ text: message }] });
+    // Build valid alternating multi-turn contents starting strictly with a 'user' turn
+    const normalizedHistory: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
+    if (Array.isArray(history)) {
+      for (const item of history) {
+        if (!item || item.id === 'welcome' || item.isError) continue;
+        const text = typeof item.content === 'string' ? item.content.trim() : '';
+        if (!text) continue;
+        const role: 'user' | 'model' = item.role === 'model' ? 'model' : 'user';
+        // Gemini requires the first turn in contents to have role 'user'
+        if (normalizedHistory.length === 0 && role === 'model') continue;
+
+        const prev = normalizedHistory[normalizedHistory.length - 1];
+        if (prev && prev.role === role) {
+          prev.parts[0].text = `${prev.parts[0].text}\n\n${text}`;
+        } else {
+          normalizedHistory.push({ role, parts: [{ text }] });
+        }
+      }
+    }
+
+    // Ensure final turn is the current user message without consecutive duplicate user turns
+    const lastTurn = normalizedHistory[normalizedHistory.length - 1];
+    if (lastTurn && lastTurn.role === 'user') {
+      if (lastTurn.parts[0].text !== cleanMessage) {
+        lastTurn.parts[0].text = `${lastTurn.parts[0].text}\n\n${cleanMessage}`;
+      }
+    } else {
+      normalizedHistory.push({ role: 'user', parts: [{ text: cleanMessage }] });
+    }
 
     const genRes = await generateContentWithRetry({
-      contents: chatContents,
-      preferredModel: 'gemini-3.8-flash',
+      contents: normalizedHistory,
+      preferredModel: 'gemini-4-hydrogen',
       config: {
         systemInstruction,
-        temperature: 0.7,
       },
-      timeoutMs: 10000,
+      maxAttempts: 2,
+      timeoutMs: 15000,
     });
 
-    const responseText = genRes.text || "I'm sorry, I couldn't process that query.";
-    
-    res.json({ success: true, content: responseText });
+    const responseText = genRes.text?.trim() || "I'm sorry, I couldn't generate a response. Please try rephrasing your question.";
+
+    res.json({
+      success: true,
+      content: responseText,
+      sources: Array.from(new Set(matchedSources)),
+    });
   } catch (err: any) {
     console.error('AIO Chat error:', err);
-    res.status(500).json({ error: err.message || 'Failed to solve doubt' });
+    const rawMsg = String(err?.message || 'Failed to solve doubt');
+    const status = err?.status || err?.code;
+    let statusCode = 500;
+    let friendlyError = rawMsg;
+
+    if (status === 403 || rawMsg.includes('PERMISSION_DENIED') || rawMsg.includes('API_KEY_INVALID') || status === 400) {
+      statusCode = status === 400 ? 400 : 403;
+      friendlyError = 'Gemini API authentication issue. Please verify your API key in Settings > Secrets.';
+    } else if (status === 429 || rawMsg.includes('RESOURCE_EXHAUSTED') || rawMsg.includes('quota')) {
+      statusCode = 429;
+      friendlyError = 'AI quota limit temporarily reached. Please wait a moment and try again.';
+    } else if (rawMsg.includes('Timeout')) {
+      statusCode = 504;
+      friendlyError = 'The AI response took too long. Please try again.';
+    }
+
+    res.status(statusCode).json({ success: false, error: friendlyError });
   }
 });
 
@@ -1882,10 +1929,9 @@ Respond strictly with a JSON array:
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
-            temperature: 0.6,
           },
-          preferredModel: 'gemini-3.8-flash',
-          timeoutMs: 8000,
+          preferredModel: 'gemini-4-hydrogen',
+          timeoutMs: 12000,
         });
 
         const cleanJson = (geminiRes.text || '[]')
@@ -2522,11 +2568,11 @@ Return strictly valid JSON with this structure:
 
         const geminiRes = await generateContentWithRetry({
           contents: prompt,
+          preferredModel: 'gemini-4-hydrogen',
           config: {
             responseMimeType: 'application/json',
-            temperature: 0.4,
           },
-          timeoutMs: 6000,
+          timeoutMs: 10000,
         });
 
         const cleanJson = (geminiRes.text || '{}')
@@ -2939,7 +2985,7 @@ Return valid JSON matching this exact structure:
 }`;
 
         const response = await generateContentWithRetry({
-          preferredModel: 'gemini-3.8-flash',
+          preferredModel: 'gemini-4-hydrogen',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
@@ -3071,7 +3117,7 @@ Return valid JSON matching this exact structure:
       topic: cleanTopic,
       subject: cleanSubject,
       thinkingDepth,
-      modelUsed: 'gemini-3.8-flash (ThinkingLevel.' + thinkingDepth + ')',
+      modelUsed: 'gemini-4-hydrogen (ThinkingLevel.' + thinkingDepth + ')',
       analysis: structuredAnalysis,
       savedDocument,
     });
@@ -3311,7 +3357,7 @@ app.post('/api/documents/semantic-search', async (req, res) => {
       return res.json({
         success: true,
         query: '',
-        embeddingModel: 'gemini-embedding-2-preview + Dense Cosine Vector Index',
+        embeddingModel: 'gemini-embedding-2 + Dense Cosine Vector Index',
         vectorDimension: 128,
         searchLatencyMs: 1,
         totalChunksScanned: db.chunks.length,
@@ -3343,8 +3389,8 @@ ${vectorResults.contextString.slice(0, 1200)}
 Provide a crisp 2-sentence direct answer synthesizing the key concept and citing the source document title ("${topHit.chunk.documentTitle}").`;
           const genRes = await generateContentWithRetry({
             contents: synthPrompt,
-            preferredModel: 'gemini-3.8-flash',
-            timeoutMs: 4500,
+            preferredModel: 'gemini-4-hydrogen',
+            timeoutMs: 10000,
           });
           if (genRes?.text) {
             aiSynthesis = genRes.text.trim();
@@ -4123,9 +4169,9 @@ app.post('/api/peer-study-rooms/:id/voice-note', async (req, res) => {
 A student (${userName || 'Student'}) just said on voice chat: "${cleanText}".
 Respond in 2 crisp sentences confirming the key technical insight or answering their question so the study group can keep moving forward.`;
         const genRes = await generateContentWithRetry({
-          preferredModel: 'gemini-3.8-flash',
+          preferredModel: 'gemini-4-hydrogen',
           contents: prompt,
-          timeoutMs: 6000,
+          timeoutMs: 10000,
         });
         if (genRes?.text) {
           facilitatorReply = genRes.text.trim();
@@ -4229,12 +4275,12 @@ Return valid JSON with this exact schema:
 }`;
 
         const response = await generateContentWithRetry({
-          preferredModel: 'gemini-3.8-flash',
+          preferredModel: 'gemini-4-hydrogen',
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
           },
-          timeoutMs: 9000,
+          timeoutMs: 12000,
         });
 
         const rawText = (response.text || '').trim();

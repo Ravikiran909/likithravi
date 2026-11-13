@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Trophy,
-  Flame,
   Target,
   GraduationCap,
   Award,
@@ -26,7 +25,7 @@ import { db, doc, setDoc } from '../firebase.ts';
 export type MilestoneCategoryFilter =
   | 'all'
   | 'earned_only'
-  | 'streak'
+  | 'sessions'
   | 'questions'
   | 'topic_mastery';
 
@@ -35,7 +34,7 @@ export interface StudentMilestoneBadge {
   title: string;
   badgeCode: string;
   milestoneLabel: string;
-  category: 'streak' | 'questions' | 'topic_mastery';
+  category: 'sessions' | 'questions' | 'topic_mastery';
   tier: 'Bronze' | 'Silver' | 'Gold' | 'Diamond';
   xpPoints: number;
   description: string;
@@ -48,7 +47,6 @@ export interface StudentMilestoneBadge {
   masteredTopicList?: string[];
   accent: 'amber' | 'indigo' | 'emerald' | 'sky';
   iconName:
-    | 'flame'
     | 'zap'
     | 'crown'
     | 'target'
@@ -84,7 +82,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
   const [showTopicAdder, setShowTopicAdder] = useState<boolean>(false);
 
   // Extract core student metrics from profile
-  const currentStreak = profile.streak || 0;
+  const totalSessions = profile.totalSessions || 0;
   const totalQuestions = profile.totalQuestionsAnswered || 0;
   const correctQuestions = profile.correctAnswers || 0;
 
@@ -111,19 +109,16 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
     return map;
   }, [profile.earnedBadges, profile.achievements, profile.lastActiveDate]);
 
-  // Digital badges definitions featuring 'Quiz Streak Hero' (7-day streak), 'Concept Master' (Topic mastery), and '100 Questions Answered'
+  // Digital badges definitions featuring 'Session Hero' (7 sessions), 'Concept Master' (Topic mastery), and '100 Questions Answered'
   const milestoneBadges: StudentMilestoneBadge[] = useMemo(() => {
     const isUnlocked = (id: string, condition: boolean) => condition || earnedMap.has(id);
     const getAwardDate = (id: string, unlocked: boolean) =>
       earnedMap.get(id) ||
       (unlocked ? profile.lastActiveDate || new Date().toISOString() : undefined);
 
-    const quizStreakHeroUnlocked = isUnlocked(
+    const sessionHeroUnlocked = isUnlocked(
       'milestone_7_day_streak',
-      currentStreak >= 7 ||
-        earnedMap.has('badge_streak_7') ||
-        earnedMap.has('streak_7_day_guardian') ||
-        earnedMap.has('quiz_streak_hero')
+      totalSessions >= 7 || earnedMap.has('quiz_streak_hero')
     );
 
     const centurionQuestionsUnlocked = isUnlocked(
@@ -137,25 +132,25 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
     );
 
     return [
-      // 1. SIGNATURE DIGITAL BADGE: 'Quiz Streak Hero' (7-Day Study Streak)
+      // 1. SIGNATURE DIGITAL BADGE: 'Session Hero' (7 Study Sessions)
       {
         id: 'milestone_7_day_streak',
-        title: 'Quiz Streak Hero',
-        badgeCode: 'BDG-STRK-07',
-        milestoneLabel: '7-Day Study Streak',
-        category: 'streak',
+        title: 'Study Session Hero',
+        badgeCode: 'BDG-SESS-07',
+        milestoneLabel: '7 Study Sessions',
+        category: 'sessions',
         tier: 'Gold',
         xpPoints: 450,
         description:
-          'Awarded for maintaining a 7-day study and daily quiz streak without missing a single day.',
-        requirementSummary: 'Complete a 7-day study & quiz streak',
-        currentValue: Math.min(7, currentStreak),
+          'Awarded for completing 7 structured AI tutoring and daily quiz sessions.',
+        requirementSummary: 'Complete 7 study & quiz sessions',
+        currentValue: Math.min(7, totalSessions),
         targetValue: 7,
-        unit: 'days',
-        unlocked: quizStreakHeroUnlocked,
-        awardedAt: getAwardDate('milestone_7_day_streak', quizStreakHeroUnlocked),
+        unit: 'sessions',
+        unlocked: sessionHeroUnlocked,
+        awardedAt: getAwardDate('milestone_7_day_streak', sessionHeroUnlocked),
         accent: 'amber',
-        iconName: 'flame',
+        iconName: 'zap',
       },
 
       // 2. SIGNATURE DIGITAL BADGE: 'Centurion Problem Solver' (100 Questions Answered)
@@ -207,7 +202,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         title: 'Early Bird',
         badgeCode: 'BDG-EARLY-BIRD',
         milestoneLabel: 'Morning Mastery',
-        category: 'streak',
+        category: 'sessions',
         tier: 'Silver',
         xpPoints: 250,
         description:
@@ -268,47 +263,47 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         iconName: 'award',
       },
 
-      // Additional Streak Digital Badges
+      // Additional Session Digital Badges
       {
         id: 'milestone_3_day_streak',
-        title: '3-Day Ignited Spark',
-        badgeCode: 'BDG-STRK-03',
-        milestoneLabel: '3-Day Study Streak',
-        category: 'streak',
+        title: '3-Session Ignited Spark',
+        badgeCode: 'BDG-SESS-03',
+        milestoneLabel: '3 Study Sessions',
+        category: 'sessions',
         tier: 'Bronze',
         xpPoints: 150,
         description:
-          'Built initial study momentum by completing 3 consecutive days of active recall and daily quizzes.',
-        requirementSummary: 'Reach a 3-day study streak',
-        currentValue: Math.min(3, currentStreak),
+          'Built initial study momentum by completing 3 active recall and daily quiz sessions.',
+        requirementSummary: 'Complete 3 study sessions',
+        currentValue: Math.min(3, totalSessions),
         targetValue: 3,
-        unit: 'days',
-        unlocked: isUnlocked('milestone_3_day_streak', currentStreak >= 3),
+        unit: 'sessions',
+        unlocked: isUnlocked('milestone_3_day_streak', totalSessions >= 3),
         awardedAt: getAwardDate(
           'milestone_3_day_streak',
-          isUnlocked('milestone_3_day_streak', currentStreak >= 3)
+          isUnlocked('milestone_3_day_streak', totalSessions >= 3)
         ),
         accent: 'amber',
         iconName: 'zap',
       },
       {
         id: 'milestone_14_day_streak',
-        title: 'Fortnight Streak Guardian',
-        badgeCode: 'BDG-STRK-14',
-        milestoneLabel: '14-Day Study Streak',
-        category: 'streak',
+        title: 'Fortnight Focus Guardian',
+        badgeCode: 'BDG-SESS-14',
+        milestoneLabel: '14 Study Sessions',
+        category: 'sessions',
         tier: 'Diamond',
         xpPoints: 800,
         description:
-          'Sustained two full weeks of uninterrupted daily study, Pomodoro focus blocks, and quiz practice.',
-        requirementSummary: 'Reach a 14-day study streak',
-        currentValue: Math.min(14, currentStreak),
+          'Completed 14 full sessions of deep study, Pomodoro focus blocks, and quiz practice.',
+        requirementSummary: 'Complete 14 study sessions',
+        currentValue: Math.min(14, totalSessions),
         targetValue: 14,
-        unit: 'days',
-        unlocked: isUnlocked('milestone_14_day_streak', currentStreak >= 14),
+        unit: 'sessions',
+        unlocked: isUnlocked('milestone_14_day_streak', totalSessions >= 14),
         awardedAt: getAwardDate(
           'milestone_14_day_streak',
-          isUnlocked('milestone_14_day_streak', currentStreak >= 14)
+          isUnlocked('milestone_14_day_streak', totalSessions >= 14)
         ),
         accent: 'amber',
         iconName: 'crown',
@@ -479,7 +474,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
       },
     ];
   }, [
-    currentStreak,
+    totalSessions,
     totalQuestions,
     masteredTopicsCount,
     masteredTopics,
@@ -547,7 +542,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
     };
   }, [milestoneBadges]);
 
-  // Signature Trio: 'Quiz Streak Hero' (7-day streak), '100-Question Centurion' (100 questions), 'Concept Master' (Mastered topic)
+  // Signature Trio: 'Study Session Hero' (7 sessions), '100-Question Centurion' (100 questions), 'Concept Master' (Mastered topic)
   const signatureMilestones = useMemo(() => {
     return milestoneBadges.filter((b) =>
       [
@@ -591,7 +586,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
             doc(db, 'profiles', profile.userId),
             {
               userId: profile.userId,
-              streak: mergedProfile.streak,
+              totalSessions: mergedProfile.totalSessions,
               totalQuestionsAnswered: mergedProfile.totalQuestionsAnswered,
               correctAnswers: mergedProfile.correctAnswers,
               overallProgress: mergedProfile.overallProgress,
@@ -633,12 +628,12 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
   };
 
   const handleRecordMilestoneProgress = async (badge: StudentMilestoneBadge) => {
-    if (badge.category === 'streak') {
-      const nextStreak = Math.max(currentStreak + 1, badge.targetValue);
+    if (badge.category === 'sessions') {
+      const nextSessions = Math.max(totalSessions + 1, badge.targetValue);
       await persistProfileChanges(
-        { streak: nextStreak },
+        { totalSessions: nextSessions },
         badge,
-        `🏆 Digital Badge Awarded: "${badge.title}" (${nextStreak}-day study streak unlocked!)`
+        `🏆 Digital Badge Awarded: "${badge.title}" (${nextSessions} study sessions completed!)`
       );
     } else if (badge.category === 'questions') {
       const nextQuestions = Math.max(totalQuestions + 10, badge.targetValue);
@@ -723,8 +718,6 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
     className = 'w-5 h-5'
   ) => {
     switch (iconName) {
-      case 'flame':
-        return <Flame className={className} />;
       case 'zap':
         return <Zap className={className} />;
       case 'crown':
@@ -781,8 +774,8 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
 
           <p className="text-xs text-slate-400 max-w-2xl">
             Earn verified digital badges including{' '}
-            <span className="text-amber-300 font-semibold">Quiz Streak Hero</span> (7-day study
-            streak),{' '}
+            <span className="text-amber-300 font-semibold">Study Session Hero</span> (7 study
+            sessions),{' '}
             <span className="text-emerald-300 font-semibold">Concept Master</span> (curriculum
             topic mastery), and{' '}
             <span className="text-indigo-300 font-semibold">100-Question Centurion</span> (100
@@ -800,7 +793,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
             {[
               { id: 'all', label: 'All Badges' },
               { id: 'earned_only', label: `Earned (${summaryStats.earnedCount})` },
-              { id: 'streak', label: 'Quiz Streak Hero' },
+              { id: 'sessions', label: 'Session Hero' },
               { id: 'questions', label: '100 Questions' },
               { id: 'topic_mastery', label: 'Concept Master' },
             ].map((tab) => (
@@ -936,7 +929,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         </form>
       )}
 
-      {/* Featured Digital Badges Trio ('Quiz Streak Hero', '100-Question Centurion', 'Concept Master') */}
+      {/* Featured Digital Badges Trio ('Study Session Hero', '100-Question Centurion', 'Concept Master') */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4">
         {signatureMilestones.map((badge) => {
           const pct = Math.min(100, Math.round((badge.currentValue / badge.targetValue) * 100));

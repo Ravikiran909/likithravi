@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Trophy,
-  Flame,
   Crown,
   Medal,
   Users,
@@ -25,7 +24,7 @@ interface LeaderboardEntry {
   name: string;
   avatarInitials: string;
   educationLevel: string;
-  streak: number;
+  sessionsCompleted: number;
   accuracy: number;
   totalPoints: number;
   weeklyDelta: number;
@@ -35,11 +34,11 @@ interface LeaderboardEntry {
 }
 
 export function calculateLearningPoints(p: Partial<StudentProfile>): number {
-  const streakPts = (p.streak || 0) * 50;
+  const sessionPts = (p.totalSessions || 0) * 50;
   const correctPts = (p.correctAnswers || 0) * 25;
   const progressPts = (p.overallProgress || 0) * 12;
   const focusPts = Math.round((p.focusStats?.totalFocusMinutes || 60) * 2);
-  return streakPts + correctPts + progressPts + focusPts;
+  return sessionPts + correctPts + progressPts + focusPts;
 }
 
 export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
@@ -57,7 +56,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         if (data?.profiles) setAllProfiles(data.profiles);
       })
       .catch(() => {});
-  }, [profile.userId, profile.streak, profile.correctAnswers, profile.overallProgress]);
+  }, [profile.userId, profile.totalSessions, profile.correctAnswers, profile.overallProgress]);
 
   const leaderboardEntries: LeaderboardEntry[] = useMemo(() => {
     const peerSeeds: LeaderboardEntry[] = [
@@ -66,7 +65,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         name: 'Ananya Sharma',
         avatarInitials: 'AS',
         educationLevel: 'college',
-        streak: 19,
+        sessionsCompleted: 32,
         accuracy: 92,
         totalPoints: 3420,
         weeklyDelta: 410,
@@ -79,7 +78,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         name: 'Rohan Verma',
         avatarInitials: 'RV',
         educationLevel: 'competitive_exam',
-        streak: 14,
+        sessionsCompleted: 26,
         accuracy: 88,
         totalPoints: 2890,
         weeklyDelta: 325,
@@ -92,7 +91,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         name: 'Meera Nair',
         avatarInitials: 'MN',
         educationLevel: 'college',
-        streak: 11,
+        sessionsCompleted: 21,
         accuracy: 85,
         totalPoints: 2540,
         weeklyDelta: 260,
@@ -105,7 +104,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         name: 'Kabir Patel',
         avatarInitials: 'KP',
         educationLevel: 'school',
-        streak: 6,
+        sessionsCompleted: 14,
         accuracy: 79,
         totalPoints: 1840,
         weeklyDelta: 190,
@@ -118,7 +117,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
         name: 'Zoya Khan',
         avatarInitials: 'ZK',
         educationLevel: 'professional',
-        streak: 5,
+        sessionsCompleted: 11,
         accuracy: 76,
         totalPoints: 1590,
         weeklyDelta: 145,
@@ -148,7 +147,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
           name: p.name,
           avatarInitials: initials || 'ST',
           educationLevel: p.educationLevel,
-          streak: p.streak || 1,
+          sessionsCompleted: p.totalSessions || 1,
           accuracy: acc,
           totalPoints: pts,
           weeklyDelta: 180 + idx * 45,
@@ -183,7 +182,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
       name: `${profile.name} (You)`,
       avatarInitials: myInitials || 'ME',
       educationLevel: profile.educationLevel,
-      streak: profile.streak || 1,
+      sessionsCompleted: profile.totalSessions || 1,
       accuracy: myAccuracy,
       totalPoints: myBasePoints,
       weeklyDelta: 240 + pointBonus,
@@ -250,7 +249,7 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
               Study Group Standings & Total Learning Points (XP)
             </h3>
             <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
-              Earn Learning Points from daily streaks (+50 XP/day), correct quiz answers (+25 XP), and Pomodoro focus sessions.
+              Earn Learning Points from completed study sessions (+50 XP), correct quiz answers (+25 XP), and Pomodoro focus sessions.
             </p>
           </div>
         </div>
@@ -388,8 +387,8 @@ export const GlobalPeerLeaderboard: React.FC<GlobalPeerLeaderboardProps> = ({
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 mt-0.5">
                     <span className="flex items-center space-x-1 text-amber-400">
-                      <Flame className="w-3 h-3 fill-amber-400" />
-                      <span>{entry.streak}d streak</span>
+                      <Zap className="w-3 h-3" />
+                      <span>{entry.sessionsCompleted} sessions</span>
                     </span>
                     <span>•</span>
                     <span className="text-emerald-400">{entry.accuracy}% quiz accuracy</span>

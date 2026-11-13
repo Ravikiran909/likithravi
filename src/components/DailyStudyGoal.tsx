@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Sparkles,
   Trophy,
-  Flame,
   Plus,
   Sliders,
   ArrowRight,
@@ -52,7 +51,7 @@ const GOAL_MET_ENCOURAGING_MESSAGES: EncouragingMessageItem[] = [
     headline: '🏆 Champion Discipline! Daily Study Target Complete!',
     message:
       'Small daily victories build extraordinary exam results. Your dedication today brings you one step closer to top rank mastery!',
-    subtext: 'All logged study minutes have been credited toward your weekly goal and streak.',
+    subtext: 'All logged study minutes have been credited toward your weekly goal.',
   },
 ];
 
@@ -181,46 +180,6 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
     onLogStudyMinutes(needed, 'Completed Daily Study Goal');
   };
 
-  const handleIncrementStreak = async () => {
-    const nextStreak = (profile.streak || 0) + 1;
-    const todayIso = new Date().toISOString().split('T')[0];
-    const updatedProfile: StudentProfile = {
-      ...profile,
-      streak: nextStreak,
-      lastActiveDate: todayIso,
-    };
-    onProfileUpdate(updatedProfile);
-
-    try {
-      await fetch(`/api/students/${profile.userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ streak: nextStreak, lastActiveDate: todayIso }),
-      });
-    } catch {}
-
-    try {
-      if (db && profile.userId) {
-        await setDoc(
-          doc(db, 'profiles', profile.userId),
-          {
-            userId: profile.userId,
-            name: profile.name || 'Student',
-            preferredLanguage: profile.preferredLanguage || 'en',
-            streak: nextStreak,
-            lastActiveDate: todayIso,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-      }
-    } catch {}
-  };
-
-  const currentStreak = profile.streak || 1;
-  const nextStreakMilestone =
-    currentStreak < 3 ? 3 : currentStreak < 7 ? 7 : currentStreak < 14 ? 14 : 30;
-
   const checkpoints = [
     { pct: 25, label: '25% Warmup', mins: Math.round(targetMinutes * 0.25) },
     { pct: 50, label: '50% Halfway', mins: Math.round(targetMinutes * 0.5) },
@@ -267,7 +226,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg font-extrabold text-white">
-                    Daily Study Goal & Streak Ring
+                    Daily Study Goal
                   </h3>
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
@@ -276,11 +235,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
                         : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                     }`}
                   >
-                    {isGoalMet ? '🎉 Goal Met (100%)' : `${progressPercent}% Completed`}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center space-x-1">
-                    <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                    <span>{currentStreak}-Day Streak</span>
+                    {isGoalMet ? 'Goal Met (100%)' : `${progressPercent}% Completed`}
                   </span>
                   {bonusMinutes > 0 && (
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
@@ -294,8 +249,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
                   mins) • Logged Today:{' '}
                   <strong className={isGoalMet ? 'text-emerald-400' : 'text-indigo-300'}>
                     {completedHours} hrs ({studiedMinutes} mins)
-                  </strong>{' '}
-                  • Streak Target: <strong className="text-amber-300">{currentStreak}/{nextStreakMilestone} days</strong>
+                  </strong>
                 </p>
               </div>
             </div>
@@ -310,16 +264,6 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
                 </div>
                 <div className="text-sm font-black text-emerald-400 font-mono tabular-nums">
                   {completedHours}h / {targetHours}h
-                </div>
-              </div>
-              <div className="h-6 w-px bg-slate-800" />
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Streak
-                </div>
-                <div className="text-sm font-black text-amber-400 font-mono tabular-nums flex items-center space-x-1">
-                  <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                  <span>{currentStreak}d</span>
                 </div>
               </div>
               <div className="h-6 w-px bg-slate-800" />
@@ -345,9 +289,9 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
           </div>
         </div>
 
-        {/* Circular Progress Ring (Daily Study Hours + Streak) & Progress Bar Layout */}
+        {/* Circular Progress Ring (Daily Study Hours) & Progress Bar Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center bg-slate-950/70 border border-slate-800/90 rounded-2xl p-5">
-          {/* Left: Circular Progress Ring for Daily Study Hours & Streak */}
+          {/* Left: Circular Progress Ring for Daily Study Hours */}
           <div className="lg:col-span-4 flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-900/70 border border-slate-800/80">
             <CircularStudyGoal
               completedHours={completedHours}
@@ -358,25 +302,12 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
               remainingMinutes={remainingMinutes}
               progressPercent={progressPercent}
               isGoalAchieved={isGoalMet}
-              streak={currentStreak}
-              streakTarget={nextStreakMilestone}
               size={172}
               strokeWidth={12}
             />
-            <div className="mt-3 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleIncrementStreak}
-                className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold flex items-center space-x-1 transition cursor-pointer"
-                title="Log today's study streak day"
-              >
-                <Flame className="w-3 h-3 text-amber-400 fill-amber-400" />
-                <span>+1 Streak Day ({currentStreak}d)</span>
-              </button>
-            </div>
           </div>
 
-          {/* Right: Progress Bar, Checkpoints & 7-Day Streak Chain */}
+          {/* Right: Progress Bar & Checkpoints */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="font-bold text-slate-200 flex items-center space-x-1.5">
@@ -453,43 +384,6 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
                 );
               })}
             </div>
-
-            {/* 7-Day Study Streak Progress Strip */}
-            <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center space-x-2">
-                <Flame className="w-4 h-4 text-amber-400 fill-amber-400" />
-                <div>
-                  <div className="text-xs font-bold text-white">
-                    {currentStreak}-Day Continuous Study Streak
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    {Math.max(0, nextStreakMilestone - currentStreak) > 0
-                      ? `${nextStreakMilestone - currentStreak} more days to unlock ${nextStreakMilestone}-Day Streak Milestone`
-                      : `${nextStreakMilestone}-Day Streak Milestone Unlocked!`}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-1.5">
-                {Array.from({ length: 7 }, (_, idx) => {
-                  const dayNum = idx + 1;
-                  const active = dayNum <= Math.min(7, currentStreak);
-                  return (
-                    <div
-                      key={dayNum}
-                      className={`w-7 h-7 rounded-lg flex flex-col items-center justify-center text-[10px] font-extrabold border transition ${
-                        active
-                          ? 'bg-gradient-to-br from-amber-500 to-orange-500 border-amber-300 text-slate-950 shadow-sm shadow-amber-500/30'
-                          : 'bg-slate-900 border-slate-800 text-slate-500'
-                      }`}
-                      title={`Streak Day ${dayNum}`}
-                    >
-                      <span>{active ? '🔥' : `D${dayNum}`}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -522,7 +416,7 @@ export const DailyStudyGoal: React.FC<DailyStudyGoalProps> = ({
                 {isGoalMet ? (
                   <Sparkles className="w-6 h-6 text-emerald-300 animate-pulse" />
                 ) : (
-                  <Flame className="w-5 h-5 text-amber-400" />
+                  <Target className="w-5 h-5 text-indigo-400" />
                 )}
               </div>
 

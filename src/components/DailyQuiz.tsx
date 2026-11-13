@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   XCircle,
   Award,
-  Flame,
   RotateCcw,
   Play,
   ArrowRight,
@@ -326,7 +325,6 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
 
     const updatedProfile: StudentProfile = {
       ...profile,
-      streak: (profile.streak || 0) + 1,
       totalQuestionsAnswered: (profile.totalQuestionsAnswered || 0) + totalQuestions,
       questionsAnsweredToday: (profile.questionsAnsweredToday || 0) + totalQuestions,
       correctAnswers: (profile.correctAnswers || 0) + finalScoreToUse,
@@ -379,7 +377,7 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
           weakTopicsTested: selectedTopics,
           masteredTopics: newlyMastered,
           completedAt: new Date().toISOString(),
-          aiModel: 'gemini-3.8-flash',
+          aiModel: 'gemini-4-hydrogen',
         });
       }
     } catch (err) {
@@ -409,7 +407,7 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-800/80 pb-5">
         <div className="flex items-center space-x-3.5">
           <div className="p-3 bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-xl text-amber-400 shadow-inner">
-            <Flame className="w-6 h-6 animate-pulse" />
+            <Brain className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center space-x-2.5">
@@ -425,7 +423,7 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
           </div>
         </div>
 
-        {/* Quick Streak & Target Metric */}
+        {/* Quick Accuracy & Target Metric */}
         <div className="flex items-center space-x-3">
           <div className="px-3.5 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-right">
             <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Daily Target</div>
@@ -434,11 +432,15 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
               <span>5 Questions</span>
             </div>
           </div>
-          <div className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 text-right">
-            <div className="text-[10px] font-semibold text-orange-300 uppercase tracking-wider">Streak Shield</div>
+          <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-right">
+            <div className="text-[10px] font-semibold text-emerald-300 uppercase tracking-wider">Accuracy</div>
             <div className="text-sm font-bold text-white flex items-center justify-end space-x-1">
-              <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
-              <span>{profile.streak} Days</span>
+              <Award className="w-3.5 h-3.5 text-emerald-400" />
+              <span>
+                {profile.totalQuestionsAnswered > 0
+                  ? Math.round((profile.correctAnswers / profile.totalQuestionsAnswered) * 100)
+                  : 0}%
+              </span>
             </div>
           </div>
         </div>
@@ -741,10 +743,10 @@ export const DailyQuiz: React.FC<DailyQuizProps> = ({
           {/* Badges / Rewards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg mx-auto text-left">
             <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-400 font-semibold uppercase">Daily Streak</div>
-              <div className="text-sm font-bold text-orange-400 flex items-center space-x-1 mt-0.5">
-                <Flame className="w-3.5 h-3.5 fill-orange-400" />
-                <span>+1 Day Extended</span>
+              <div className="text-[10px] text-slate-400 font-semibold uppercase">Quiz Accuracy</div>
+              <div className="text-sm font-bold text-amber-400 flex items-center space-x-1 mt-0.5">
+                <Award className="w-3.5 h-3.5" />
+                <span>{Math.round((score / Math.max(1, questions.length)) * 100)}% Score</span>
               </div>
             </div>
             <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">

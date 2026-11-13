@@ -49,7 +49,7 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
     setPreferredTime(profile.preferredStudyTime || '07:00 PM');
     fetchReminders();
     fetchAutomatedStatus();
-  }, [profile.userId, profile.preferredStudyTime, profile.streak]);
+  }, [profile.userId, profile.preferredStudyTime]);
 
   const fetchAutomatedStatus = async () => {
     try {
@@ -133,7 +133,7 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
             status: enabled ? 'active' : 'paused',
             targetTime: targetTimeStr,
             subject: subjectStr,
-            reminderText: `Time for your daily ${subjectStr} study session! 🚀 Protect your ${profile.streak}-day streak.`,
+            reminderText: `Time for your daily ${subjectStr} study session! Stay on track with your study goal.`,
           }),
         });
       } else {
@@ -142,7 +142,7 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: profile.userId,
-            reminderText: `Time for your daily ${subjectStr} study session! 🚀 Protect your ${profile.streak}-day streak.`,
+            reminderText: `Time for your daily ${subjectStr} study session! Stay on track with your study goal.`,
             targetTime: targetTimeStr,
             frequency: 'daily',
             subject: subjectStr,
@@ -236,7 +236,7 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-1">
-                Receive an automatic daily prompt on WhatsApp at your preferred study time to keep your streak going.
+                Receive an automatic daily prompt on WhatsApp at your preferred study time to stay consistent with your goals.
               </p>
             </div>
           </div>
@@ -527,10 +527,10 @@ export const DailyStudyReminderCard: React.FC<DailyStudyReminderCardProps> = ({
                       <div>• <strong>Focus:</strong> Daily {selectedSubject} Revision & Practice</div>
                       <div>• <strong>Subject:</strong> {selectedSubject}</div>
                       <div>• <strong>Target Time:</strong> {preferredTime}</div>
-                      <div>• <strong>Current Streak:</strong> {profile.streak} Days 🔥</div>
+                      <div>• <strong>Daily Goal:</strong> {profile.studyHoursPerDay || 2} hrs/day</div>
                     </div>
                     <p className="text-slate-300 text-[11px] leading-relaxed">
-                      Protect your streak! Click your <strong>Smart Study Session</strong> link below to start a 5-minute adaptive quiz on your weakest topics! 🚀
+                      Stay consistent! Click your <strong>Smart Study Session</strong> link below to start a 5-minute adaptive quiz on your weakest topics.
                     </p>
                   </>
                 )}

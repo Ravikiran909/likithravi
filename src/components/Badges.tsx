@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Award,
-  Flame,
   CheckCircle2,
   Trophy,
   Zap,
@@ -57,7 +56,7 @@ export const Badges: React.FC<BadgesProps> = ({
       ? Math.round((profile.correctAnswers / profile.totalQuestionsAnswered) * 100)
       : 0;
 
-  // Define student achievement badges with live progress calculations ('7-Day Streak', 'Top Performer', etc.)
+  // Define student achievement badges with live progress calculations ('Consistent Sessions', 'Top Performer', etc.)
   const badgesList: (VirtualBadge & { xpReward: number })[] = useMemo(() => {
     const existingEarned = new Map(
       (profile.earnedBadges || []).map((b) => [b.id, b.awardedAt])
@@ -68,7 +67,7 @@ export const Badges: React.FC<BadgesProps> = ({
       return condition ? new Date().toISOString() : undefined;
     };
 
-    const currentStreak = profile.streak || 0;
+    const totalSessions = profile.totalSessions || 0;
     const isTopPerformer =
       (accuracy >= 80 && (profile.totalQuestionsAnswered || 0) >= 10) ||
       (profile.overallProgress || 0) >= 80 ||
@@ -80,16 +79,16 @@ export const Badges: React.FC<BadgesProps> = ({
     return [
       {
         id: '7-day-streak',
-        name: '7-Day Streak',
+        name: 'Session Champion',
         description:
-          'Maintain an unbroken 7-day consecutive study streak across daily study goals and WhatsApp learning sessions.',
+          'Complete 7 guided study sessions across daily study goals and WhatsApp learning modules.',
         category: 'consistency',
-        iconName: 'Flame',
-        requirement: 'Maintain a 7-day consecutive study streak',
-        isUnlocked: currentStreak >= 7 || existingEarned.has('7-day-streak'),
-        progress: existingEarned.has('7-day-streak') ? 7 : Math.min(currentStreak, 7),
+        iconName: 'Zap',
+        requirement: 'Complete 7 guided study sessions',
+        isUnlocked: totalSessions >= 7 || existingEarned.has('7-day-streak'),
+        progress: existingEarned.has('7-day-streak') ? 7 : Math.min(totalSessions, 7),
         maxProgress: 7,
-        awardedAt: checkEarnedDate('7-day-streak', currentStreak >= 7 || existingEarned.has('7-day-streak')),
+        awardedAt: checkEarnedDate('7-day-streak', totalSessions >= 7 || existingEarned.has('7-day-streak')),
         badgeTier: 'gold',
         xpReward: 250,
       },
@@ -99,7 +98,7 @@ export const Badges: React.FC<BadgesProps> = ({
         description:
           'Kick off your day with an early morning study session or quiz before 9:00 AM.',
         category: 'consistency',
-        iconName: 'Flame',
+        iconName: 'Zap',
         requirement: 'Study or complete a quiz before 9:00 AM (or morning study preference)',
         isUnlocked:
           Boolean(profile.preferredStudyTime?.toLowerCase().includes('am')) ||
@@ -161,22 +160,20 @@ export const Badges: React.FC<BadgesProps> = ({
         id: 'consistent-learner',
         name: 'Consistent Learner',
         description:
-          'Demonstrate dedication by studying consecutively for 3 or more days or completing 3+ study sessions.',
+          'Demonstrate dedication by completing 3 or more structured study sessions.',
         category: 'consistency',
-        iconName: 'Flame',
-        requirement: 'Study streak >= 3 days or 3+ sessions logged',
+        iconName: 'Zap',
+        requirement: 'Complete 3+ study sessions',
         isUnlocked:
-          currentStreak >= 3 ||
-          (profile.totalSessions || 0) >= 3 ||
+          totalSessions >= 3 ||
           existingEarned.has('consistent-learner'),
         progress: existingEarned.has('consistent-learner')
           ? 3
-          : Math.min(Math.max(currentStreak, profile.totalSessions || 0), 3),
+          : Math.min(totalSessions, 3),
         maxProgress: 3,
         awardedAt: checkEarnedDate(
           'consistent-learner',
-          currentStreak >= 3 ||
-            (profile.totalSessions || 0) >= 3 ||
+          totalSessions >= 3 ||
             existingEarned.has('consistent-learner')
         ),
         badgeTier: 'bronze',
@@ -358,7 +355,7 @@ export const Badges: React.FC<BadgesProps> = ({
     };
 
     if (badge.id === '7-day-streak') {
-      profilePatch.streak = Math.max(profile.streak || 0, 7);
+      profilePatch.totalSessions = Math.max(profile.totalSessions || 0, 7);
     } else if (badge.id === 'top-performer') {
       const nextTotal = Math.max(profile.totalQuestionsAnswered || 0, 15);
       const nextCorrect = Math.max(profile.correctAnswers || 0, Math.ceil(nextTotal * 0.85));
@@ -366,7 +363,7 @@ export const Badges: React.FC<BadgesProps> = ({
       profilePatch.correctAnswers = nextCorrect;
       profilePatch.overallProgress = Math.max(profile.overallProgress || 0, 82);
     } else if (badge.id === 'consistent-learner') {
-      profilePatch.streak = Math.max(profile.streak || 0, 3);
+      profilePatch.totalSessions = Math.max(profile.totalSessions || 0, 3);
     } else if (badge.id === 'quiz-champion') {
       const nextTotal = Math.max(profile.totalQuestionsAnswered || 0, 10);
       profilePatch.totalQuestionsAnswered = nextTotal;
@@ -508,7 +505,7 @@ export const Badges: React.FC<BadgesProps> = ({
 
   const handleCopyBadgeShare = (badge: VirtualBadge & { xpReward?: number }, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const shareText = `🏆 I unlocked the "${badge.name}" (${badge.badgeTier.toUpperCase()} Tier) achievement badge on WhatsApp AI Learning Assistant! (${profile.streak}-Day Streak • ${accuracy}% Quiz Accuracy)`;
+    const shareText = `🏆 I unlocked the "${badge.name}" (${badge.badgeTier.toUpperCase()} Tier) achievement badge on WhatsApp AI Learning Assistant! (${profile.totalSessions || 0} Sessions • ${accuracy}% Quiz Accuracy)`;
     navigator.clipboard?.writeText(shareText).catch(() => {});
     setCopiedBadgeId(badge.id);
     setTimeout(() => setCopiedBadgeId(null), 2500);
@@ -544,8 +541,6 @@ export const Badges: React.FC<BadgesProps> = ({
     }`;
 
     switch (iconName) {
-      case 'Flame':
-        return <Flame className={iconClass} />;
       case 'CheckCircle2':
         return <CheckCircle2 className={iconClass} />;
       case 'Trophy':
@@ -646,7 +641,7 @@ export const Badges: React.FC<BadgesProps> = ({
                 <span>•</span>
                 <span>{profile.whatsappNumber}</span>
                 <span>•</span>
-                <span className="text-emerald-400 font-semibold">{profile.streak}-Day Streak 🔥</span>
+                <span className="text-emerald-400 font-semibold">{profile.totalSessions || 0} Study Sessions</span>
               </div>
 
               <div className="pt-1 flex items-center space-x-1.5 text-[11px] text-slate-400">
@@ -704,10 +699,10 @@ export const Badges: React.FC<BadgesProps> = ({
           </div>
         </div>
 
-        {/* Top Showcase Pinned Row ('7-Day Streak', 'Top Performer', etc.) */}
+        {/* Top Showcase Pinned Row ('Session Champion', 'Top Performer', etc.) */}
         <div className="mt-6 pt-6 border-t border-slate-800">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
-            <span>Featured Achievements ('7-Day Streak' & 'Top Performer')</span>
+            <span>Featured Achievements ('Session Champion' & 'Top Performer')</span>
             {compact && onOpenFullBadgesTab ? (
               <button
                 type="button"
@@ -1045,7 +1040,7 @@ export const Badges: React.FC<BadgesProps> = ({
   );
 };
 
-// Compact widget to display top badges ('7-Day Streak' & 'Top Performer') inside the Profile Section on the Overview tab
+// Compact widget to display top badges ('Session Champion' & 'Top Performer') inside the Profile Section on the Overview tab
 export const ProfileBadgesWidget: React.FC<{
   profile: StudentProfile;
   onNavigateToBadges: () => void;
@@ -1080,21 +1075,21 @@ export const ProfileBadgesWidget: React.FC<{
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* 7-Day Streak Badge */}
+        {/* Session Champion Badge */}
         <div
           onClick={onNavigateToBadges}
           className={`p-3 rounded-xl border flex items-center space-x-2.5 cursor-pointer transition ${
-            (profile.streak || 0) >= 7
+            (profile.totalSessions || 0) >= 7
               ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
               : 'bg-slate-950/40 border-slate-800 text-slate-400'
           }`}
-          title="7-Day Streak Achievement"
+          title="Session Champion Achievement"
         >
-          <Flame className={`w-5 h-5 shrink-0 ${(profile.streak || 0) >= 7 ? 'text-amber-400' : 'text-slate-500'}`} />
+          <Zap className={`w-5 h-5 shrink-0 ${(profile.totalSessions || 0) >= 7 ? 'text-amber-400' : 'text-slate-500'}`} />
           <div className="min-w-0">
-            <div className="text-xs font-bold truncate text-white">7-Day Streak</div>
+            <div className="text-xs font-bold truncate text-white">Session Champion</div>
             <div className="text-[10px] text-slate-400 font-mono tabular-nums">
-              {(profile.streak || 0) >= 7 ? 'Unlocked • +250 XP' : `${Math.min(profile.streak || 0, 7)}/7 days`}
+              {(profile.totalSessions || 0) >= 7 ? 'Unlocked • +250 XP' : `${Math.min(profile.totalSessions || 0, 7)}/7 sessions`}
             </div>
           </div>
         </div>

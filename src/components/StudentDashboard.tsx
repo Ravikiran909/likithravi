@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Flame,
   Award,
   BookOpen,
   Calendar,
@@ -31,7 +30,6 @@ import { LearningRankCard } from './LearningRankCard.tsx';
 import { CircularStudyGoal } from './CircularStudyGoal.tsx';
 import { DailyStudyReminderCard } from './DailyStudyReminderCard.tsx';
 import { SmartStudyReminderFcm } from './SmartStudyReminderFcm.tsx';
-import { StreakNotification } from './StreakNotification.tsx';
 import { DailyLearningGoalTracker } from './DailyLearningGoalTracker.tsx';
 import { WeeklyGoalTracker } from './WeeklyGoalTracker.tsx';
 import { PomodoroFocusTimer } from './PomodoroFocusTimer.tsx';
@@ -64,7 +62,6 @@ import { SubTopicMasteryHeatmapChart } from './SubTopicMasteryHeatmapChart.tsx';
 import { AchievementBadgesShowcase } from './AchievementBadgesShowcase.tsx';
 import { StudentAchievements } from './StudentAchievements.tsx';
 import { StudySessionPlanner } from './StudySessionPlanner.tsx';
-import { DailyQuizStreakCounter } from './DailyQuizStreakCounter.tsx';
 import { DailyStudyGoal } from './DailyStudyGoal.tsx';
 import { DailyMicroGoalsWidget } from './DailyMicroGoalsWidget.tsx';
 import { YouTubeLearningHub } from './YouTubeLearningHub.tsx';
@@ -516,39 +513,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Compact Daily Quiz Streak Fire Pill in Top Header */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('quiz')}
-            title="Daily Quiz Streak — Click to open Adaptive Quiz & Daily Streak Counter"
-            className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-xl border transition cursor-pointer ${
-              (profile.questionsAnsweredToday ?? 3) >= (profile.dailyQuestionsGoal ?? 5)
-                ? 'bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-rose-500/20 border-orange-500/50 text-amber-200 shadow-lg shadow-orange-500/10'
-                : 'bg-slate-900 border-slate-700/80 text-slate-200 hover:border-amber-500/40'
-            }`}
-          >
-            <Flame
-              className={`w-4 h-4 ${
-                (profile.questionsAnsweredToday ?? 3) >= (profile.dailyQuestionsGoal ?? 5)
-                  ? 'text-orange-400 fill-orange-400 animate-bounce'
-                  : 'text-amber-400 fill-amber-400/30 animate-pulse'
-              }`}
-            />
-            <div className="text-left">
-              <div className="text-xs font-extrabold leading-none flex items-center space-x-1">
-                <span>{profile.streak}d Streak</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold">
-                  {profile.questionsAnsweredToday ?? 3}/{profile.dailyQuestionsGoal ?? 5} Quiz
-                </span>
-              </div>
-              <span className="text-[10px] text-slate-400 block mt-0.5">
-                {(profile.questionsAnsweredToday ?? 3) >= (profile.dailyQuestionsGoal ?? 5)
-                  ? 'Daily Target Complete 🔥'
-                  : 'Complete Daily Quiz Target'}
-              </span>
-            </div>
-          </button>
-
           {/* Deep Focus Toggle (Mutes Non-Emergency WhatsApp Notifications & Activates Pomodoro Overlay) */}
           <div
             className={`flex items-center space-x-2.5 px-3.5 py-1.5 rounded-xl border transition ${
@@ -625,7 +589,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 onClick={generateProgressReportPdf}
                 disabled={isGeneratingPdf}
                 className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white px-3.5 py-1.5 rounded-xl border border-slate-700/80 hover:border-slate-600 text-xs font-semibold shadow-sm transition active:scale-95 disabled:opacity-50"
-                title="Download comprehensive PDF summary of streak, metrics, and milestones"
+                title="Download comprehensive PDF summary of progress, metrics, and milestones"
               >
                 {isGeneratingPdf ? (
                   <>
@@ -895,25 +859,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           )}
 
 
-          {/* Visual Streak Alert & Toast Component (Hidden in Focus Mode) */}
-          {!deepFocusActive && (
-            <StreakNotification
-              profile={profile}
-              onNavigateToChat={onNavigateToChat}
-              onNavigateToQuiz={() => setActiveTab('quiz')}
-              onProfileUpdate={onProfileUpdate}
-            />
-          )}
-
-          {/* Daily Quiz Streak Visual Counter (Animated Fire Icon Indicator when Daily Target Completes) */}
-          <DailyQuizStreakCounter
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onNavigateToChat={onNavigateToChat}
-            onLogStudyMinutes={handleAddStudyMinutes}
-          />
-
           {/* Daily Study Goal Progress Bar (Tracks Daily Study Hours Goal + Encouraging Message When Met) */}
           <DailyStudyGoal
             profile={profile}
@@ -1100,7 +1045,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                   remainingMinutes={remainingMinutes}
                   progressPercent={goalProgressPercent}
                   isGoalAchieved={isGoalAchieved}
-                  streak={profile.streak || 1}
                   size={168}
                   strokeWidth={12}
                 />
@@ -1320,29 +1264,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
               <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
-                <span>Study Streak</span>
-                <Flame className={`w-5 h-5 ${profile.streak >= 3 ? 'text-amber-400 fill-amber-400 animate-pulse' : 'text-slate-500'}`} />
+                <span>Questions Solved</span>
+                <CheckCircle2 className="w-5 h-5 text-indigo-400" />
               </div>
-              <div className="text-3xl font-bold text-white flex items-baseline justify-between">
-                <span>{profile.streak} Days</span>
-                {profile.streak >= 3 && (
-                  <span className="text-xs px-2 py-0.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
-                    🔥 3+ Active
-                  </span>
-                )}
+              <div className="text-3xl font-bold text-white tabular-nums">
+                {profile.totalQuestionsAnswered || 0}
               </div>
-              <div className="flex items-center justify-between mt-1 text-xs">
-                <span className={profile.streak >= 3 ? 'text-amber-400 font-semibold' : 'text-slate-400'}>
-                  {profile.streak >= 3 ? 'Milestone alert active!' : 'Reach 3 days for alert!'}
-                </span>
-                <button
-                  onClick={() => onProfileUpdate({ ...profile, streak: profile.streak >= 3 ? profile.streak + 1 : 3 })}
-                  className="text-[10px] text-indigo-400 hover:text-indigo-300 underline cursor-pointer"
-                  title="Increment streak or test 3-day notification"
-                >
-                  {profile.streak < 3 ? 'Simulate 3d' : '+1 Day'}
-                </button>
-              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                {profile.totalSessions || 1} learning sessions completed
+              </p>
             </div>
 
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
@@ -1864,7 +1794,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-                      Export your current <span className="text-amber-400 font-semibold">{profile.streak}-day streak</span>, <span className="text-emerald-400 font-semibold">{accuracy}% quiz accuracy</span>, curriculum progress, and unlocked milestone badges into a clean printable PDF summary.
+                      Export your <span className="text-indigo-400 font-semibold">{profile.totalQuestionsAnswered} answered questions</span>, <span className="text-emerald-400 font-semibold">{accuracy}% quiz accuracy</span>, curriculum progress, and unlocked milestone badges into a clean printable PDF summary.
                     </p>
                   </div>
                 </div>
@@ -2200,13 +2130,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 ...prev.slice(0, 4),
               ]);
             }}
-          />
-          <DailyQuizStreakCounter
-            profile={profile}
-            onProfileUpdate={onProfileUpdate}
-            onNavigateToQuiz={() => setActiveTab('quiz')}
-            onNavigateToChat={onNavigateToChat}
-            onLogStudyMinutes={handleAddStudyMinutes}
           />
           <DailyLearningGoalTracker
             profile={profile}
