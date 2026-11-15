@@ -88,10 +88,10 @@ interface SubTopicTemplate {
 }
 
 const SUBJECTS_ORDER = [
-  'Indian Polity',
-  'Modern Indian History',
-  'Indian Economy',
-  'Geography',
+  'Computer Science & DSA',
+  'Python & Programming',
+  'Calculus & Mathematics',
+  'Physics & Sciences',
   'Quantitative Aptitude',
   'Professional Skills',
 ];
@@ -104,220 +104,204 @@ const MODULE_STAGE_LABELS = [
 ];
 
 const SUBJECT_CURRICULUM_TOPICS: Record<string, SubTopicTemplate[]> = {
-  'Indian Polity': [
+  'Computer Science & DSA': [
     {
-      subCategory: 'Fundamental Rights',
-      topic: 'Articles 12–35, Constitutional Writs & Basic Structure',
+      subCategory: 'Dynamic Programming',
+      topic: 'Memoization, Tabulation & State Transitions',
       defaultScore: 39,
       quizHistory: [32, 38, 42, 39],
       keyConcepts: [
-        'Articles 14–32 & 5 Constitutional Writs',
-        'Basic Structure Doctrine (Kesavananda Bharati 1973)',
-        'Fundamental Rights available to Citizens vs All Persons',
+        'Optimal substructure & overlapping subproblems',
+        '1D vs 2D DP state transitions (Knapsack, LCS)',
+        'Space optimization with rolling arrays',
       ],
-      pitfall:
-        'Confusing Articles 15, 16, 19, 29, 30 (Citizens only) with rights available to all.',
+      pitfall: 'Forgetting base-case initialization or choosing greedy over DP.',
     },
     {
-      subCategory: 'Parliament & State Legislatures',
-      topic: 'Money Bills, Joint Sittings & Budgetary Process',
+      subCategory: 'Graphs & Shortest Paths',
+      topic: 'BFS, DFS, Topological Sort & Dijkstra',
       defaultScore: 47,
       quizHistory: [40, 44, 50, 47],
       keyConcepts: [
-        'Article 110 (Money Bill) definition',
-        'Joint Sitting (Article 108) procedures',
-        'Annual Financial Statement (Article 112)',
+        'Adjacency list traversal O(V + E)',
+        'Cycle detection in directed vs undirected graphs',
+        'Priority-queue Dijkstra constraints',
       ],
-      pitfall:
-        'Forgetting that Rajya Sabha has no power to reject or amend a Money Bill.',
+      pitfall: 'Using Dijkstra when graph edges contain negative weights.',
     },
     {
-      subCategory: 'Judiciary',
-      topic: 'Supreme Court & High Court Jurisdiction',
+      subCategory: 'Trees & Heaps',
+      topic: 'BST Invariants, AVL Rotations & Priority Queues',
       defaultScore: 63,
       quizHistory: [56, 60, 65, 63],
       keyConcepts: [
-        'Original, Appellate & Advisory Jurisdiction',
-        'Judicial Review & Judicial Activism',
-        'Appointment of Judges (Collegium System)',
+        'Inorder, Preorder, Postorder & Level-order traversals',
+        'Heapify O(n) vs repeated insertion O(n log n)',
+        'Balanced tree height guarantees',
       ],
-      pitfall:
-        'Confusing the advisory jurisdiction (Article 143) with binding precedents.',
+      pitfall: 'Confusing height-balanced AVL rotations on Zig-Zag subtrees.',
     },
     {
-      subCategory: 'Constitutional Bodies',
-      topic: 'Election Commission, UPSC & CAG',
+      subCategory: 'Binary Search & Two Pointers',
+      topic: 'Monotonic Search Spaces & Sliding Windows',
       defaultScore: 84,
       quizHistory: [76, 80, 86, 84],
       keyConcepts: [
-        'Composition & Independence of EC',
-        'Functions of UPSC',
-        'Role of CAG as Guardian of Public Purse',
+        'Overflow-safe mid = low + (high - low) / 2',
+        'Lower-bound vs upper-bound boundary checks',
+        'Variable-length sliding window invariants',
       ],
-      pitfall:
-        'Incorrectly identifying the removal process of various constitutional heads.',
+      pitfall: 'Off-by-one infinite loops when updating high = mid vs mid - 1.',
     },
   ],
-  'Modern Indian History': [
+  'Python & Programming': [
     {
-      subCategory: 'Early Freedom Struggle',
-      topic: 'Revolt of 1857 & Early Socio-Religious Reforms',
+      subCategory: 'Memory & Mutability',
+      topic: 'Mutable Default Arguments, Shallow vs Deep Copy',
       defaultScore: 42,
       quizHistory: [36, 40, 45, 42],
       keyConcepts: [
-        'Causes & Consequences of 1857 Revolt',
-        'Brahmo Samaj & Arya Samaj influence',
-        'Role of Moderates vs Extremists',
+        'Function default evaluation timing at def-time',
+        'Reference aliasing in nested lists/dicts',
+        'copy.copy vs copy.deepcopy semantics',
       ],
-      pitfall:
-        'Misidentifying the specific leaders and locations associated with the 1857 centers.',
+      pitfall: 'Using def fn(items=[]) instead of items=None.',
     },
     {
-      subCategory: 'Gandhian Era',
-      topic: 'Non-Cooperation, Civil Disobedience & Quit India',
+      subCategory: 'Recursion & Call Stack',
+      topic: 'Base Cases, Stack Frames & Recursion Limit',
       defaultScore: 54,
       quizHistory: [48, 52, 57, 54],
       keyConcepts: [
-        'Chauri Chaura & withdrawal of NCM',
-        'Salt Satyagraha & Dandi March',
-        'Quit India Movement 1942 dynamics',
+        'sys.getrecursionlimit() & Stack Overflow prevention',
+        'Helper accumulators & call-tree branching',
+        'LEGB lexical scoping inside nested closures',
       ],
-      pitfall:
-        'Confusing the chronologies of the three major Gandhian mass movements.',
+      pitfall: 'Missing base case termination or mutating shared outer state.',
     },
     {
-      subCategory: 'Revolutionary Movements',
-      topic: 'HRA/HSRA, INA & Naval Mutiny',
+      subCategory: 'Object-Oriented Design',
+      topic: 'Inheritance, Polymorphism & Dunder Methods',
       defaultScore: 71,
       quizHistory: [64, 68, 74, 71],
       keyConcepts: [
-        'Bhagat Singh & HSRA philosophy',
-        'Subhas Chandra Bose & Indian National Army',
-        'RIN Mutiny 1946 impact',
+        'Method Resolution Order (MRO) & super()',
+        'Composition over deep inheritance',
+        '__repr__, __eq__, and context managers (__enter__/__exit__)',
       ],
-      pitfall:
-        'Overlooking the impact of revolutionary activities on the timeline of British departure.',
+      pitfall: 'Overriding __eq__ without implementing __hash__ when using sets.',
     },
     {
-      subCategory: 'Constitutional Developments',
-      topic: 'Acts of 1909, 1919 & 1935',
+      subCategory: 'Concurrency & Async I/O',
+      topic: 'GIL, Threading vs Multiprocessing & asyncio',
       defaultScore: 89,
       quizHistory: [82, 86, 91, 89],
       keyConcepts: [
-        'Morley-Minto Reforms & Separate Electorates',
-        'Montagu-Chelmsford Reforms & Dyarchy',
-        'Government of India Act 1935 - Provincial Autonomy',
+        'CPU-bound multiprocessing vs I/O-bound asyncio',
+        'Event loop awaitables and non-blocking coroutines',
+        'Race conditions and lock synchronization',
       ],
-      pitfall:
-        'Confusing the introduction of Dyarchy at the Provincial level (1919) vs Center level (1935).',
+      pitfall: 'Running blocking CPU work inside an async event loop.',
     },
   ],
-  'Indian Economy': [
+  'Calculus & Mathematics': [
     {
-      subCategory: 'Banking & Monetary Policy',
-      topic: 'RBI Repo Rate, CRR, SLR & Inflation Targeting',
+      subCategory: 'Integration Techniques',
+      topic: 'Integration by Parts (LIATE) & U-Substitution',
       defaultScore: 38,
       quizHistory: [30, 35, 41, 38],
       keyConcepts: [
-        'Monetary Policy Committee (MPC) structure',
-        'Quantitative vs Qualitative tools',
-        'Inflation Target band (4% +/- 2%)',
+        'LIATE selection heuristic for u and dv',
+        'Definite integral bounds transformation',
+        'Partial fractions decomposition',
       ],
-      pitfall:
-        'Assuming that Repo Rate increase makes credit cheaper for consumers.',
+      pitfall: 'Forgetting to transform integration limits during u-substitution.',
     },
     {
-      subCategory: 'Public Finance',
-      topic: 'Fiscal Deficit, Budget & Taxation (GST)',
+      subCategory: 'Limits & Differentiation',
+      topic: 'L\'Hopital\'s Rule, Continuity & Chain Rule',
       defaultScore: 49,
       quizHistory: [42, 46, 52, 49],
       keyConcepts: [
-        'Revenue vs Capital Expenditure',
-        'FRBM Act targets',
-        'Direct vs Indirect Tax (GST Council)',
+        '0/0 and ∞/∞ indeterminate form checks',
+        'Implicit differentiation & related rates',
+        'Critical points & second derivative test',
       ],
-      pitfall:
-        'Confusing Revenue Deficit with Fiscal Deficit in budget calculations.',
+      pitfall: 'Applying L\'Hopital\'s rule when the expression is not indeterminate.',
     },
     {
-      subCategory: 'Economic Infrastructure',
-      topic: 'Agriculture, Industry & Schemes',
+      subCategory: 'Linear Algebra',
+      topic: 'Eigenvalues, Matrix Rank & Orthogonal Projections',
       defaultScore: 66,
       quizHistory: [58, 63, 68, 66],
       keyConcepts: [
-        'MSP & Green Revolution impact',
-        'MSME classification',
-        'Major Government Schemes (PM-KISAN, MGNREGA)',
+        'Row reduction & null space dimension (Rank-Nullity)',
+        'Characteristic polynomial det(A - λI) = 0',
+        'Dot products and Gram-Schmidt orthogonalization',
       ],
-      pitfall:
-        'Incorrectly identifying the specific eligibility criteria for welfare schemes.',
+      pitfall: 'Assuming AB = BA for general square matrices.',
     },
     {
-      subCategory: 'International Trade',
-      topic: 'BOP, Forex Reserves & Trade Agreements',
+      subCategory: 'Probability & Statistics',
+      topic: 'Bayes Theorem, Distributions & Hypothesis Testing',
       defaultScore: 83,
       quizHistory: [76, 80, 85, 83],
       keyConcepts: [
-        'Current Account vs Capital Account',
-        'Depreciation vs Devaluation of Rupee',
-        'India’s top trading partners',
+        'Conditional probability & independence',
+        'Expected value, variance & standard deviation',
+        'Normal, Binomial & Poisson distributions',
       ],
-      pitfall:
-        'Assuming that a Trade Deficit is always harmful to the national economy.',
+      pitfall: 'Confusing P(A|B) with P(B|A) in diagnostic Bayes problems.',
     },
   ],
-  Geography: [
+  'Physics & Sciences': [
     {
-      subCategory: 'Physical Geography',
-      topic: 'Himalayas, Peninsular Plateau & River Systems',
+      subCategory: 'Classical Mechanics',
+      topic: 'Newtonian Dynamics, Rotational Inertia & Conservation',
       defaultScore: 45,
       quizHistory: [38, 43, 48, 45],
       keyConcepts: [
-        'Indus, Ganga & Brahmaputra systems',
-        'West flowing vs East flowing rivers',
-        'Himalayan vs Peninsular drainage characteristics',
+        'Free-body diagrams & friction decomposition',
+        'Angular momentum & moment of inertia',
+        'Work-energy theorem vs momentum conservation',
       ],
-      pitfall:
-        'Confusing the left-bank and right-bank tributaries of the Ganga system.',
+      pitfall: 'Confusing elastic and inelastic collision conservation laws.',
     },
     {
-      subCategory: 'Climate & Vegetation',
-      topic: 'Monsoon Patterns, El-Nino & Forest Types',
+      subCategory: 'Electromagnetism & Circuits',
+      topic: 'Kirchhoff\'s Laws, Capacitance & Faraday Induction',
       defaultScore: 58,
       quizHistory: [50, 55, 60, 58],
       keyConcepts: [
-        'Mechanism of Indian Monsoon',
-        'Tropical Evergreen vs Deciduous forests',
-        'Agro-Climatic zones of India',
+        'KVL loop sign conventions & KCL node equations',
+        'RC time constant τ = RC transients',
+        'Lenz\'s law & magnetic flux change',
       ],
-      pitfall:
-        'Misunderstanding the withdrawal phase of the Southwest Monsoon.',
+      pitfall: 'Reversing voltage drop polarity across resistors in loop equations.',
     },
     {
-      subCategory: 'Economic Geography',
-      topic: 'Mineral Resources & Industries',
+      subCategory: 'Thermodynamics',
+      topic: 'First & Second Laws, Entropy & Heat Engines',
       defaultScore: 73,
       quizHistory: [66, 70, 75, 73],
       keyConcepts: [
-        'Distribution of Iron, Coal & Petroleum',
-        'Major Industrial Clusters',
-        'Renewable Energy potential in India',
+        'Isothermal, adiabatic & isobaric PV work',
+        'Carnot efficiency limit η = 1 - Tc/Th',
+        'Gibbs free energy & spontaneity',
       ],
-      pitfall:
-        'Locating the specific mineral belts (e.g., Gondwana coal) incorrectly on the map.',
+      pitfall: 'Using Celsius instead of Kelvin in Carnot efficiency calculations.',
     },
     {
-      subCategory: 'Human Geography',
-      topic: 'Demographics & Urbanization',
+      subCategory: 'Organic & General Chemistry',
+      topic: 'Stoichiometry, Equilibrium & Reaction Mechanisms',
       defaultScore: 85,
       quizHistory: [78, 82, 87, 85],
       keyConcepts: [
-        'Census 2011 major highlights',
-        'Population Density & Literacy trends',
-        'Urbanization challenges in India',
+        'Le Chatelier\'s principle & Kp/Kc equilibrium',
+        'Limiting reagent & molarity calculations',
+        'Nucleophilic substitution SN1 vs SN2 kinetics',
       ],
-      pitfall:
-        'Using outdated population statistics in comparison to the 2011 Census.',
+      pitfall: 'Including pure solids or liquids inside equilibrium constants.',
     },
   ],
   'Quantitative Aptitude': [
@@ -796,9 +780,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
 
   const filteredCells = useMemo(() => {
     return heatmapCells.filter((c) => {
-      if (selectedSubjectFilter === 'upsc_ssc_focus') {
-        if (c.subject !== 'UPSC CSE' && c.subject !== 'SSC CGL') return false;
-      } else if (selectedSubjectFilter !== 'all' && c.subject !== selectedSubjectFilter) {
+      if (selectedSubjectFilter !== 'all' && c.subject !== selectedSubjectFilter) {
         return false;
       }
 
@@ -860,11 +842,17 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
       return {
         subject: subj,
         shortSubject:
-          subj === 'Government Exams'
-            ? 'Gov Exams'
-            : subj === 'General Studies'
-            ? 'GS'
-            : subj,
+          subj === 'Computer Science & DSA'
+            ? 'CS & DSA'
+            : subj === 'Python & Programming'
+            ? 'Python'
+            : subj === 'Calculus & Mathematics'
+            ? 'Calculus'
+            : subj === 'Physics & Sciences'
+            ? 'Physics'
+            : subj === 'Quantitative Aptitude'
+            ? 'Aptitude'
+            : 'Skills',
         strength,
         knowledgeGap,
         targetBenchmark,
@@ -1077,10 +1065,10 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
     const history = profile.learningHistory || [];
     if (history.length === 0) {
       return [
-        { date: 'S1 (Sep 18)', fullDate: '2026-09-18', topic: 'Preamble', score: 85, gap: 15, mastered: true, subject: 'Indian Polity', benchmark: 70 },
-        { date: 'S2 (Sep 20)', fullDate: '2026-09-20', topic: 'Revolt of 1857', score: 78, gap: 22, mastered: true, subject: 'Modern Indian History', benchmark: 70 },
-        { date: 'S3 (Sep 22)', fullDate: '2026-09-22', topic: 'Repo Rate & CRR', score: 48, gap: 52, mastered: false, subject: 'Indian Economy', benchmark: 70 },
-        { date: 'S4 (Sep 24)', fullDate: '2026-09-24', topic: 'Monsoon Patterns', score: 38, gap: 62, mastered: false, subject: 'Geography', benchmark: 70 },
+        { date: 'S1 (Sep 18)', fullDate: '2026-09-18', topic: 'Python Scope & LEGB', score: 85, gap: 15, mastered: true, subject: 'Python & Programming', benchmark: 70 },
+        { date: 'S2 (Sep 20)', fullDate: '2026-09-20', topic: 'Binary Search', score: 78, gap: 22, mastered: true, subject: 'Computer Science & DSA', benchmark: 70 },
+        { date: 'S3 (Sep 22)', fullDate: '2026-09-22', topic: 'Integration by Parts', score: 48, gap: 52, mastered: false, subject: 'Calculus & Mathematics', benchmark: 70 },
+        { date: 'S4 (Sep 24)', fullDate: '2026-09-24', topic: 'Kirchhoff Circuits', score: 38, gap: 62, mastered: false, subject: 'Physics & Sciences', benchmark: 70 },
         { date: 'S5 (Recent)', fullDate: '2026-09-28', topic: 'Number Systems', score: 42, gap: 58, mastered: false, subject: 'Quantitative Aptitude', benchmark: 70 },
       ];
     }
@@ -1171,7 +1159,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
             Knowledge Gaps Heatmap: Topics You Struggle With Most
           </h3>
           <p className="text-xs text-slate-400 max-w-3xl">
-            Interactive Recharts heatmap analyzing your <strong className="text-slate-200">learning history, flagged weak topics, and quiz performance</strong> across <strong className="text-slate-200">Indian Polity, History, Economy, Geography, Aptitude, and Professional Skills</strong>. Click any heatmap cell or struggle bar to launch a targeted Socratic remediation drill.
+            Interactive Recharts heatmap analyzing your <strong className="text-slate-200">learning history, flagged weak topics, and quiz performance</strong> across <strong className="text-slate-200">Computer Science, Python, Calculus, Sciences, Aptitude, and Professional Skills</strong>. Click any heatmap cell or struggle bar to launch a targeted Socratic remediation drill.
           </p>
         </div>
 
@@ -1279,7 +1267,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
               <span aria-hidden="true" className="text-slate-600">·</span>
               <span className="text-rose-400 font-semibold flex items-center gap-1">
                 <Flame className="w-3.5 h-3.5 fill-rose-400 text-rose-500" />
-                <span>#1 Priority: {profile.weakTopics?.[0] || (topStruggledTopics[0] ? `${topStruggledTopics[0].subject} (${topStruggledTopics[0].subCategory})` : 'Indian Polity (Fundamental Rights)')}</span>
+                <span>#1 Priority: {profile.weakTopics?.[0] || (topStruggledTopics[0] ? `${topStruggledTopics[0].subject} (${topStruggledTopics[0].subCategory})` : 'Computer Science & DSA (Dynamic Programming)')}</span>
               </span>
               <span aria-hidden="true" className="text-slate-600">·</span>
               <span className="text-slate-400 font-mono tabular-nums">
@@ -1307,7 +1295,7 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
             type="button"
             onClick={() => {
               const topTarget = topStruggledTopics[0];
-              const topicName = topTarget ? `${topTarget.subject} - ${topTarget.subCategory}` : profile.weakTopics?.[0] || 'Indian Polity';
+              const topicName = topTarget ? `${topTarget.subject} - ${topTarget.subCategory}` : profile.weakTopics?.[0] || 'Dynamic Programming';
               onNavigateToChat(
                 `Tutor, based on my Knowledge Gaps analysis, my #1 struggle is ${topicName}. Please prioritize this topic and guide me step-by-step with Socratic questions to master the core concepts.`
               );
@@ -1351,17 +1339,6 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
             }`}
           >
             All Subjects ({heatmapCells.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedSubjectFilter('upsc_ssc_focus')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-              selectedSubjectFilter === 'upsc_ssc_focus'
-                ? 'bg-slate-800 text-white font-semibold shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            UPSC &amp; SSC Focus
           </button>
           {SUBJECTS_ORDER.map((subj) => (
             <button
@@ -1563,7 +1540,15 @@ export const KnowledgeGapsHeatmap: React.FC<KnowledgeGapsHeatmapProps> = ({
                       ticks={SUBJECTS_ORDER.map((_, idx) => idx)}
                       tickFormatter={(val) => {
                         const s = SUBJECTS_ORDER[Number(val)] || '';
-                        return s === 'Government Exams' ? 'Gov Exams' : s;
+                        return s === 'Computer Science & DSA'
+                          ? 'CS & DSA'
+                          : s === 'Calculus & Mathematics'
+                          ? 'Calculus'
+                          : s === 'Python & Programming'
+                          ? 'Python'
+                          : s === 'Physics & Sciences'
+                          ? 'Physics'
+                          : s;
                       }}
                       stroke="#94a3b8"
                       tick={{ fill: '#f8fafc', fontSize: 11, fontWeight: 700 }}

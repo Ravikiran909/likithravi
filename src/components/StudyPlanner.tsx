@@ -602,7 +602,7 @@ export const StudyPlanner: React.FC<StudyPlannerProps> = ({
             <div>
               <h2 className="text-xl font-bold text-white tracking-tight">Active Study Planner</h2>
               <p className="text-xs text-slate-300 mt-0.5">
-                Organize your government exam targets and receive WhatsApp reminders
+                Organize your academic, engineering, and exam targets and receive WhatsApp reminders
               </p>
             </div>
           </div>
@@ -1394,7 +1394,7 @@ export const StudyPlanner: React.FC<StudyPlannerProps> = ({
                 <label className="text-[11px] font-bold text-slate-400 uppercase">Exam Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. UPSC Prelims 2026"
+                  placeholder="e.g. Data Structures Final / Midterm Exam"
                   value={examTitle}
                   onChange={(e) => setExamTitle(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500"

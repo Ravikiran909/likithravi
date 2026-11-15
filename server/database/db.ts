@@ -39,9 +39,9 @@ class DatabaseStore {
   seedInitialData() {
     // 1. Users
     const user1: User = {
-      id: 'usr_aspirant',
-      name: 'Government Exam Aspirant',
-      email: 'aspirant@whatsapp.ai',
+      id: 'usr_student',
+      name: 'Aarav Sharma',
+      email: 'student@learningcommand.ai',
       phone: '+91 98450 11223',
       role: 'student',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
@@ -62,29 +62,30 @@ class DatabaseStore {
 
     // 2. Student Profiles
     const profile1: StudentProfile = {
-      id: 'prof_aspirant',
+      id: 'prof_student',
       userId: user1.id,
       name: user1.name,
+      email: user1.email,
       whatsappNumber: user1.phone,
       preferredLanguage: 'en',
-      educationLevel: 'competitive_exam',
-      subjects: ['Indian Polity', 'UPSC & SSC CGL', 'Modern Indian History', 'Indian Economy', 'Quantitative Aptitude', 'Current Affairs'],
+      educationLevel: 'college_university',
+      subjects: ['Python', 'Data Structures & Algorithms', 'Calculus & Mathematics', 'Machine Learning', 'Physics & Sciences', 'Academic Writing'],
       currentSkillLevel: 'intermediate',
-      learningGoals: ['Crack UPSC Civil Services & SSC CGL', 'Master Indian Polity (Articles & Schedules)', 'Score 90%+ in Daily Current Affairs Mocks'],
-      weakTopics: ['Indian Polity (Constitutional Amendments)', 'Indian Economy (Monetary Policy & Inflation)', 'CSAT & Quantitative Aptitude'],
-      strongTopics: ['Modern Indian History', 'General Science', 'Logical Reasoning'],
+      learningGoals: ['Master Data Structures & Algorithms', 'Excel in Semester Calculus & Physics Exams', 'Score 90%+ in Adaptive Topic Quizzes'],
+      weakTopics: ['Dynamic Programming & Graph Traversals', 'Calculus (Integration by Parts)', 'Thermodynamics & Electromagnetism'],
+      strongTopics: ['Python Functions & OOP', 'Binary Search', 'Linear Algebra'],
       studyHoursPerDay: 3,
       preferredStudyTime: '7:00 PM',
       dailyReminderEnabled: true,
       examDates: [
-        { subject: 'UPSC CSE', date: '2026-05-24', title: 'Civil Services Prelims (GS-I & CSAT)' },
-        { subject: 'SSC CGL', date: '2026-09-12', title: 'SSC CGL Tier-I National Examination' },
-        { subject: 'Banking', date: '2026-10-18', title: 'SBI & IBPS PO Preliminary Examination' },
+        { subject: 'Calculus', date: '2026-05-24', title: 'Calculus & Linear Algebra Final Exam' },
+        { subject: 'DSA', date: '2026-09-12', title: 'Data Structures & Algorithms Lab Assessment' },
+        { subject: 'Machine Learning', date: '2026-10-18', title: 'Applied Machine Learning Midterm' },
       ],
       learningHistory: [
-        { topic: 'Basic Structure Doctrine', subject: 'Indian Polity', date: '2026-10-20', mastered: true },
-        { topic: 'RBI Monetary Policy & Repo Rates', subject: 'Indian Economy', date: '2026-10-21', mastered: true },
-        { topic: '1857 Revolt & British Acts', subject: 'Modern History', date: '2026-10-22', mastered: true },
+        { topic: 'Python Functions & Scope', subject: 'Python', date: '2026-10-20', mastered: true },
+        { topic: 'Binary Search & Complexity', subject: 'DSA', date: '2026-10-21', mastered: true },
+        { topic: 'Limits & Continuity', subject: 'Calculus', date: '2026-10-22', mastered: true },
       ],
       streak: 12,
       lastActiveDate: new Date().toISOString().split('T')[0],
@@ -92,7 +93,7 @@ class DatabaseStore {
       totalSessions: 36,
       totalQuestionsAnswered: 124,
       correctAnswers: 104,
-      notes: 'Dedicated government exam aspirant preparing for UPSC CSE, SSC CGL and State PSCs.',
+      notes: 'College student focusing on Computer Science, Mathematics, Sciences, and career readiness.',
     };
 
     this.profiles.set(profile1.userId, profile1);
@@ -104,7 +105,7 @@ class DatabaseStore {
       { id: 'subj_calc', name: 'Calculus & Mathematics', code: 'MATH202', description: 'Limits, Differentiation, Integration, Differential Equations & Series.', icon: 'Sigma', category: 'Mathematics', topicsCount: 14 },
       { id: 'subj_java', name: 'Java & OOP', code: 'CS102', description: 'OOP concepts, Interfaces, Collections framework, Exception handling.', icon: 'Coffee', category: 'Programming', topicsCount: 10 },
       { id: 'subj_ml', name: 'Machine Learning', code: 'AI301', description: 'Supervised learning, neural networks, loss functions, PyTorch basics.', icon: 'Brain', category: 'AI/Data Science', topicsCount: 15 },
-      { id: 'subj_gov', name: 'Government Exams (UPSC, SSC, Banking, GATE)', code: 'GOV101', description: 'Quantitative Aptitude, Logical Reasoning, Indian Polity, Economy, Current Affairs & Technical PSU/GATE Prep.', icon: 'Landmark', category: 'Competitive Exams', topicsCount: 24 },
+      { id: 'subj_comp', name: 'Competitive & Entrance Prep (GATE, GRE, SAT, UPSC)', code: 'COMP101', description: 'Quantitative Aptitude, Logical Reasoning, Verbal Reasoning, General Studies & Entrance Exam Prep.', icon: 'Landmark', category: 'Entrance & Competitive Prep', topicsCount: 24 },
     ];
     for (const s of subjectsList) {
       this.subjects.set(s.id, s);
@@ -261,25 +262,25 @@ class DatabaseStore {
       examDate: '2026-10-15',
       daysBeforeExam: 19,
     };
-    const govExamRem1: Reminder = {
-      id: 'rem_gov_exam_alert',
+    const dsaExamRem1: Reminder = {
+      id: 'rem_dsa_exam_alert',
       userId: user1.id,
       whatsappNumber: user1.phone,
-      reminderText: '🏛️ Government Exam Notification: SSC CGL, UPSC CSE, IBPS PO & GATE CS/PSU Registration & Daily Mock Drill Alert!',
+      reminderText: '📚 Upcoming Lab Assessment: Data Structures & Algorithms — practice Graph Traversals & Dynamic Programming today!',
       targetTime: '09:00 AM',
       frequency: 'daily',
-      subject: 'Government Exams',
+      subject: 'DSA',
       timezone: 'Asia/Kolkata',
       status: 'active',
       createdAt: new Date().toISOString(),
       type: 'exam',
-      examTitle: 'SSC CGL Tier-II & GATE CS / PSU Recruitment Exam',
+      examTitle: 'Data Structures & Algorithms Lab Assessment',
       examDate: '2026-11-08',
       daysBeforeExam: 32,
     };
     this.reminders.set(rem1.id, rem1);
     this.reminders.set(examRem1.id, examRem1);
-    this.reminders.set(govExamRem1.id, govExamRem1);
+    this.reminders.set(dsaExamRem1.id, dsaExamRem1);
 
     // 7. Seed RAG Knowledge Documents
     // 7. Seed RAG Knowledge Documents for Python, Java, C, C++, C#, R, DSA, and Calculus
@@ -428,36 +429,36 @@ class DatabaseStore {
     };
     const docGovUpscPolity: DocumentRecord = {
       id: 'doc_gov_upsc_polity_gs',
-      title: 'Government Exams Prep: UPSC CSE & State PCS — Indian Polity, Economy & General Studies',
-      subject: 'Government Exams',
-      category: 'Government Exam Material',
-      originalFilename: 'upsc_state_pcs_polity_economy_compendium.pdf',
+      title: 'Civics, Polity & Economics Compendium — Constitutional Studies & General Awareness',
+      subject: 'Competitive & Entrance Prep',
+      category: 'Entrance & Competitive Study Material',
+      originalFilename: 'civics_polity_economy_compendium.pdf',
       fileSizeKb: 620,
       uploadedAt: new Date().toISOString(),
       chunkCount: 3,
-      summary: 'Complete General Studies compendium for UPSC IAS/IPS and State PCS: Constitutional Articles, Fundamental Rights, Parliamentary Procedures, Fiscal & Monetary Policy, and Five-Year Plans.',
+      summary: 'General Studies compendium covering Constitutional Articles, Fundamental Rights, Parliamentary Procedures, Fiscal & Monetary Policy, and Economics.',
     };
     const docGovSscBankingAptitude: DocumentRecord = {
       id: 'doc_gov_ssc_banking_quant',
-      title: 'Government Exams Prep: SSC CGL, IBPS/SBI PO & Railways — Quantitative Aptitude & Reasoning Shortcuts',
-      subject: 'Government Exams',
-      category: 'Government Exam Material',
-      originalFilename: 'ssc_ibps_rrb_quant_reasoning_handbook.pdf',
+      title: 'Quantitative Aptitude & Logical Reasoning — Speed Math & Problem-Solving Handbook',
+      subject: 'Competitive & Entrance Prep',
+      category: 'Entrance & Competitive Study Material',
+      originalFilename: 'quant_aptitude_reasoning_handbook.pdf',
       fileSizeKb: 540,
       uploadedAt: new Date().toISOString(),
       chunkCount: 3,
-      summary: 'High-speed formula handbook and solved patterns for SSC CGL, CHSL, Banking PO, and RRB NTPC: Percentages, SI/CI, Time & Work, Geometry, Syllogisms, Seating Arrangements, and Data Interpretation.',
+      summary: 'Formula handbook and solved patterns for placement & entrance tests: Percentages, SI/CI, Time & Work, Geometry, Syllogisms, Seating Arrangements, and Data Interpretation.',
     };
     const docGovGatePsuCs: DocumentRecord = {
       id: 'doc_gov_gate_psu_cs',
-      title: 'Government Technical Exams: GATE CS/IT, ISRO, DRDO & NIC Scientist Revision Handbook',
-      subject: 'Government Exams',
-      category: 'Government Exam Material',
-      originalFilename: 'gate_isro_drdo_cs_technical_handbook.pdf',
+      title: 'GATE CS/IT & Technical Placement Revision — Algorithms, OS, DBMS & Networks',
+      subject: 'Competitive & Entrance Prep',
+      category: 'Entrance & Competitive Study Material',
+      originalFilename: 'gate_cs_technical_handbook.pdf',
       fileSizeKb: 590,
       uploadedAt: new Date().toISOString(),
       chunkCount: 3,
-      summary: 'Targeted revision notes for technical government exams (GATE, ISRO, BARC, NIC): Master Theorem recurrences, OS CPU scheduling & page replacement, DBMS B+ Trees & ACID, and TCP congestion control.',
+      summary: 'Targeted revision notes for GATE CS and technical interviews: Master Theorem recurrences, OS CPU scheduling & page replacement, DBMS B+ Trees & ACID, and TCP congestion control.',
     };
 
     this.documents.set(doc1.id, doc1);
@@ -690,33 +691,33 @@ class DatabaseStore {
         keywords: ['Dynamic Programming', 'Knapsack', 'LCS', 'memoization', 'tabulation', 'optimal substructure'],
       },
 
-      // Government Exams Chunks
+      // Competitive & Entrance Prep Chunks
       {
         id: 'chunk_gov_upsc_1',
         documentId: docGovUpscPolity.id,
         documentTitle: docGovUpscPolity.title,
-        subject: 'Government Exams',
+        subject: 'Competitive & Entrance Prep',
         chunkIndex: 1,
         content: 'Indian Polity & Constitution High-Yield Summary (UPSC CSE & State PCS): Part III (Articles 12–35) guarantees Fundamental Rights: Equality (Art 14–18), Freedom (Art 19–22), Constitutional Remedies (Art 32 — Heart & Soul of the Constitution via Writs: Habeas Corpus, Mandamus, Prohibition, Certiorari, Quo Warranto). Part IV (Art 36–51) outlines Directive Principles of State Policy (DPSP), and Art 51A lists 11 Fundamental Duties.',
-        keywords: ['UPSC', 'Indian Polity', 'Fundamental Rights', 'Article 32', 'Writs', 'DPSP', 'State PCS'],
+        keywords: ['UPSC', 'Indian Polity', 'Fundamental Rights', 'Article 32', 'Writs', 'DPSP', 'Civics'],
       },
       {
         id: 'chunk_gov_ssc_bank_1',
         documentId: docGovSscBankingAptitude.id,
         documentTitle: docGovSscBankingAptitude.title,
-        subject: 'Government Exams',
+        subject: 'Competitive & Entrance Prep',
         chunkIndex: 1,
-        content: 'Quantitative Aptitude & Reasoning Shortcuts (SSC CGL, IBPS PO, RRB NTPC): 1) Successive Percentage Change of a% and b%: `Net = (a + b + (a*b)/100)%`. 2) Compound vs Simple Interest 2-Year Difference: `Diff = P * (R / 100)^2`. 3) Time & Work: Total Work = LCM of individual days; Efficiency = Total Work / Days. 4) Syllogisms: Use Euler Venn Diagrams and check definite vs possibility conclusions.',
-        keywords: ['SSC CGL', 'IBPS PO', 'Quantitative Aptitude', 'Compound Interest', 'Time and Work', 'Syllogism', 'RRB NTPC'],
+        content: 'Quantitative Aptitude & Reasoning Shortcuts (Placements & Entrance Tests): 1) Successive Percentage Change of a% and b%: `Net = (a + b + (a*b)/100)%`. 2) Compound vs Simple Interest 2-Year Difference: `Diff = P * (R / 100)^2`. 3) Time & Work: Total Work = LCM of individual days; Efficiency = Total Work / Days. 4) Syllogisms: Use Euler Venn Diagrams and check definite vs possibility conclusions.',
+        keywords: ['Quantitative Aptitude', 'Compound Interest', 'Time and Work', 'Syllogism', 'Placements', 'Entrance Exam'],
       },
       {
         id: 'chunk_gov_gate_psu_1',
         documentId: docGovGatePsuCs.id,
         documentTitle: docGovGatePsuCs.title,
-        subject: 'Government Exams',
+        subject: 'Competitive & Entrance Prep',
         chunkIndex: 1,
-        content: 'GATE CS/IT, ISRO & PSU Technical Revision: 1) Master Theorem for `T(n) = aT(n/b) + f(n)`: compare `f(n)` with `n^(log_b a)`. 2) Operating Systems: Coffman’s 4 Deadlock conditions are Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait. Virtual Memory Effective Access Time (EAT) = `p * (TLB + Mem) + (1 - p) * (TLB + 2 * Mem)`. 3) DBMS: BCNF requires every non-trivial FD `X -> Y` to have `X` as a superkey.',
-        keywords: ['GATE CS', 'ISRO', 'PSU Exam', 'Master Theorem', 'Deadlock', 'TLB', 'BCNF', 'DBMS'],
+        content: 'GATE CS/IT & Technical Interview Revision: 1) Master Theorem for `T(n) = aT(n/b) + f(n)`: compare `f(n)` with `n^(log_b a)`. 2) Operating Systems: Coffman’s 4 Deadlock conditions are Mutual Exclusion, Hold & Wait, No Preemption, Circular Wait. Virtual Memory Effective Access Time (EAT) = `p * (TLB + Mem) + (1 - p) * (TLB + 2 * Mem)`. 3) DBMS: BCNF requires every non-trivial FD `X -> Y` to have `X` as a superkey.',
+        keywords: ['GATE CS', 'Technical Interview', 'Master Theorem', 'Deadlock', 'TLB', 'BCNF', 'DBMS'],
       },
 
       // Calculus Chunks
@@ -1139,7 +1140,7 @@ Type your answer below! 👇`,
     if (!prof) {
       const created = this.getOrCreateProfile(
         updates.whatsappNumber || '+91 98450 11223',
-        updates.name || 'Government Exam Aspirant',
+        updates.name || 'Student',
         userId
       );
       prof = created.profile;

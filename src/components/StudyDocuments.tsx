@@ -487,7 +487,7 @@ export const StudyDocuments: React.FC<StudyDocumentsProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-                Search conceptually across our indexed RAG knowledge base using dense vector embeddings and cosine similarity, or browse student-rated government exam handbooks.
+                Search conceptually across our indexed RAG knowledge base using dense vector embeddings and cosine similarity, or browse student-rated textbooks, lecture notes, and study guides.
               </p>
             </div>
           </div>

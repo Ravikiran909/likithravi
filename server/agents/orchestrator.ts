@@ -52,7 +52,7 @@ export async function orchestrateMessage(
   profile.subjects =
     Array.isArray(profile.subjects) && profile.subjects.length > 0
       ? profile.subjects
-      : ['Indian Polity', 'UPSC & SSC CGL', 'Modern Indian History', 'Indian Economy', 'Quantitative Aptitude'];
+      : ['Python', 'Data Structures & Algorithms', 'Calculus & Mathematics', 'Machine Learning', 'Quantitative Aptitude'];
   profile.weakTopics = Array.isArray(profile.weakTopics) ? profile.weakTopics : [];
   profile.strongTopics = Array.isArray(profile.strongTopics) ? profile.strongTopics : [];
   profile.learningGoals = Array.isArray(profile.learningGoals) ? profile.learningGoals : [];

@@ -163,7 +163,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         tier: 'Gold',
         xpPoints: 500,
         description:
-          'Awarded for answering 100 adaptive quiz and exam practice questions across General Studies, CSAT, and Government Exams.',
+          'Awarded for answering 100 adaptive quiz and practice questions across Computer Science, Mathematics, Sciences, and Academic Exams.',
         requirementSummary: 'Answer 100 practice or quiz questions',
         currentValue: Math.min(100, totalQuestions),
         targetValue: 100,
@@ -388,7 +388,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
         tier: 'Diamond',
         xpPoints: 750,
         description:
-          'Mastered 5 or more core topics across General Studies, Government Exams, and Ethics subjects with high retention.',
+          'Mastered 5 or more core topics across Computer Science, Mathematics, Sciences, and General Studies with high retention.',
         requirementSummary: 'Master 5 distinct study topics',
         currentValue: Math.min(5, masteredTopicsCount),
         targetValue: 5,
@@ -907,7 +907,7 @@ export const StudentAchievements: React.FC<StudentAchievementsProps> = ({
               Unlock &ldquo;Concept Master&rdquo; Digital Badge
             </div>
             <p className="text-[11px] text-slate-400">
-              Log a Polity, Government Exam, or GS topic you have mastered to claim or upgrade your Concept Master badge.
+              Log any Computer Science, Mathematics, Science, or General Studies topic you have mastered to claim or upgrade your Concept Master badge.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-1 max-w-md">

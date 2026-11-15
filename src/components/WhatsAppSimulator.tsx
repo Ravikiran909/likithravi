@@ -165,7 +165,7 @@ export const WhatsAppSimulator: React.FC<WhatsAppSimulatorProps> = ({
               whatsappNumber: selectedProfile.whatsappNumber,
               direction: 'outgoing',
               messageType: 'text',
-              content: `Hey ${selectedProfile.name}! 👋 I'm your AI Learning Mentor on WhatsApp.\n\nWhat would you like to do today?\n📚 Learn a topic (UPSC/SSC/State PSC)\n🧠 Take a mock quiz\n📝 Ask a doubt (text or photo 📸)\n📅 Create an exam study plan\n📊 Check preparation progress (/progress)`,
+              content: `Hey ${selectedProfile.name}! 👋 I'm your AI Learning Mentor on WhatsApp.\n\nWhat would you like to do today?\n📚 Learn any topic (CS, Math, Science, Engineering & Exams)\n🧠 Take an adaptive quiz\n📝 Ask a doubt (text or photo 📸)\n📅 Create a personalized study plan\n📊 Check learning progress (/progress)`,
               timestamp: new Date().toISOString(),
               agentName: 'Orchestrator Agent',
               intent: 'HELP',
@@ -613,10 +613,10 @@ function createSampleVoiceWav(frequency = 440): string {
         {/* Quick prompt shortcuts for all agents */}
         <div className="flex flex-wrap items-center gap-1.5">
           <button
-            onClick={() => sendMessage('Explain Indian Polity Article 21')}
+            onClick={() => sendMessage('Explain Binary Search in DSA')}
             className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
-            👨‍🏫 Tutor: Indian Polity
+            👨‍🏫 Tutor: Binary Search
           </button>
           <button
             onClick={() => sendMessage('/hint')}
@@ -627,10 +627,10 @@ function createSampleVoiceWav(frequency = 440): string {
             <span>💡 /hint (Socratic Hint)</span>
           </button>
           <button
-            onClick={() => sendMessage('/quiz UPSC')}
+            onClick={() => sendMessage('/quiz Python')}
             className="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition cursor-pointer"
           >
-            🧠 /quiz UPSC
+            🧠 /quiz Python
           </button>
           <button
             onClick={() => sendMessage('/smart-quiz')}
@@ -1299,13 +1299,13 @@ function createSampleVoiceWav(frequency = 440): string {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {[
-                      { label: 'Tutor Agent', prompt: `Teach me ${selectedProfile.weakTopics?.[0] || 'Indian Polity'} with an analogy` },
+                      { label: 'Tutor Agent', prompt: `Teach me ${selectedProfile.weakTopics?.[0] || 'Recursion & Call Stack'} with an analogy` },
                       { label: 'Socratic Hint Agent', prompt: `/hint` },
-                      { label: 'Quiz Agent', prompt: `/quiz ${selectedProfile.subjects?.[0] || 'UPSC'}` },
-                      { label: 'Smart 5m Quiz', prompt: `/smart-quiz ${selectedProfile.weakTopics?.[0] || 'Modern History'}` },
+                      { label: 'Quiz Agent', prompt: `/quiz ${selectedProfile.subjects?.[0] || 'Python'}` },
+                      { label: 'Smart 5m Quiz', prompt: `/smart-quiz ${selectedProfile.weakTopics?.[0] || 'Data Structures'}` },
                       { label: 'Planner Agent', prompt: `Today's study plan` },
                       { label: 'Progress Agent', prompt: `/progress` },
-                      { label: 'Reminder Agent', prompt: `Remind me to study ${selectedProfile.subjects?.[0] || 'General Awareness'} at 7:00 PM` },
+                      { label: 'Reminder Agent', prompt: `Remind me to study ${selectedProfile.subjects?.[0] || 'Mathematics'} at 7:00 PM` },
                       { label: 'Profile Agent', prompt: `/profile` },
                     ].map((ag) => (
                       <button

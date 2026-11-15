@@ -722,11 +722,12 @@ export const DailyMicroGoalsWidget: React.FC<DailyMicroGoalsWidgetProps> = ({
                 onChange={(e) => setNewSubject(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
               >
+                <option value="Computer Science & DSA">Computer Science &amp; DSA</option>
+                <option value="Mathematics & Calculus">Mathematics &amp; Calculus</option>
+                <option value="Python & Programming">Python &amp; Programming</option>
+                <option value="Physics & Sciences">Physics &amp; Sciences</option>
                 <option value="Quantitative Aptitude">Quantitative Aptitude</option>
-                <option value="Indian Polity">Indian Polity</option>
-                <option value="Indian History">Indian History</option>
-                <option value="Government Exams">Government Exams</option>
-                <option value="General Awareness">General Awareness</option>
+                <option value="Competitive & Entrance Prep">Competitive &amp; Entrance Prep</option>
                 <option value="Professional Skills">Professional Skills</option>
               </select>
             </div>

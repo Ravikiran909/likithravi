@@ -13,7 +13,6 @@ import {
   Briefcase,
   Bot,
   Youtube,
-  FileUser,
   LogOut,
   ArrowLeft,
   Target,
@@ -47,7 +46,7 @@ interface StudentLoginDashboardProps {
 const STUDENT_TRACKS: { value: StudentProfile['educationLevel']; label: string }[] = [
   { value: 'college_university', label: 'College / University' },
   { value: 'school', label: 'High School / K-12' },
-  { value: 'competitive_exam', label: 'Competitive Exams (UPSC / GATE / SSC)' },
+  { value: 'competitive_exam', label: 'Competitive & Entrance Exams (GATE / GRE / SAT / UPSC)' },
   { value: 'engineering', label: 'Engineering & Computer Science' },
 ];
 
@@ -162,9 +161,9 @@ export const StudentLoginDashboard: React.FC<StudentLoginDashboardProps> = ({
         ]
       : [
           {
-            icon: FileUser,
-            title: 'AI Resume Generator',
-            desc: 'Tailor ATS-ready resumes to job descriptions with instant PDF export.',
+            icon: Zap,
+            title: 'Voice & WhatsApp AI Tutor',
+            desc: 'Practice step-by-step Socratic reasoning in 20+ languages.',
           },
           {
             icon: Bot,
@@ -228,13 +227,13 @@ export const StudentLoginDashboard: React.FC<StudentLoginDashboardProps> = ({
               <div className="space-y-3">
                 <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight max-w-xl">
                   {accountType === 'student'
-                    ? 'Structured learning built for students and exam aspirants.'
+                    ? 'Structured learning built for school, college, engineering, and lifelong students.'
                     : 'AI career, coding, and productivity tools built for everyday users.'}
                 </h2>
                 <p className="text-slate-400 text-base max-w-lg leading-relaxed">
                   {accountType === 'student'
                     ? 'Sign in to sync your study plans, adaptive quiz scores, flashcards, and curriculum progress across sessions with Google Cloud Firestore.'
-                    : 'Sign in to save your tailored AI resumes, AIO Doubt Solver conversations, and curated coding course progress.'}
+                    : 'Sign in to save your AIO Doubt Solver conversations, curated coding course progress, and skill roadmaps.'}
                 </p>
               </div>
 
@@ -571,7 +570,7 @@ export const StudentLoginDashboard: React.FC<StudentLoginDashboardProps> = ({
                 <span className="text-xs">
                   {accountType === 'student'
                     ? 'Includes Study Planner, Adaptive Quizzes, Flashcards & Analytics'
-                    : 'Includes AI Resume Builder, AIO Doubt Solver & Free Coding Videos'}
+                    : 'Includes AIO Doubt Solver, Free Coding Videos & Skill Analytics'}
                 </span>
               </div>
               <div className="flex items-center gap-2.5 text-slate-400">

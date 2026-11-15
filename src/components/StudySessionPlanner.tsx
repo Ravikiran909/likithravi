@@ -32,7 +32,7 @@ interface StudySessionPlannerProps {
 
 export interface PlannedCalendarBlock {
   id: string;
-  moduleCategory: 'Professional Skills' | 'Government Exams';
+  moduleCategory: 'Professional Skills' | 'Core Academics';
   title: string;
   topic: string;
   subModuleCode: string;
@@ -58,13 +58,13 @@ const PROFESSIONAL_SKILLS_MODULES_CATALOG = [
   },
   {
     code: 'SKILL-M2',
-    title: 'Effective Business Writing & Email Etiquette',
-    topic: 'Professional Correspondence & Report Drafting',
+    title: 'Effective Technical & Academic Writing',
+    topic: 'Structured Documentation, Reports & Clear Correspondence',
     durationMinutes: 60,
     tasks: [
-      'Draft a formal leave application for a senior officer',
-      'Learn the structure of a government meeting minute',
-      'Practice concise summary writing for long reports',
+      'Draft a concise executive summary for a lab or project report',
+      'Practice structured note-taking and meeting minutes',
+      'Review clarity and conciseness checklists for technical writing',
     ],
   },
   {
@@ -74,19 +74,19 @@ const PROFESSIONAL_SKILLS_MODULES_CATALOG = [
     durationMinutes: 60,
     tasks: [
       'Understand the 5 pillars of Emotional Intelligence',
-      'Practice box breathing for immediate stress relief',
-      'Draft a conflict resolution plan for a team setting',
+      'Practice box breathing for exam & deadline stress relief',
+      'Draft a conflict resolution plan for a team project setting',
     ],
   },
   {
     code: 'SKILL-M4',
-    title: 'Leadership & Public Administration Ethics',
-    topic: 'Constitutional Morality & Integrity in Governance',
+    title: 'Leadership & Collaborative Ethics',
+    topic: 'Team Ownership, Integrity & Peer Decision Making',
     durationMinutes: 75,
     tasks: [
-      'Read landmark cases on ethical governance',
-      'Draft a personal code of conduct for public service',
-      'Analyze the importance of integrity in administration',
+      'Analyze real-world engineering & academic integrity case studies',
+      'Draft a collaboration framework for group projects',
+      'Practice giving constructive, actionable peer code/work reviews',
     ],
   },
   {
@@ -102,60 +102,60 @@ const PROFESSIONAL_SKILLS_MODULES_CATALOG = [
   },
 ];
 
-const GOV_EXAMS_MODULES_CATALOG = [
+const CORE_ACADEMIC_MODULES_CATALOG = [
   {
-    code: 'GOV-M1',
-    title: 'UPSC CSE & State PCS: Indian Polity, Fundamental Rights & Governance',
-    topic: 'Articles 12–35, Constitutional Remedies, Parliament & Basic Structure',
+    code: 'ACAD-M1',
+    title: 'Data Structures & Algorithms: Trees, Graphs & Dynamic Programming',
+    topic: 'BFS/DFS Traversals, Shortest Paths, Memoization & Complexity Analysis',
     durationMinutes: 60,
     tasks: [
-      'Revise Fundamental Rights (Articles 14–32) & Writs of Supreme Court',
-      'Compare Parliamentary vs Presidential committee oversight',
-      'Solve 15 UPSC Prelims statement-based Polity MCQs',
+      'Trace BFS vs DFS on adjacency lists and analyze O(V + E) complexity',
+      'Implement top-down memoization and bottom-up DP table transitions',
+      'Solve 5 timed algorithmic coding & complexity problems',
     ],
   },
   {
-    code: 'GOV-M2',
-    title: 'SSC CGL Tier-I & II: Quantitative Aptitude & Percentage-Ratio Shortcuts',
-    topic: 'Successive Percentage Change, Profit/Loss, Time & Work LCM Method & Geometry',
+    code: 'ACAD-M2',
+    title: 'Calculus & Linear Algebra: Differentiation, Integration & Matrices',
+    topic: 'Chain Rule, Integration by Parts (LIATE), Eigenvalues & Vector Spaces',
     durationMinutes: 60,
     tasks: [
-      'Drill fraction-to-percentage table (1/6 to 1/16) & A + B + AB/100 formula',
-      'Solve 12 Time & Work efficiency problems using Total Work LCM method',
-      'Practice Circle Secant-Tangent & Triangle Similarity theorems',
+      'Review LIATE integration by parts and u-substitution strategies',
+      'Compute determinants, eigenvalues, and eigenvectors for 3x3 matrices',
+      'Practice 10 multi-step calculus & linear algebra problems',
     ],
   },
   {
-    code: 'GOV-M3',
-    title: 'IBPS PO, SBI PO & RBI Grade B: Data Interpretation & Seating Puzzles',
-    topic: 'Circular/Linear Arrangement, Syllogisms (Venn) & Monetary Policy Repo/CRR',
+    code: 'ACAD-M3',
+    title: 'Python & Software Engineering: Memory Model, OOP & Testing',
+    topic: 'LEGB Scope, Decorators, Async I/O & Unit Test Design',
     durationMinutes: 60,
     tasks: [
-      'Solve 2 timed 8-person Circular Seating Arrangement puzzles (inward/outward)',
-      'Practice 10 Only-a-few Syllogism & Coded Inequality questions',
-      'Review RBI Monetary Policy Committee (Repo, Reverse Repo, SDF, CRR, SLR)',
+      'Trace mutable vs immutable references and closure scoping rules',
+      'Design clean class hierarchies using composition and interfaces',
+      'Write unit tests covering edge cases and boundary conditions',
     ],
   },
   {
-    code: 'GOV-M4',
-    title: 'UPSC CSE: Ethics, Integrity & Aptitude',
-    topic: 'Case Studies, Emotional Intelligence & Foundational Values for Civil Service',
+    code: 'ACAD-M4',
+    title: 'Physics & Applied Sciences: Mechanics, Thermodynamics & Circuits',
+    topic: 'Conservation Laws, Entropy, Ohm/Kirchhoff Laws & Wave Optics',
     durationMinutes: 75,
     tasks: [
-      'Analyze 2 previous year Ethics case studies (Probity in Governance)',
-      'Review foundational values: Integrity, Impartiality & Objectivity',
-      'Draft a response on "Conflicts of Interest" in public administration',
+      'Derive energy and momentum conservation equations for multi-body systems',
+      'Solve 6 circuit analysis and thermodynamic cycle problems',
+      'Review common sign-convention & unit conversion pitfalls',
     ],
   },
   {
-    code: 'GOV-M5',
-    title: 'UPSC & SSC General Studies: Modern Indian History & Economic Survey',
-    topic: 'Freedom Struggle Chronology (1885–1947), Fiscal Deficit, GDP & Inflation',
+    code: 'ACAD-M5',
+    title: 'Quantitative Reasoning, Statistics & Exam Strategy',
+    topic: 'Probability Distributions, Data Interpretation & Timed Problem Solving',
     durationMinutes: 60,
     tasks: [
-      'Map chronology from Swadeshi (1905) to Quit India Movement (1942)',
-      'Distinguish Nominal vs Real GDP, Fiscal vs Primary Deficit, and CPI/WPI',
-      'Attempt 10 combined GS rapid-fire revision questions',
+      'Practice conditional probability, Bayes theorem & variance problems',
+      'Analyze multi-variable charts and tabular datasets under time limits',
+      'Attempt a 10-question mixed quantitative rapid-fire drill',
     ],
   },
 ];
@@ -203,22 +203,22 @@ function buildDefaultAutoSchedule(preferredEveningTime: string): PlannedCalendar
     const targetDate = new Date(now.getTime() + dayOffset * 86400000);
     const dateStr = targetDate.toISOString().split('T')[0];
 
-    const govMod = GOV_EXAMS_MODULES_CATALOG[dayOffset % GOV_EXAMS_MODULES_CATALOG.length];
+    const acadMod = CORE_ACADEMIC_MODULES_CATALOG[dayOffset % CORE_ACADEMIC_MODULES_CATALOG.length];
     const skillMod = PROFESSIONAL_SKILLS_MODULES_CATALOG[dayOffset % PROFESSIONAL_SKILLS_MODULES_CATALOG.length];
 
-    // Morning Calendar Block: Government Exams Preparation
+    // Morning Calendar Block: Core Academics
     blocks.push({
-      id: `cal_block_gov_${dateStr}_${dayOffset}`,
-      moduleCategory: 'Government Exams',
-      title: govMod.title,
-      topic: govMod.topic,
-      subModuleCode: govMod.code,
+      id: `cal_block_acad_${dateStr}_${dayOffset}`,
+      moduleCategory: 'Core Academics',
+      title: acadMod.title,
+      topic: acadMod.topic,
+      subModuleCode: acadMod.code,
       dateStr,
       startTime: '07:30 AM',
-      durationMinutes: govMod.durationMinutes,
+      durationMinutes: acadMod.durationMinutes,
       isCompleted: false,
       calendarSynced: dayOffset < 2,
-      tasks: govMod.tasks,
+      tasks: acadMod.tasks,
     });
 
     // Evening Calendar Block: Professional Skills Module
@@ -250,16 +250,16 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
   const todayStr = new Date().toISOString().split('T')[0];
 
   // Auto-scheduler configuration
-  const [govExamSlotTime, setGovExamSlotTime] = useState<string>('07:30 AM');
+  const [academicSlotTime, setAcademicSlotTime] = useState<string>('07:30 AM');
   const [skillSlotTime, setSkillSlotTime] = useState<string>(profile.preferredStudyTime || '07:00 PM');
   const [blockDurationMins, setBlockDurationMins] = useState<number>(60);
   const [daysToAutoBlock, setDaysToAutoBlock] = useState<number>(5);
-  const [filterModule, setFilterModule] = useState<'all' | 'Professional Skills' | 'Government Exams'>('all');
+  const [filterModule, setFilterModule] = useState<'all' | 'Professional Skills' | 'Core Academics'>('all');
   const [showSchedulerSettings, setShowSchedulerSettings] = useState<boolean>(false);
   const [showAddCustomBlockModal, setShowAddCustomBlockModal] = useState<boolean>(false);
 
   // Custom block form state
-  const [customCategory, setCustomCategory] = useState<'Professional Skills' | 'Government Exams'>('Professional Skills');
+  const [customCategory, setCustomCategory] = useState<'Professional Skills' | 'Core Academics'>('Core Academics');
   const [customTitle, setCustomTitle] = useState<string>('');
   const [customTopic, setCustomTopic] = useState<string>('');
   const [customDate, setCustomDate] = useState<string>(todayStr);
@@ -272,7 +272,13 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
       const saved = localStorage.getItem(`study_session_planner_blocks_${profile.userId}`);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((b: any) => ({
+            ...b,
+            moduleCategory:
+              b?.moduleCategory === 'Professional Skills' ? 'Professional Skills' : 'Core Academics',
+          }));
+        }
       }
     } catch {}
     return buildDefaultAutoSchedule(profile.preferredStudyTime || '07:00 PM');
@@ -326,21 +332,21 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
       const dateObj = new Date(now.getTime() + i * 86400000);
       const dateStr = dateObj.toISOString().split('T')[0];
 
-      const govModule = GOV_EXAMS_MODULES_CATALOG[i % GOV_EXAMS_MODULES_CATALOG.length];
+      const acadModule = CORE_ACADEMIC_MODULES_CATALOG[i % CORE_ACADEMIC_MODULES_CATALOG.length];
       const skillModule = PROFESSIONAL_SKILLS_MODULES_CATALOG[i % PROFESSIONAL_SKILLS_MODULES_CATALOG.length];
 
-      const govBlock: PlannedCalendarBlock = {
-        id: `auto_gov_${dateStr}_${Date.now()}_${i}`,
-        moduleCategory: 'Government Exams',
-        title: govModule.title,
-        topic: govModule.topic,
-        subModuleCode: govModule.code,
+      const acadBlock: PlannedCalendarBlock = {
+        id: `auto_acad_${dateStr}_${Date.now()}_${i}`,
+        moduleCategory: 'Core Academics',
+        title: acadModule.title,
+        topic: acadModule.topic,
+        subModuleCode: acadModule.code,
         dateStr,
-        startTime: govExamSlotTime,
+        startTime: academicSlotTime,
         durationMinutes: blockDurationMins,
         isCompleted: false,
         calendarSynced: false,
-        tasks: govModule.tasks,
+        tasks: acadModule.tasks,
       };
 
       const skillBlock: PlannedCalendarBlock = {
@@ -357,7 +363,7 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
         tasks: skillModule.tasks,
       };
 
-      generated.push(govBlock, skillBlock);
+      generated.push(acadBlock, skillBlock);
     }
 
     // Sync first 4 blocks to the backend StudyPlan API
@@ -386,7 +392,7 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
     setIsSyncingCalendar(false);
 
     showFeedback(
-      `Automatically scheduled ${generated.length} sessions (${daysToAutoBlock} days) for Government Exams (${govExamSlotTime}) and Professional Skills (${skillSlotTime})!`
+      `Automatically scheduled ${generated.length} sessions (${daysToAutoBlock} days) for Core Academics (${academicSlotTime}) and Professional Skills (${skillSlotTime})!`
     );
   };
 
@@ -394,7 +400,7 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
     const lines: string[] = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//AI Study Companion//Professional Skills and Government Exams Planner//EN',
+      'PRODID:-//AI Study Companion//Core Academics and Professional Skills Planner//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
     ];
@@ -427,14 +433,14 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `gov_exams_skills_schedule_${todayStr}.ics`;
+    a.download = `study_schedule_${todayStr}.ics`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
     showFeedback(
-      `Exported ${plannedBlocks.length} Government Exams & Professional Skills time blocks to .ics calendar file!`
+      `Exported ${plannedBlocks.length} Core Academics & Professional Skills time blocks to .ics calendar file!`
     );
   };
 
@@ -484,7 +490,7 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
       moduleCategory: customCategory,
       title: customTitle.trim(),
       topic: customTopic.trim() || `${customCategory} Core Practice & Revision`,
-      subModuleCode: customCategory === 'Professional Skills' ? 'SKILL-CUSTOM' : 'GOV-CUSTOM',
+      subModuleCode: customCategory === 'Professional Skills' ? 'SKILL-CUSTOM' : 'ACAD-CUSTOM',
       dateStr: customDate,
       startTime: customTime,
       durationMinutes: Number(customDuration) || 60,
@@ -515,7 +521,7 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
   }, [plannedBlocks, filterModule]);
 
   const skillBlocksCount = plannedBlocks.filter((b) => b.moduleCategory === 'Professional Skills').length;
-  const govBlocksCount = plannedBlocks.filter((b) => b.moduleCategory === 'Government Exams').length;
+  const academicBlocksCount = plannedBlocks.filter((b) => b.moduleCategory === 'Core Academics').length;
   const totalBlockedHours = (
     plannedBlocks.reduce((acc, b) => acc + b.durationMinutes, 0) / 60
   ).toFixed(1);
@@ -541,13 +547,13 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
             <Calendar className="w-4 h-4" />
             <span>Study Session Planner</span>
             <span aria-hidden="true" className="text-slate-600">·</span>
-            <span className="text-indigo-400">Government Exams & Professional Skills</span>
+            <span className="text-indigo-400">Core Academics &amp; Professional Skills</span>
           </div>
           <h3 className="text-xl font-bold text-white tracking-tight">
-            Automated Time-Blocking & Upcoming Event View
+            Automated Time-Blocking &amp; Upcoming Event View
           </h3>
           <p className="text-xs text-slate-400 max-w-3xl">
-            Automatically schedules slots for your Government Exams and Professional Skills modules.
+            Automatically schedules slots for your Core Academics ({academicBlocksCount}) and Professional Skills ({skillBlocksCount}) modules.
           </p>
         </div>
 
@@ -608,8 +614,8 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
             <label className="block text-xs font-medium text-slate-400 mb-1">Morning Slot</label>
             <input
               type="text"
-              value={govExamSlotTime}
-              onChange={(e) => setGovExamSlotTime(e.target.value)}
+              value={academicSlotTime}
+              onChange={(e) => setAcademicSlotTime(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white"
             />
           </div>
@@ -657,8 +663,8 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
               onChange={(e) => setCustomCategory(e.target.value as any)}
               className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white"
             >
+              <option value="Core Academics">Core Academics</option>
               <option value="Professional Skills">Professional Skills</option>
-              <option value="Government Exams">Government Exams</option>
             </select>
             <input
               type="text"
@@ -688,7 +694,7 @@ export const StudySessionPlanner: React.FC<StudySessionPlannerProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8 space-y-4">
           <div className="flex items-center gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl">
-            {['all', 'Professional Skills', 'Government Exams'].map((cat) => (
+            {['all', 'Core Academics', 'Professional Skills'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setFilterModule(cat as any)}

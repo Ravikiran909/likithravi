@@ -14,7 +14,6 @@ import {
   WorkspaceEntryPayload,
 } from './components/StudentLoginDashboard.tsx';
 import { YouTubeLearningHub } from './components/YouTubeLearningHub.tsx';
-import { AIResumeGenerator } from './components/AIResumeGenerator.tsx';
 import { AIODoubtSolver } from './components/AIODoubtSolver.tsx';
 import { saveOfflineDocuments, saveOfflineProfile } from './utils/offlineDb.ts';
 import { StudentProfile } from './types/index.ts';
@@ -37,13 +36,18 @@ const normalizeStudentProfile = (
   fallback?: StudentProfile | null
 ): StudentProfile => {
   const base = fallback || ({} as Partial<StudentProfile>);
-  const userId = raw?.userId || base.userId || 'usr_aspirant';
+  const rawUserId = raw?.userId || base.userId || 'usr_student';
+  const userId = rawUserId === 'usr_aspirant' ? 'usr_student' : rawUserId;
+  const rawName = raw?.name || base.name || '';
+  const cleanName = /\b(government|competitive)\s+exam\s+aspirant\b/i.test(rawName)
+    ? 'Active Learner'
+    : rawName || 'Active Learner';
   return {
     ...base,
     ...(raw || {}),
     id: raw?.id || base.id || `prof_${userId}`,
     userId,
-    name: raw?.name || base.name || 'Active Learner',
+    name: cleanName,
     whatsappNumber: raw?.whatsappNumber || base.whatsappNumber || '+91 98450 11223',
     preferredLanguage: raw?.preferredLanguage || base.preferredLanguage || 'en',
     educationLevel: raw?.educationLevel || base.educationLevel || 'college_university',
@@ -134,7 +138,7 @@ const normalizeStudentProfile = (
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'videos' | 'resume' | 'chat_aio' | 'documents' | 'student' | 'admin' | 'login'>('student');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'voice' | 'videos' | 'chat_aio' | 'documents' | 'student' | 'admin' | 'login'>('student');
   const [pendingChatPrompt, setPendingChatPrompt] = useState<string | undefined>(undefined);
   const [selectedProfile, setSelectedProfile] = useState<StudentProfile>(
     normalizeStudentProfile(null)
@@ -233,7 +237,7 @@ export default function App() {
           educationLevel: resolvedType === 'user' ? 'professional' : 'college_university',
           subjects:
             resolvedType === 'user'
-              ? ['Python', 'Data Analysis', 'AI Agents', 'Career & Resume']
+              ? ['Python', 'Data Analysis', 'AI Agents', 'System Design']
               : ['Mathematics', 'Programming', 'App Development', 'Science', 'English'],
         });
         setSelectedProfile(newProfile);
@@ -339,7 +343,7 @@ export default function App() {
         whatsappNumber: payload.whatsappNumber || selectedProfile.whatsappNumber,
         subjects:
           payload.accountType === 'user'
-            ? ['Python', 'Data Analysis', 'Prompt Engineering', 'Career & Resume']
+            ? ['Python', 'Data Analysis', 'Prompt Engineering', 'Software Architecture']
             : selectedProfile.subjects,
       },
       selectedProfile
@@ -572,13 +576,6 @@ export default function App() {
               if (text) setPendingChatPrompt(text);
               setActiveTab('simulator');
             }}
-          />
-        )}
-
-        {activeTab === 'resume' && (
-          <AIResumeGenerator
-            profile={selectedProfile}
-            onProfileUpdate={handleProfileUpdate}
           />
         )}
 

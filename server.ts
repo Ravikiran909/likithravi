@@ -416,10 +416,10 @@ app.post('/api/daily-affirmation/gemini', async (req, res) => {
     const { userId, focusTopic, mood } = req.body || {};
     const prof = userId ? db.getProfileByUserId(String(userId)) : undefined;
     const studentName = prof?.name || 'Scholar';
-    const subjects = (prof?.subjects || ['Indian Polity', 'Government Exams', 'Modern History']).join(', ');
+    const subjects = (prof?.subjects || ['Computer Science', 'Mathematics', 'Sciences', 'Academic Studies']).join(', ');
     const streak = prof?.streak || 7;
     const targetTopic =
-      focusTopic || prof?.weakTopics?.[0] || 'Indian Polity, History & Current Affairs';
+      focusTopic || prof?.weakTopics?.[0] || 'Data Structures, Calculus & Core Concepts';
     const dateKey = new Date().toISOString().split('T')[0];
 
     let generated: any = null;
@@ -640,69 +640,6 @@ app.post('/api/verification/digilocker', (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'DigiLocker verification failed' });
-  }
-});
-
-// ----------------------------------------------------
-// AI Resume Generator Endpoint
-// ----------------------------------------------------
-app.post('/api/resume/generate', async (req, res) => {
-  try {
-    const { userId, userData, jobDescription, template = 'modern' } = req.body;
-    if (!userData) {
-      return res.status(400).json({ error: 'User data is required' });
-    }
-
-    const ai = getGeminiAI();
-    if (!ai) {
-      return res.status(500).json({ error: 'Gemini AI not configured' });
-    }
-
-    const prompt = `You are a professional Resume Writing Expert. Create a high-impact, professional resume based on the provided user data.
-User Details: ${JSON.stringify(userData)}
-Target Job Description (Optional): ${jobDescription || 'None provided'}
-Template Style: ${template}
-
-Return the resume in a strictly structured JSON format with these keys:
-{
-  "personalInfo": { "fullName": "", "title": "", "email": "", "phone": "", "location": "", "linkedin": "", "portfolio": "" },
-  "summary": "Professional profile summary (3-5 sentences)",
-  "experience": [
-    { "company": "", "position": "", "location": "", "startDate": "", "endDate": "", "highlights": ["Point 1", "Point 2"] }
-  ],
-  "education": [
-    { "institution": "", "degree": "", "field": "", "graduationDate": "" }
-  ],
-  "skills": { "technical": [], "soft": [], "languages": [] },
-  "projects": [
-    { "name": "", "description": "", "link": "" }
-  ],
-  "certifications": []
-}
-
-Rules:
-- Be concise and action-oriented.
-- Use strong verbs (e.g., "Led", "Developed", "Optimized").
-- Quantify achievements where possible.
-- If job description is provided, tailor keywords to it.`;
-
-    const genRes = await generateContentWithRetry({
-      contents: prompt,
-      preferredModel: 'gemini-4-hydrogen',
-      config: {
-        responseMimeType: 'application/json',
-      },
-      timeoutMs: 15000,
-    });
-
-    const resumeContent = JSON.parse(genRes.text || '{}');
-    const resumeId = `res_${uuidv4().substring(0, 8)}`;
-    
-    // Save to Firestore-like structure if needed, or just return
-    res.json({ success: true, resumeId, content: resumeContent });
-  } catch (err: any) {
-    console.error('Resume generation error:', err);
-    res.status(500).json({ error: err.message || 'Failed to generate resume' });
   }
 });
 
@@ -1030,7 +967,7 @@ const studyCirclesStore = new Map<string, StudyCircleGroup>([
       subject: 'Mathematics',
       topic: 'Data Interpretation & Logical Reasoning',
       description:
-        'Practice sessions for fast calculation, number systems, and logical reasoning patterns for SSC and Banking.',
+        'Practice sessions for fast calculation, number systems, probability, and logical reasoning across college & competitive exams.',
       whatsappInviteCode: 'WA-QA-CSAT-309',
       activeNowCount: 10,
       createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
@@ -3557,10 +3494,10 @@ app.get('/api/admin/dashboard', (req, res) => {
         quizAccuracy: 75,
       },
       {
-        name: 'Government Exams',
+        name: 'Competitive & Entrance Prep',
         learners: 35 + totalStudents,
         avgMastery: 69,
-        documentsCount: subjectDocsCount['Government Exams'] || 3,
+        documentsCount: subjectDocsCount['Competitive & Entrance Prep'] || 3,
         quizAccuracy: 74,
       },
       {

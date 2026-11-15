@@ -175,7 +175,7 @@ export const SecurityPrivacyHubModal: React.FC<SecurityPrivacyHubModalProps> = (
                 <div>
                   <div className="text-xs font-semibold text-emerald-400 flex items-center space-x-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Aspirant Security & Privacy Shield</span>
+                    <span>Student Security & Privacy Shield</span>
                   </div>
                   <div className="text-2xl font-black text-white mt-1">
                     {securityScore >= 90 ? 'Ultra-Secure Tier' : 'Protected Tier'}

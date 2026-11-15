@@ -99,7 +99,10 @@ export function generateStudentProgressPdf(
   const levelLabels: Record<string, string> = {
     school: 'High School (K-12)',
     college: 'College / University',
-    competitive_exam: 'Competitive Exam Aspirant',
+    college_university: 'College / University',
+    engineering: 'Engineering & Computer Science',
+    competitive_exam: 'Competitive & Entrance Prep',
+    competitive: 'Competitive & Entrance Prep',
     professional: 'Working Professional',
   };
   const eduStr = levelLabels[profile.educationLevel] || profile.educationLevel;

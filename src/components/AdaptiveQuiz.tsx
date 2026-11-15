@@ -238,7 +238,7 @@ export const AdaptiveQuiz: React.FC<AdaptiveQuizProps> = ({
               'D) Skipping revisions',
             ],
             correctAnswer: 'A',
-            explanation: 'A balanced approach involving conceptual clarity and factual recall is essential for competitive exams like UPSC and SSC.',
+            explanation: 'A balanced approach involving conceptual clarity, active recall, and spaced practice is essential for mastering any academic subject or exam.',
             difficulty: 'intermediate',
           },
           {
